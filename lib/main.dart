@@ -356,7 +356,7 @@ class _HomePageState extends State<HomePage> {
       final result = await ProductoService.crearCategoria(categoria);
       
       print('✅ Resultado: $result');
-      
+      print('📦 Datos de la categoría creada: ${result['data']}');
       setState(() {
         if (result['success']) {
           _connectionStatus = 'Categoría creada exitosamente: ${result['data'].nombre}';
