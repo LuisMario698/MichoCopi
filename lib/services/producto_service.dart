@@ -7,45 +7,90 @@ class ProductoService {
   // Crear un nuevo producto
   static Future<Map<String, dynamic>> crearProducto(Producto producto) async {
     try {
-      // Obtener el próximo ID disponible
-      final siguienteId = await _obtenerSiguienteIdProducto();
-      
-      // Crear una copia del producto con el ID generado
-      final productoConId = Producto(
-        id: siguienteId,
-        nombre: producto.nombre,
-        precio: producto.precio,
-        stock: producto.stock,
-        categoria: producto.categoria,
-        proveedor: producto.proveedor,
-        caducidad: producto.caducidad,
-      );
-      
-      final jsonData = productoConId.toJson();
-      print('📝 Datos a enviar a Supabase: $jsonData');
-      print('🔍 Tipos de datos:');
-      jsonData.forEach((key, value) {
-        print('  $key: $value (${value.runtimeType})');
-      });
-      
-      // Validar que los IDs no sean null
-      if (jsonData['categoria'] == null) {
-        throw Exception('El ID de la categoría no puede ser null');
+      // Validaciones iniciales
+      if (producto.nombre.trim().isEmpty) {
+        return {
+          'success': false,
+          'message': 'El nombre del producto es requerido',
+        };
       }
-      if (jsonData['proveedor'] == null) {
-        throw Exception('El ID del proveedor no puede ser null');
-      }
-      
-      print('🚀 Insertando en tabla Productos...');
-      
-      final response =
-          await _client
-              .from('Productos')
-              .insert(jsonData)
-              .select()
-              .single();
 
-      print('✅ Respuesta de Supabase: $response');
+      if (producto.precio <= 0) {
+        return {
+          'success': false,
+          'message': 'El precio debe ser mayor a 0',
+        };
+      }
+
+      if (producto.stock < 0) {
+        return {
+          'success': false,
+          'message': 'El stock no puede ser negativo',
+        };
+      }
+
+      // Verificar si la categoría existe
+      try {
+        final categoriaResponse = await _client
+            .from('Categoria_producto')
+            .select('id, nombre')
+            .eq('id', producto.categoria)
+            .single();
+        print('✅ Categoría verificada: $categoriaResponse');
+      } catch (e) {
+        print('❌ Error verificando categoría: $e');
+        return {
+          'success': false,
+          'message': 'La categoría seleccionada no existe',
+        };
+      }
+
+      // Verificar si el proveedor existe
+      try {
+        final proveedorResponse = await _client
+            .from('Proveedores')
+            .select('id, nombre')
+            .eq('id', producto.proveedor)
+            .single();
+        print('✅ Proveedor verificado: $proveedorResponse');
+      } catch (e) {
+        print('❌ Error verificando proveedor: $e');
+        return {
+          'success': false,
+          'message': 'El proveedor seleccionado no existe',
+        };
+      }
+
+      // Verificar si ya existe un producto con el mismo nombre
+      final nombreExists = await verificarNombreProducto(producto.nombre);
+      if (nombreExists['success'] && nombreExists['existe']) {
+        return {
+          'success': false,
+          'message': 'Ya existe un producto con este nombre',
+        };
+      }
+
+      // Preparar datos para inserción
+      final productoData = {
+        'nombre': producto.nombre.trim(),
+        'precio': double.parse(producto.precio.toStringAsFixed(2)),
+        'stock': producto.stock,
+        'categoria': producto.categoria,
+        'proveedor': producto.proveedor,
+        if (producto.caducidad != null)
+          'caducidad': producto.caducidad!.toIso8601String().split('T')[0],
+      };
+
+      print('📝 Datos a enviar a Supabase: $productoData');
+
+      // Insertar el producto
+      final response = await _client
+          .from('Productos')
+          .insert(productoData)
+          .select()
+          .single();
+
+      print('✅ Producto creado exitosamente en Supabase: $response');
 
       return {
         'success': true,
@@ -53,18 +98,34 @@ class ProductoService {
         'message': 'Producto creado exitosamente',
       };
     } catch (e) {
-      print('❌ Error completo en crearProducto: $e');
-      print('❌ Tipo de error: ${e.runtimeType}');
+      print('❌ Error en crearProducto: $e');
+      String errorMessage = 'Error al crear el producto';
+
       if (e is PostgrestException) {
         print('❌ Código de error: ${e.code}');
         print('❌ Mensaje: ${e.message}');
         print('❌ Detalles: ${e.details}');
-        print('❌ Hint: ${e.hint}');
+
+        // Mensajes más específicos según el tipo de error
+        switch (e.code) {
+          case '23505': // unique_violation
+            errorMessage = 'Ya existe un producto con este nombre';
+            break;
+          case '23503': // foreign_key_violation
+            errorMessage = 'La categoría o proveedor seleccionado no existe';
+            break;
+          case '23502': // not_null_violation
+            errorMessage = 'Faltan datos requeridos';
+            break;
+          default:
+            errorMessage = 'Error al crear el producto: ${e.message}';
+        }
       }
+
       return {
         'success': false,
         'error': e.toString(),
-        'message': 'Error al crear el producto: ${e.toString()}',
+        'message': errorMessage,
       };
     }
   }
@@ -180,20 +241,39 @@ class ProductoService {
   }
 
   // Verificar si existe un producto con el mismo nombre
-  static Future<Map<String, dynamic>> verificarNombreProducto(
-    String nombre,
-  ) async {
+  static Future<Map<String, dynamic>> verificarNombreProducto(String nombre) async {
     try {
+      if (nombre.trim().isEmpty) {
+        return {
+          'success': true,
+          'existe': false,
+          'message': 'El nombre está vacío',
+        };
+      }
+
+      print('🔍 Verificando nombre de producto: $nombre');
       final response = await _client
           .from('Productos')
-          .select('id')
-          .ilike('nombre', nombre)
+          .select('id, nombre')
+          .ilike('nombre', nombre.trim())
           .limit(1);
 
-      return {'success': true, 'existe': (response as List).isNotEmpty};
+      final existe = (response as List).isNotEmpty;
+      
+      print('✅ Resultado verificación: ${existe ? "Existe" : "No existe"}');
+      
+      return {
+        'success': true,
+        'existe': existe,
+        'message': existe ? 'Ya existe un producto con este nombre' : 'Nombre disponible',
+      };
     } catch (e) {
-      print('⚠️ Error en verificarNombreProducto: $e');
-      return {'success': false, 'error': e.toString()};
+      print('❌ Error en verificarNombreProducto: $e');
+      return {
+        'success': false,
+        'error': e.toString(),
+        'message': 'Error al verificar el nombre del producto',
+      };
     }
   }
 
@@ -216,28 +296,20 @@ class ProductoService {
   }
 
   // Crear una nueva categoría
-  static Future<Map<String, dynamic>> crearCategoria(
-    Categoria categoria,
-  ) async {
+  static Future<Map<String, dynamic>> crearCategoria(Categoria categoria) async {
     try {
-      // Obtener el próximo ID disponible
-      final siguienteId = await _obtenerSiguienteIdCategoria();
+      print('📝 Creando categoría: ${categoria.nombre}');
       
-      // Crear una copia de la categoría con el ID generado
-      final categoriaConId = Categoria(
-        id: siguienteId,
-        nombre: categoria.nombre,
-        conCaducidad: categoria.conCaducidad,
-      );
-      
-      print('📝 Creando categoría con ID: ${categoriaConId.toJson()}');
-      
-      final response =
-          await _client
-              .from('Categoria_producto')
-              .insert(categoriaConId.toJson())
-              .select()
-              .single();
+      final response = await _client
+          .from('Categoria_producto')
+          .insert({
+            'nombre': categoria.nombre.trim(),
+            'conCaducidad': categoria.conCaducidad,
+          })
+          .select()
+          .single();
+
+      print('✅ Categoría creada en Supabase: $response');
 
       return {
         'success': true,
@@ -245,7 +317,7 @@ class ProductoService {
         'message': 'Categoría creada exitosamente',
       };
     } catch (e) {
-      print('⚠️ Error en crearCategoria: $e');
+      print('❌ Error en crearCategoria: $e');
       return {
         'success': false,
         'error': e.toString(),
@@ -472,6 +544,58 @@ class ProductoService {
         'success': false,
         'error': e.toString(),
         'message': 'Error al actualizar el stock',
+      };
+    }
+  }
+
+  // Verificar estructura de la base de datos
+  static Future<Map<String, dynamic>> verificarEstructuraDB() async {
+    try {
+      print('🔍 Verificando estructura de la base de datos...');
+      
+      // Verificar tabla Categoria_producto
+      final categoriasResponse = await _client
+          .from('Categoria_producto')
+          .select('id, nombre, conCaducidad');
+      print('✅ Tabla Categoria_producto accesible');
+      print('📊 Categorías existentes en DB:');
+      for (var categoria in categoriasResponse as List) {
+        print('  - ID: ${categoria['id']}, Nombre: ${categoria['nombre']}');
+      }
+
+      // Verificar tabla Proveedores
+      final proveedoresResponse = await _client
+          .from('Proveedores')
+          .select('id, nombre');
+      print('✅ Tabla Proveedores accesible');
+      print('📊 Proveedores existentes en DB:');
+      for (var proveedor in proveedoresResponse as List) {
+        print('  - ID: ${proveedor['id']}, Nombre: ${proveedor['nombre']}');
+      }
+
+      // Verificar tabla Productos
+      final productosResponse = await _client
+          .from('Productos')
+          .select('id, nombre');
+      print('✅ Tabla Productos accesible');
+      print('📊 Productos existentes en DB:');
+      for (var producto in productosResponse as List) {
+        print('  - ID: ${producto['id']}, Nombre: ${producto['nombre']}');
+      }
+
+      return {
+        'success': true,
+        'message': 'Estructura de base de datos verificada',
+        'categorias': categoriasResponse,
+        'proveedores': proveedoresResponse,
+        'productos': productosResponse,
+      };
+    } catch (e) {
+      print('❌ Error verificando estructura: $e');
+      return {
+        'success': false,
+        'error': e.toString(),
+        'message': 'Error verificando estructura de la base de datos',
       };
     }
   }

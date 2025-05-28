@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/producto.dart';
 import '../services/producto_service.dart';
-import 'agregar_categoria_page.dart';
+import '../widgets/categoria_form_panel.dart';
 
 class AgregarProductoPage extends StatefulWidget {
   const AgregarProductoPage({super.key});
@@ -344,18 +344,21 @@ class _AgregarProductoPageState extends State<AgregarProductoPage> {
       ),
     );
   }
-
   Future<void> _agregarNuevaCategoria() async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const AgregarCategoriaPage()),
+    showDialog(
+      context: context,
+      barrierColor: Colors.transparent,
+      builder: (BuildContext context) => CategoriaFormPanel(
+        onClose: () => Navigator.of(context).pop(),
+        onCategoriaCreated: (success) {
+          Navigator.of(context).pop();
+          if (success) {
+            _mostrarSnackBar('Categoría creada exitosamente');
+            _cargarDatos(); // Recargar categorías
+          }
+        },
+      ),
     );
-
-    // Si se creó una nueva categoría, recargar la lista
-    if (result == true) {
-      _mostrarSnackBar('Categoría creada exitosamente');
-      await _cargarDatos(); // Recargar categorías
-    }
   }
 
   Future<void> _validarNombreProducto(String nombre) async {
@@ -406,6 +409,8 @@ class _AgregarProductoPageState extends State<AgregarProductoPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.of(context).size.width >= 600;
+    
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -414,358 +419,570 @@ class _AgregarProductoPageState extends State<AgregarProductoPage> {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      body:
-          _isLoadingData
-              ? const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(color: Color(0xFFC2185B)),
-                    SizedBox(height: 16),
-                    Text('Cargando datos...'),
-                  ],
-                ),
-              )
-              : SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Card(
-                  elevation: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // Título
-                          const Text(
-                            'Información del Producto',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFFC2185B),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Nombre del producto
-                          TextFormField(
-                            controller: _nombreController,
-                            decoration: const InputDecoration(
-                              labelText: 'Nombre del producto *',
-                              prefixIcon: Icon(Icons.shopping_bag),
-                              border: OutlineInputBorder(),
-                              helperText: 'El nombre debe ser único',
-                            ),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'El nombre es obligatorio';
-                              }
-                              if (value.trim().length < 2) {
-                                return 'El nombre debe tener al menos 2 caracteres';
-                              }
-                              if (_nombreExiste) {
-                                return 'Ya existe un producto con este nombre';
-                              }
-                              return null;
-                            },
-                            onChanged: (value) {
-                              // Validar en tiempo real si el nombre ya existe
-                              if (value.trim().length >= 2) {
-                                _validarNombreProducto(value.trim());
-                              }
-                            },
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Precio
-                          TextFormField(
-                            controller: _precioController,
-                            decoration: const InputDecoration(
-                              labelText: 'Precio *',
-                              prefixIcon: Icon(Icons.attach_money),
-                              border: OutlineInputBorder(),
-                            ),
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            inputFormatters: [
-                              FilteringTextInputFormatter.allow(
-                                RegExp(r'^\d*\.?\d{0,2}'),
-                              ),
-                            ],
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'El precio es obligatorio';
-                              }
-                              final precio = double.tryParse(value);
-                              if (precio == null || precio <= 0) {
-                                return 'Ingresa un precio válido mayor a 0';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Stock
-                          TextFormField(
-                            controller: _stockController,
-                            decoration: const InputDecoration(
-                              labelText: 'Stock inicial *',
-                              prefixIcon: Icon(Icons.inventory),
-                              border: OutlineInputBorder(),
-                              suffixText: 'unidades',
-                            ),
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                            ],
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'El stock es obligatorio';
-                              }
-                              final stock = int.tryParse(value);
-                              if (stock == null || stock < 0) {
-                                return 'Ingresa un stock válido (0 o mayor)';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Categoría de producto con botón de agregar
-                          Row(
-                            children: [
-                              Expanded(
-                                child: DropdownButtonFormField<int>(
-                                  value: _categoriaSeleccionada,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Categoría *',
-                                    prefixIcon: Icon(Icons.category),
-                                    border: OutlineInputBorder(),
+      body: _isLoadingData
+          ? const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(color: Color(0xFFC2185B)),
+                  SizedBox(height: 16),
+                  Text('Cargando datos...'),
+                ],
+              ),
+            )
+          : SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: isDesktop ? 32 : 16,
+                vertical: 16,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 800),
+                  child: Card(
+                    elevation: 2,
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Encabezado
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFC2185B).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  items:
-                                      _categorias
-                                        .where((categoria) => categoria.id != null) // Solo mostrar categorías con ID válido
-                                        .map((categoria) {
-                                        return DropdownMenuItem<int>(
-                                          value: categoria.id!,
-                                          child: Row(
-                                            children: [
-                                              Text(categoria.nombre),
-                                              if (categoria.conCaducidad) ...[
-                                                const SizedBox(width: 8),
-                                                const Icon(
-                                                  Icons.schedule,
-                                                  size: 16,
-                                                  color: Colors.orange,
-                                                ),
-                                              ],
-                                            ],
+                                  child: const Icon(
+                                    Icons.add_shopping_cart,
+                                    color: Color(0xFFC2185B),
+                                    size: 32,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Nuevo Producto',
+                                        style: TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFFC2185B),
+                                        ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'Ingresa la información del producto',
+                                        style: TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 32),
+                            
+                            // Información básica
+                            Card(
+                              elevation: 0,
+                              color: Colors.grey[50],
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Row(
+                                      children: [
+                                        Icon(Icons.info_outline, 
+                                          color: Color(0xFFC2185B),
+                                          size: 20,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Información Básica',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
                                           ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    // Campo de nombre con indicador de validación
+                                    TextFormField(
+                                      controller: _nombreController,
+                                      decoration: InputDecoration(
+                                        labelText: 'Nombre del producto *',
+                                        prefixIcon: const Icon(Icons.shopping_bag),
+                                        border: const OutlineInputBorder(),
+                                        helperText: 'El nombre debe ser único',
+                                        suffixIcon: _validandoNombre 
+                                          ? const SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: Padding(
+                                                padding: EdgeInsets.all(8.0),
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                ),
+                                              ),
+                                            )
+                                          : _nombreExiste
+                                              ? const Icon(
+                                                  Icons.error,
+                                                  color: Colors.red,
+                                                )
+                                              : _nombreController.text.isNotEmpty
+                                                  ? const Icon(
+                                                      Icons.check_circle,
+                                                      color: Colors.green,
+                                                    )
+                                                  : null,
+                                      ),
+                                      validator: (value) {
+                                        if (value == null || value.trim().isEmpty) {
+                                          return 'El nombre es obligatorio';
+                                        }
+                                        if (value.trim().length < 2) {
+                                          return 'El nombre debe tener al menos 2 caracteres';
+                                        }
+                                        if (_nombreExiste) {
+                                          return 'Ya existe un producto con este nombre';
+                                        }
+                                        return null;
+                                      },
+                                      onChanged: (value) {
+                                        if (value.trim().length >= 2) {
+                                          _validarNombreProducto(value.trim());
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Categorización
+                            Card(
+                              elevation: 0,
+                              color: Colors.grey[50],
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Row(
+                                      children: [
+                                        Icon(Icons.category_outlined,
+                                          color: Color(0xFFC2185B),
+                                          size: 20,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Categorización',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: DropdownButtonFormField<int>(
+                                            value: _categoriaSeleccionada,
+                                            decoration: const InputDecoration(
+                                              labelText: 'Categoría *',
+                                              prefixIcon: Icon(Icons.category),
+                                              border: OutlineInputBorder(),
+                                            ),
+                                            items: _categorias
+                                                .where((categoria) => categoria.id != null)
+                                                .map((categoria) {
+                                              return DropdownMenuItem<int>(
+                                                value: categoria.id!,
+                                                child: Row(
+                                                  children: [
+                                                    Text(categoria.nombre),
+                                                    if (categoria.conCaducidad) ...[
+                                                      const SizedBox(width: 8),
+                                                      const Icon(
+                                                        Icons.schedule,
+                                                        size: 16,
+                                                        color: Colors.orange,
+                                                      ),
+                                                    ],
+                                                  ],
+                                                ),
+                                              );
+                                            }).toList(),
+                                            onChanged: (value) {
+                                              setState(() {
+                                                _categoriaSeleccionada = value;
+                                                if (!_categoriaPermiteCaducidad) {
+                                                  _fechaCaducidad = null;
+                                                }
+                                              });
+                                            },
+                                            validator: (value) {
+                                              if (value == null) {
+                                                return 'Selecciona una categoría';
+                                              }
+                                              return null;
+                                            },
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        IconButton(
+                                          onPressed: _agregarNuevaCategoria,
+                                          icon: const Icon(Icons.add_circle),
+                                          tooltip: 'Agregar nueva categoría',
+                                          style: IconButton.styleFrom(
+                                            backgroundColor: const Color(0xFFC2185B),
+                                            foregroundColor: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    DropdownButtonFormField<int>(
+                                      value: _proveedorSeleccionado,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Proveedor *',
+                                        prefixIcon: Icon(Icons.business),
+                                        border: OutlineInputBorder(),
+                                      ),
+                                      items: _proveedores
+                                          .where((proveedor) => proveedor.id != null)
+                                          .map((proveedor) {
+                                        return DropdownMenuItem<int>(
+                                          value: proveedor.id!,
+                                          child: Text(proveedor.nombre),
                                         );
                                       }).toList(),
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _categoriaSeleccionada = value;
-                                      // Si la nueva categoría no permite caducidad, resetear la fecha
-                                      if (!_categoriaPermiteCaducidad) {
-                                        _fechaCaducidad = null;
-                                      }
-                                    });
-                                  },
-                                  validator: (value) {
-                                    if (value == null) {
-                                      return 'Selecciona una categoría';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                onPressed: _agregarNuevaCategoria,
-                                icon: const Icon(Icons.add_circle),
-                                tooltip: 'Agregar nueva categoría',
-                                style: IconButton.styleFrom(
-                                  backgroundColor: const Color(0xFFC2185B),
-                                  foregroundColor: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Proveedor
-                          DropdownButtonFormField<int>(
-                            value: _proveedorSeleccionado,
-                            decoration: const InputDecoration(
-                              labelText: 'Proveedor *',
-                              prefixIcon: Icon(Icons.business),
-                              border: OutlineInputBorder(),
-                            ),
-                            items:
-                                _proveedores
-                                  .where((proveedor) => proveedor.id != null) // Solo mostrar proveedores con ID válido
-                                  .map((proveedor) {
-                                  return DropdownMenuItem<int>(
-                                    value: proveedor.id!,
-                                    child: Text(proveedor.nombre),
-                                  );
-                                }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _proveedorSeleccionado = value;
-                              });
-                            },
-                            validator: (value) {
-                              if (value == null) {
-                                return 'Selecciona un proveedor';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Fecha de caducidad (condicional)
-                          if (_categoriaPermiteCaducidad) ...[
-                            InkWell(
-                              onTap: _seleccionarFecha,
-                              child: InputDecorator(
-                                decoration: const InputDecoration(
-                                  labelText: 'Fecha de caducidad (opcional)',
-                                  prefixIcon: Icon(Icons.calendar_today),
-                                  border: OutlineInputBorder(),
-                                ),
-                                child: Text(
-                                  _fechaCaducidad != null
-                                      ? '${_fechaCaducidad!.day}/${_fechaCaducidad!.month}/${_fechaCaducidad!.year}'
-                                      : 'Seleccionar fecha',
-                                  style: TextStyle(
-                                    color:
-                                        _fechaCaducidad != null
-                                            ? Colors.black87
-                                            : Colors.grey[600],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            if (_fechaCaducidad != null)
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.info_outline,
-                                    size: 16,
-                                    color: Colors.blue,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Fecha seleccionada: ${_fechaCaducidad!.day}/${_fechaCaducidad!.month}/${_fechaCaducidad!.year}',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.blue,
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _proveedorSeleccionado = value;
+                                        });
+                                      },
+                                      validator: (value) {
+                                        if (value == null) {
+                                          return 'Selecciona un proveedor';
+                                        }
+                                        return null;
+                                      },
                                     ),
-                                  ),
-                                  const Spacer(),
-                                  TextButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        _fechaCaducidad = null;
-                                      });
-                                    },
-                                    child: const Text('Limpiar'),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                          ] else if (_categoriaSeleccionada != null) ...[
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[100],
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.grey[300]!),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Inventario y Precio
+                            Card(
+                              elevation: 0,
+                              color: Colors.grey[50],
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Row(
+                                      children: [
+                                        Icon(Icons.inventory_2_outlined,
+                                          color: Color(0xFFC2185B),
+                                          size: 20,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Inventario y Precio',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    if (isDesktop)
+                                      Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Expanded(
+                                            child: _buildPriceField(),
+                                          ),
+                                          const SizedBox(width: 16),
+                                          Expanded(
+                                            child: _buildStockField(),
+                                          ),
+                                        ],
+                                      )
+                                    else
+                                      Column(
+                                        children: [
+                                          _buildPriceField(),
+                                          const SizedBox(height: 16),
+                                          _buildStockField(),
+                                        ],
+                                      ),
+                                  ],
+                                ),
                               ),
-                              child: const Row(
-                                children: [
-                                  Icon(
-                                    Icons.info_outline,
-                                    color: Colors.grey,
-                                    size: 20,
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Caducidad (condicional)
+                            if (_categoriaPermiteCaducidad)
+                              Card(
+                                elevation: 0,
+                                color: Colors.grey[50],
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Row(
+                                        children: [
+                                          Icon(Icons.schedule_outlined, 
+                                            color: Colors.orange,
+                                            size: 20,
+                                          ),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            'Fecha de Caducidad',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      InkWell(
+                                        onTap: _seleccionarFecha,
+                                        child: InputDecorator(
+                                          decoration: const InputDecoration(
+                                            labelText: 'Fecha de caducidad (opcional)',
+                                            prefixIcon: Icon(Icons.calendar_today),
+                                            border: OutlineInputBorder(),
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                _fechaCaducidad != null
+                                                    ? '${_fechaCaducidad!.day}/${_fechaCaducidad!.month}/${_fechaCaducidad!.year}'
+                                                    : 'Seleccionar fecha',
+                                                style: TextStyle(
+                                                  color: _fechaCaducidad != null
+                                                      ? Colors.black87
+                                                      : Colors.grey[600],
+                                                ),
+                                              ),
+                                              if (_fechaCaducidad != null)
+                                                IconButton(
+                                                  icon: const Icon(Icons.clear),
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      _fechaCaducidad = null;
+                                                    });
+                                                  },
+                                                  tooltip: 'Limpiar fecha',
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      if (_fechaCaducidad != null)
+                                        Padding(
+                                          padding: const EdgeInsets.only(top: 8),
+                                          child: Row(
+                                            children: [
+                                              const Icon(
+                                                Icons.info_outline,
+                                                size: 16,
+                                                color: Colors.blue,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'Fecha seleccionada: ${_fechaCaducidad!.day}/${_fechaCaducidad!.month}/${_fechaCaducidad!.year}',
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.blue,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                    ],
                                   ),
-                                  SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      'Esta categoría no requiere fecha de caducidad',
-                                      style: TextStyle(
-                                        color: Colors.grey,
-                                        fontSize: 14,
+                                ),
+                              )
+                            else if (_categoriaSeleccionada != null)
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[100],
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.grey[300]!),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Icon(
+                                      Icons.info_outline,
+                                      color: Colors.grey,
+                                      size: 20,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'Esta categoría no requiere fecha de caducidad',
+                                        style: TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 14,
+                                        ),
                                       ),
                                     ),
+                                  ],
+                                ),
+                              ),
+                            const SizedBox(height: 32),
+
+                            // Botones de acción
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[50],
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey[200]!),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Text(
+                                    '* Campos obligatorios',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: OutlinedButton.icon(
+                                          onPressed: _isLoading ? null : _limpiarFormulario,
+                                          icon: const Icon(Icons.refresh),
+                                          label: const Text('Limpiar'),
+                                          style: OutlinedButton.styleFrom(
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        flex: 2,
+                                        child: ElevatedButton.icon(
+                                          onPressed: _isLoading ? null : _guardarProducto,
+                                          icon: _isLoading
+                                              ? const SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    color: Colors.white,
+                                                  ),
+                                                )
+                                              : const Icon(Icons.save),
+                                          label: const Text('Guardar Producto'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(0xFFC2185B),
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
                             ),
                           ],
-                          const SizedBox(height: 32),
-
-                          // Botones
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed:
-                                      _isLoading ? null : _limpiarFormulario,
-                                  child: const Text('Limpiar'),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                flex: 2,
-                                child: ElevatedButton(
-                                  onPressed:
-                                      _isLoading ? null : _guardarProducto,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFC2185B),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 16,
-                                    ),
-                                  ),
-                                  child:
-                                      _isLoading
-                                          ? const SizedBox(
-                                            height: 20,
-                                            width: 20,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: Colors.white,
-                                            ),
-                                          )
-                                          : const Text(
-                                            'Guardar Producto',
-                                            style: TextStyle(fontSize: 16),
-                                          ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Nota
-                          Text(
-                            '* Campos obligatorios',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
+            ),
+    );
+  }
+
+  Widget _buildPriceField() {
+    return TextFormField(
+      controller: _precioController,
+      decoration: const InputDecoration(
+        labelText: 'Precio *',
+        prefixIcon: Icon(Icons.attach_money),
+        border: OutlineInputBorder(),
+        helperText: 'Ingrese el precio sin el signo \$',
+      ),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+      ],
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'El precio es obligatorio';
+        }
+        final precio = double.tryParse(value);
+        if (precio == null || precio <= 0) {
+          return 'Ingresa un precio válido mayor a 0';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildStockField() {
+    return TextFormField(
+      controller: _stockController,
+      decoration: const InputDecoration(
+        labelText: 'Stock inicial *',
+        prefixIcon: Icon(Icons.inventory),
+        border: OutlineInputBorder(),
+        suffixText: 'unidades',
+        helperText: 'Cantidad inicial disponible',
+      ),
+      keyboardType: TextInputType.number,
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+      ],
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'El stock es obligatorio';
+        }
+        final stock = int.tryParse(value);
+        if (stock == null || stock < 0) {
+          return 'Ingresa un stock válido (0 o mayor)';
+        }
+        return null;
+      },
     );
   }
 }
