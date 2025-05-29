@@ -32,6 +32,8 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
   final _direccionController = TextEditingController();
   final _telefonoController = TextEditingController();
   final _emailController = TextEditingController();
+  final _horaAperturaController = TextEditingController(text: '09:00');
+  final _horaCierreController = TextEditingController(text: '18:00');
 
   List<Categoria> _categorias = [];
   int? _categoriaSeleccionada;
@@ -52,6 +54,7 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
       curve: Curves.easeInOut,
     );
     _animationController.forward();
+    
     // Inicializar controladores con datos del proveedor si existe
     if (widget.proveedor != null) {
       _nombreController.text = widget.proveedor!.nombre;
@@ -59,6 +62,8 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
       _telefonoController.text = widget.proveedor!.telefono.toString();
       _emailController.text = widget.proveedor!.email ?? '';
       _categoriaSeleccionada = widget.proveedor!.idCategoriaP;
+      _horaAperturaController.text = widget.proveedor!.horaApertura;
+      _horaCierreController.text = widget.proveedor!.horaCierre;
     }
     _cargarDatos();
   }
@@ -70,6 +75,8 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
     _direccionController.dispose();
     _telefonoController.dispose();
     _emailController.dispose();
+    _horaAperturaController.dispose();
+    _horaCierreController.dispose();
     super.dispose();
   }
 
@@ -167,6 +174,8 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
         telefono: int.parse(_telefonoController.text.replaceAll(RegExp(r'\D'), '')),
         idCategoriaP: _categoriaSeleccionada!,
         email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
+        horaApertura: _horaAperturaController.text,
+        horaCierre: _horaCierreController.text,
       );
 
       if (widget.proveedor != null) {
@@ -541,6 +550,119 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
                                           ),
                                         ),
                                       ),
+                                      const SizedBox(height: 16),
+                                      
+                                      // Horarios de Atención
+                                      Card(
+                                        elevation: 0,
+                                        color: Colors.grey[50],
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                          side: BorderSide(color: Colors.grey[200]!),
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(16),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              const Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.schedule,
+                                                    color: Color(0xFFC2185B),
+                                                    size: 20,
+                                                  ),
+                                                  SizedBox(width: 8),
+                                                  Text(
+                                                    'Horario de Atención',
+                                                    style: TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 16),
+                                              
+                                              // Hora de apertura
+                                              TextFormField(
+                                                controller: _horaAperturaController,
+                                                decoration: const InputDecoration(
+                                                  labelText: 'Hora de apertura *',
+                                                  prefixIcon: Icon(Icons.access_time),
+                                                  border: OutlineInputBorder(),
+                                                  helperText: 'Formato 24h (HH:mm)',
+                                                ),
+                                                validator: (value) {
+                                                  if (value == null || value.trim().isEmpty) {
+                                                    return 'La hora de apertura es obligatoria';
+                                                  }
+                                                  final regex = RegExp(r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$');
+                                                  if (!regex.hasMatch(value)) {
+                                                    return 'Formato inválido. Use HH:mm (24h)';
+                                                  }
+                                                  return null;
+                                                },
+                                                onTap: () async {
+                                                  final TimeOfDay? picked = await showTimePicker(
+                                                    context: context,
+                                                    initialTime: TimeOfDay(
+                                                      hour: int.parse(_horaAperturaController.text.split(':')[0]),
+                                                      minute: int.parse(_horaAperturaController.text.split(':')[1]),
+                                                    ),
+                                                  );
+                                                  if (picked != null) {
+                                                    setState(() {
+                                                      _horaAperturaController.text = 
+                                                        '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+                                                    });
+                                                  }
+                                                },
+                                                readOnly: true,
+                                              ),
+                                              const SizedBox(height: 16),
+                                              
+                                              // Hora de cierre
+                                              TextFormField(
+                                                controller: _horaCierreController,
+                                                decoration: const InputDecoration(
+                                                  labelText: 'Hora de cierre *',
+                                                  prefixIcon: Icon(Icons.access_time),
+                                                  border: OutlineInputBorder(),
+                                                  helperText: 'Formato 24h (HH:mm)',
+                                                ),
+                                                validator: (value) {
+                                                  if (value == null || value.trim().isEmpty) {
+                                                    return 'La hora de cierre es obligatoria';
+                                                  }
+                                                  final regex = RegExp(r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$');
+                                                  if (!regex.hasMatch(value)) {
+                                                    return 'Formato inválido. Use HH:mm (24h)';
+                                                  }
+                                                  return null;
+                                                },
+                                                onTap: () async {
+                                                  final TimeOfDay? picked = await showTimePicker(
+                                                    context: context,
+                                                    initialTime: TimeOfDay(
+                                                      hour: int.parse(_horaCierreController.text.split(':')[0]),
+                                                      minute: int.parse(_horaCierreController.text.split(':')[1]),
+                                                    ),
+                                                  );
+                                                  if (picked != null) {
+                                                    setState(() {
+                                                      _horaCierreController.text = 
+                                                        '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+                                                    });
+                                                  }
+                                                },
+                                                readOnly: true,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
                                     ],
                                   ),
                                 ),

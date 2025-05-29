@@ -133,6 +133,8 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
               telefono: 123456789,
               idCategoriaP: 1,
               email: 'proveedora@ejemplo.com',
+              horaApertura: '09:00',
+              horaCierre: '18:00',
             ),
             Proveedor(
               id: 2,
@@ -141,6 +143,8 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
               telefono: 987654321,
               idCategoriaP: 1,
               email: 'proveedorb@ejemplo.com',
+              horaApertura: '08:00',
+              horaCierre: '17:00',
             ),
             Proveedor(
               id: 3,
@@ -149,6 +153,8 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
               telefono: 555444333,
               idCategoriaP: 1,
               email: 'proveedorc@ejemplo.com',
+              horaApertura: '10:00',
+              horaCierre: '19:00',
             ),
           ];
         });
@@ -630,7 +636,7 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
                                                               ],
                                                             ),
                                                           );
-                                                        })
+                                                       })
                                                         .toList(),
                                                 onChanged: (value) {
                                                   setState(() {

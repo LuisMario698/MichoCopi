@@ -4,6 +4,8 @@ import '../widgets/responsive_layout.dart';
 import '../widgets/proveedor_form_panel.dart';
 import '../models/proveedor.dart';
 import '../services/proveedor_service.dart';
+import '../services/producto_service.dart';
+import '../services/categoria_proveedor_service.dart';
 
 class ProveedoresPage extends StatefulWidget {
   const ProveedoresPage({super.key});
@@ -61,6 +63,8 @@ class _ProveedoresPageState extends State<ProveedoresPage> {
             telefono: 1000000000 + index,
             idCategoriaP: 1,
             email: 'proveedor${index + 1}@ejemplo.com',
+            horaApertura: '09:00',
+            horaCierre: '18:00',
           ),
         );
       });
@@ -308,25 +312,36 @@ class _ProveedoresPageState extends State<ProveedoresPage> {
                     : GridView.builder(
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount:
-                              MediaQuery.of(context).size.width > 1200
+                              MediaQuery.of(context).size.width > 1400
+                                  ? 4
+                                  : MediaQuery.of(context).size.width > 1100
                                   ? 3
                                   : MediaQuery.of(context).size.width > 800
                                   ? 2
                                   : 1,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: MediaQuery.of(context).size.width > 600
+                              ? 1.5
+                              : 1.3,
                         ),
-                        itemCount: _proveedores.length,
+                        itemCount: _proveedores.where((p) => 
+                          _searchQuery.isEmpty || 
+                          p.nombre.toLowerCase().contains(_searchQuery.toLowerCase())
+                        ).length,
                         padding: const EdgeInsets.all(4),
                         itemBuilder: (context, index) {
-                          final proveedor = _proveedores[index];
+                          final proveedor = _proveedores.where((p) => 
+                            _searchQuery.isEmpty || 
+                            p.nombre.toLowerCase().contains(_searchQuery.toLowerCase())
+                          ).toList()[index];
                           return Card(
                             elevation: 2,
+                            margin: const EdgeInsets.all(4),
                             child: Padding(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.all(12),
                               child: Column(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment: MainAxisAlignment.start, // Cambiado de spaceBetween a start
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Column(
@@ -357,37 +372,91 @@ class _ProveedoresPageState extends State<ProveedoresPage> {
                                                     fontWeight: FontWeight.bold,
                                                   ),
                                                 ),
-                                                Text(
-                                                  'Categoría ${proveedor.idCategoriaP}',
-                                                  style: TextStyle(
-                                                    color: Colors.grey[600],
-                                                    fontSize: 12,
-                                                  ),
+                                                FutureBuilder<Map<String, dynamic>>(
+                                                  future: CategoriaProveedorService.obtenerCategoriaPorId(proveedor.idCategoriaP),
+                                                  builder: (context, snapshot) {
+                                                    String nombreCategoria = snapshot.hasData && snapshot.data!['success']
+                                                        ? snapshot.data!['data']['nombre']
+                                                        : 'Categoría ${proveedor.idCategoriaP}';
+                                                    return Text(
+                                                      nombreCategoria,
+                                                      style: TextStyle(
+                                                        color: Colors.grey[600],
+                                                        fontSize: 12,
+                                                      ),
+                                                    );
+                                                  },
                                                 ),
                                               ],
                                             ),
                                           ),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 4,
+                                          // Botones de acción (subidos)
+                                          IconButton(
+                                            onPressed: () => _toggleFormulario(proveedor),
+                                            icon: const Icon(Icons.edit),
+                                            tooltip: 'Editar proveedor',
+                                            style: IconButton.styleFrom(
+                                              foregroundColor: const Color(0xFFC2185B),
+                                              backgroundColor: const Color(0xFFC2185B).withOpacity(0.1),
                                             ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.green[100],
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                            child: Text(
-                                              'Activo',
-                                              style: TextStyle(
-                                                color: Colors.green[800],
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w500,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          SizedBox(
+                                            height: 32,
+                                            width: 32,
+                                            child: IconButton(
+                                              onPressed: () => _eliminarProveedor(proveedor),
+                                              icon: const Icon(Icons.delete, size: 18),
+                                              tooltip: 'Eliminar proveedor',
+                                              style: IconButton.styleFrom(
+                                                foregroundColor: Colors.red,
+                                                backgroundColor: Colors.red.withOpacity(0.1),
+                                                padding: EdgeInsets.zero,
                                               ),
                                             ),
                                           ),
                                         ],
                                       ),
-                                      const SizedBox(height: 16),
+                                      const SizedBox(height: 8),
+                                      // Estado Activo/Inactivo (debajo del header)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: proveedor.estaActivo()
+                                            ? Colors.green[100]
+                                            : Colors.red[100],
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              proveedor.estaActivo()
+                                                ? Icons.check_circle
+                                                : Icons.access_time,
+                                              size: 12,
+                                              color: proveedor.estaActivo()
+                                                ? Colors.green[800]
+                                                : Colors.red[800],
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              proveedor.estaActivo() ? 'Activo' : 'Inactivo',
+                                              style: TextStyle(
+                                                color: proveedor.estaActivo()
+                                                  ? Colors.green[800]
+                                                  : Colors.red[800],
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
 
                                       // Información de contacto
                                       Row(
@@ -449,37 +518,23 @@ class _ProveedoresPageState extends State<ProveedoresPage> {
                                           ),
                                         ],
                                       ),
-                                    ],
-                                  ),
-                                  // Botones de acción
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      // Botón Editar
-                                      IconButton(
-                                        onPressed: () => _toggleFormulario(proveedor),
-                                        icon: const Icon(Icons.edit),
-                                        tooltip: 'Editar proveedor',
-                                        style: IconButton.styleFrom(
-                                          foregroundColor: const Color(0xFFC2185B),
-                                          backgroundColor: const Color(0xFFC2185B).withOpacity(0.1),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      // Botón Eliminar
-                                      SizedBox(
-                                        height: 32,
-                                        width: 32,
-                                        child: IconButton(
-                                          onPressed: () => _eliminarProveedor(proveedor),
-                                          icon: const Icon(Icons.delete, size: 18),
-                                          tooltip: 'Eliminar proveedor',
-                                          style: IconButton.styleFrom(
-                                            foregroundColor: Colors.red,
-                                            backgroundColor: Colors.red.withOpacity(0.1),
-                                            padding: EdgeInsets.zero,
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.schedule,
+                                            size: 16,
+                                            color: Colors.grey[600],
                                           ),
-                                        ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            'Horario: ${proveedor.horaApertura} - ${proveedor.horaCierre}',
+                                            style: TextStyle(
+                                              color: Colors.grey[700],
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
