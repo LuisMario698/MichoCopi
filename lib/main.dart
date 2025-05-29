@@ -1,20 +1,22 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:invmicho/services/supabase_setup.dart';
-import 'package:invmicho/services/producto_service.dart';
+import 'package:invmicho/screens/acerca_de_page.dart';
+import 'package:invmicho/screens/dashboard_page.dart';
+import 'package:invmicho/screens/login_page.dart';
+import 'package:invmicho/screens/productos_page.dart';
+import 'package:invmicho/screens/proveedores_page.dart';
+import 'package:invmicho/screens/reportes_page.dart';
+import 'package:invmicho/screens/ventas_page.dart';
+import 'package:invmicho/screens/inventario_page.dart';
 import 'package:invmicho/services/auth_service.dart';
-import 'package:invmicho/models/producto.dart';
-import 'package:invmicho/models/categoria_producto.dart';
+import 'package:invmicho/services/supabase_setup.dart';
 import 'package:invmicho/widgets/responsive_layout.dart';
 import 'package:invmicho/widgets/offline_banner.dart';
 import 'package:invmicho/widgets/connection_diagnostic_dialog.dart';
 import 'package:invmicho/widgets/macos_permissions_guide.dart';
-import 'package:invmicho/screens/login_page.dart';
-import 'package:invmicho/screens/dashboard_page.dart';
-import 'package:invmicho/screens/ventas_page.dart';
-import 'package:invmicho/screens/productos_page.dart';
-import 'package:invmicho/screens/inventario_page.dart';
-import 'package:invmicho/screens/proveedores_page.dart';
-import 'package:invmicho/screens/reportes_page.dart';
+import 'package:invmicho/services/producto_service.dart';
+import 'package:invmicho/models/producto.dart';
+import 'package:invmicho/models/categoria_producto.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -187,7 +189,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _getCurrentPage() {
-    switch (_selectedPage) {      case 'dashboard':
+    switch (_selectedPage) {
+      case 'dashboard':
         return const DashboardPage();
       case 'ventas':
         return const VentasPage();
@@ -199,6 +202,8 @@ class _HomePageState extends State<HomePage> {
         return const ProveedoresPage();
       case 'reportes':
         return const ReportesPage();
+      case 'acerca-de':
+        return const AcercaDePage();
       case 'configuraciones':
         return _buildConfiguracionesPage();
       default:

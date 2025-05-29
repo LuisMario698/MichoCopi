@@ -173,36 +173,6 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
         });
       }
 
-      if (_proveedores.isEmpty) {
-        setState(() {
-          _proveedores = [
-            Proveedor(
-              id: 1,
-              nombre: 'Proveedor A',
-              direccion: 'Calle 123',
-              telefono: 123456789,
-              idCategoriaP: 1,
-              email: 'proveedora@ejemplo.com',
-            ),
-            Proveedor(
-              id: 2,
-              nombre: 'Proveedor B',
-              direccion: 'Avenida 456',
-              telefono: 987654321,
-              idCategoriaP: 1,
-              email: 'proveedorb@ejemplo.com',
-            ),
-            Proveedor(
-              id: 3,
-              nombre: 'Proveedor C',
-              direccion: 'Plaza 789',
-              telefono: 555444333,
-              idCategoriaP: 1,
-              email: 'proveedorc@ejemplo.com',
-            ),
-          ];
-        });
-      }
     } catch (e) {
       print('💥 Error en _cargarDatos: $e');
       _mostrarSnackBar('Error al cargar los datos', true);

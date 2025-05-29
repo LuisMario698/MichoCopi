@@ -33,6 +33,8 @@ class ProveedorService {
           telefono: 123456789,
           idCategoriaP: 1,
           email: 'techcorp@example.com',
+          horaApertura: '09:00',
+          horaCierre: '18:00',
         ),
         Proveedor(
           id: 2,
@@ -41,6 +43,8 @@ class ProveedorService {
           telefono: 987654321,
           idCategoriaP: 2,
           email: 'alimentos@example.com',
+          horaApertura: '08:00',
+          horaCierre: '17:00',
         ),
         Proveedor(
           id: 3,
@@ -49,6 +53,8 @@ class ProveedorService {
           telefono: 555444333,
           idCategoriaP: 1,
           email: 'distcentral@example.com',
+          horaApertura: '10:00',
+          horaCierre: '19:00',
         ),
         Proveedor(
           id: 4,
@@ -57,6 +63,8 @@ class ProveedorService {
           telefono: 111222333,
           idCategoriaP: 3,
           email: 'farmaglobal@example.com',
+          horaApertura: '08:30',
+          horaCierre: '17:30',
         ),
         Proveedor(
           id: 5,
@@ -65,6 +73,8 @@ class ProveedorService {
           telefono: 444555666,
           idCategoriaP: 4,
           email: 'textiles@example.com',
+          horaApertura: '09:30',
+          horaCierre: '18:30',
         ),
       ];
 

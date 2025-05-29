@@ -2,11 +2,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/categoria_proveedor.dart';
 
 class CategoriaProveedorService {
-  final SupabaseClient _supabase = Supabase.instance.client;
+  static final SupabaseClient _supabase = Supabase.instance.client;
   static const String _tableName = 'categoria_proveedor';
 
   // Obtener todas las categorías
-  Future<List<CategoriaProveedor>> obtenerTodas() async {
+  static Future<List<CategoriaProveedor>> obtenerTodas() async {
     try {
       final response = await _supabase
           .from(_tableName)
@@ -22,17 +22,25 @@ class CategoriaProveedorService {
   }
 
   // Obtener categoría por ID
-  Future<CategoriaProveedor?> obtenerPorId(int id) async {
+  static Future<Map<String, dynamic>> obtenerCategoriaPorId(int id) async {
     try {
       final response = await _supabase
           .from(_tableName)
           .select()
           .eq('id', id)
-          .maybeSingle();
+          .single();
 
-      return response != null ? CategoriaProveedor.fromJson(response) : null;
+      return {
+        'success': true,
+        'data': CategoriaProveedor.fromJson(response),
+        'message': 'Categoría encontrada'
+      };
     } catch (e) {
-      throw Exception('Error al obtener categoría de proveedor: $e');
+      return {
+        'success': false,
+        'message': 'Error al obtener categoría de proveedor',
+        'error': e.toString()
+      };
     }
   }
 

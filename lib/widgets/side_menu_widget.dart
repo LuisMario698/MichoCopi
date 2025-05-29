@@ -124,6 +124,12 @@ class _SideMenuWidgetState extends State<SideMenuWidget> {
                 ),
                 const SizedBox(height: 20),
                 _buildMenuItem(
+                  icon: Icons.info_outline,
+                  title: 'Acerca de',
+                  page: 'acerca-de',
+                  isWideScreen: isWideScreen,
+                ),
+                _buildMenuItem(
                   icon: Icons.settings,
                   title: 'Configuraciones',
                   page: 'configuraciones',

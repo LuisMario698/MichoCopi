@@ -5,6 +5,8 @@ class Proveedor {
   final int telefono;
   final int idCategoriaP;
   final String? email;
+  final String horaApertura;  // Formato "HH:mm"
+  final String horaCierre;    // Formato "HH:mm"
 
   Proveedor({
     this.id,
@@ -13,16 +15,31 @@ class Proveedor {
     required this.telefono,
     required this.idCategoriaP,
     this.email,
+    required this.horaApertura,
+    required this.horaCierre,
   });
   // Constructor para crear desde JSON (para Supabase)
   factory Proveedor.fromJson(Map<String, dynamic> json) {
+    String procesarHora(dynamic hora) {
+      if (hora == null) return '09:00';
+      if (hora is String) {
+        // Si ya viene en formato HH:mm, lo usamos directamente
+        if (hora.length <= 5) return hora;
+        // Si viene como timestamp, extraemos la hora
+        return hora.split(' ')[1].substring(0, 5);
+      }
+      return '09:00';
+    }
+
     return Proveedor(
       id: json['id'] as int?,
       nombre: json['nombre'] as String,
       direccion: json['direccion'] as String,
-      telefono: json['telefono'] as int,
+      telefono: (json['telefono'] as num).toInt(),
       idCategoriaP: json['id_Categoria_p'] as int,
       email: json['email'] as String?,
+      horaApertura: procesarHora(json['hora_apertura']),
+      horaCierre: procesarHora(json['hora_cierre']),
     );
   }
   // Convertir a JSON (para Supabase)
@@ -32,8 +49,10 @@ class Proveedor {
       'nombre': nombre,
       'direccion': direccion,
       'telefono': telefono,
-      'id_Categoria_p': idCategoriaP,
+      'id_categoria_p': idCategoriaP,
       if (email != null) 'email': email,
+      'hora_apertura': '2000-01-01 ${horaApertura}:00',
+      'hora_cierre': '2000-01-01 ${horaCierre}:00',
     };
   }
   // Método copyWith para crear copias con modificaciones
@@ -44,6 +63,8 @@ class Proveedor {
     int? telefono,
     int? idCategoriaP,
     String? email,
+    String? horaApertura,
+    String? horaCierre,
   }) {
     return Proveedor(
       id: id ?? this.id,
@@ -52,6 +73,8 @@ class Proveedor {
       telefono: telefono ?? this.telefono,
       idCategoriaP: idCategoriaP ?? this.idCategoriaP,
       email: email ?? this.email,
+      horaApertura: horaApertura ?? this.horaApertura,
+      horaCierre: horaCierre ?? this.horaCierre,
     );
   }
 
@@ -122,6 +145,25 @@ class Proveedor {
 
   // Método para verificar si el proveedor es válido
   bool get esValido => validar().isEmpty;
+
+  // Método para verificar si el proveedor está activo según su horario
+  bool estaActivo() {
+    final ahora = DateTime.now();
+    final horaActual = '${ahora.hour.toString().padLeft(2, '0')}:${ahora.minute.toString().padLeft(2, '0')}';
+    
+    // Convertir strings de hora a minutos para comparación
+    final minutosApertura = _convertirHoraAMinutos(horaApertura);
+    final minutosCierre = _convertirHoraAMinutos(horaCierre);
+    final minutosActual = _convertirHoraAMinutos(horaActual);
+
+    return minutosActual >= minutosApertura && minutosActual <= minutosCierre;
+  }
+
+  // Método helper para convertir hora en formato "HH:mm" a minutos
+  int _convertirHoraAMinutos(String hora) {
+    final partes = hora.split(':');
+    return int.parse(partes[0]) * 60 + int.parse(partes[1]);
+  }
 
   // Getters útiles
   String get telefonoFormateado {
