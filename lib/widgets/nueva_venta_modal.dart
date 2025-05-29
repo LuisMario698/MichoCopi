@@ -156,7 +156,6 @@ class _NuevaVentaModalState extends State<NuevaVentaModal> {
             ? null 
             : _clienteController.text.trim(),
       );
-
       if (resultado['success']) {
         final total = _total;
         final pago = _pagoAmount;
