@@ -87,7 +87,7 @@ class _CategoriaMpFormPanelState extends State<CategoriaMpFormPanel>
       // Aquí puedes implementar la validación de nombre si el servicio lo permite
       // Por ahora solo simularemos la validación
       await Future.delayed(const Duration(milliseconds: 500));
-      
+
       if (mounted) {
         setState(() {
           _nombreExiste = false; // Cambiar según la lógica de validación real
@@ -141,6 +141,7 @@ class _CategoriaMpFormPanelState extends State<CategoriaMpFormPanel>
       }
     }
   }
+
   void _mostrarSnackBar(String mensaje, bool isError) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -150,6 +151,17 @@ class _CategoriaMpFormPanelState extends State<CategoriaMpFormPanel>
       ),
     );
   }
+
+  void _limpiarFormulario() {
+    _nombreController.clear();
+    _unidadController.clear();
+    _fcController.clear();
+    setState(() {
+      _nombreExiste = false;
+      _validandoNombre = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -174,9 +186,11 @@ class _CategoriaMpFormPanelState extends State<CategoriaMpFormPanel>
                 children: [
                   // Header
                   AppBar(
-                    title: Text(widget.categoria == null
-                        ? 'Nueva Categoría MP'
-                        : 'Editar Categoría MP'),
+                    title: Text(
+                      widget.categoria == null
+                          ? 'Nueva Categoría MP'
+                          : 'Editar Categoría MP',
+                    ),
                     backgroundColor: const Color(0xFFC2185B),
                     foregroundColor: Colors.white,
                     leading: IconButton(
@@ -200,7 +214,9 @@ class _CategoriaMpFormPanelState extends State<CategoriaMpFormPanel>
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFC2185B).withOpacity(0.1),
+                                    color: const Color(
+                                      0xFFC2185B,
+                                    ).withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: const Icon(
@@ -212,7 +228,8 @@ class _CategoriaMpFormPanelState extends State<CategoriaMpFormPanel>
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         widget.categoria == null
@@ -279,34 +296,44 @@ class _CategoriaMpFormPanelState extends State<CategoriaMpFormPanel>
                                           color: Color(0xFFC2185B),
                                         ),
                                         border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                         ),
-                                        helperText: 'Ejemplo: Carnes, Lácteos, Cereales',
-                                        suffixIcon: _validandoNombre
-                                            ? const SizedBox(
-                                                width: 20,
-                                                height: 20,
-                                                child: Padding(
-                                                  padding: EdgeInsets.all(8.0),
-                                                  child: CircularProgressIndicator(
-                                                    strokeWidth: 2,
+                                        helperText:
+                                            'Ejemplo: Carnes, Lácteos, Cereales',
+                                        suffixIcon:
+                                            _validandoNombre
+                                                ? const SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child: Padding(
+                                                    padding: EdgeInsets.all(
+                                                      8.0,
+                                                    ),
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                        ),
                                                   ),
-                                                ),
-                                              )
-                                            : _nombreExiste
+                                                )
+                                                : _nombreExiste
                                                 ? const Icon(
-                                                    Icons.error,
-                                                    color: Colors.red,
-                                                  )
-                                                : _nombreController.text.isNotEmpty
-                                                    ? const Icon(
-                                                        Icons.check_circle,
-                                                        color: Colors.green,
-                                                      )
-                                                    : null,
+                                                  Icons.error,
+                                                  color: Colors.red,
+                                                )
+                                                : _nombreController
+                                                    .text
+                                                    .isNotEmpty
+                                                ? const Icon(
+                                                  Icons.check_circle,
+                                                  color: Colors.green,
+                                                )
+                                                : null,
                                       ),
                                       validator: (value) {
-                                        if (value == null || value.trim().isEmpty) {
+                                        if (value == null ||
+                                            value.trim().isEmpty) {
                                           return 'El nombre es obligatorio';
                                         }
                                         if (value.trim().length < 2) {
@@ -333,12 +360,16 @@ class _CategoriaMpFormPanelState extends State<CategoriaMpFormPanel>
                                           color: Color(0xFFC2185B),
                                         ),
                                         border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                         ),
-                                        helperText: 'Ejemplo: kg, litros, unidades, gramos',
+                                        helperText:
+                                            'Ejemplo: kg, litros, unidades, gramos',
                                       ),
                                       validator: (value) {
-                                        if (value == null || value.trim().isEmpty) {
+                                        if (value == null ||
+                                            value.trim().isEmpty) {
                                           return 'La unidad de medida es obligatoria';
                                         }
                                         if (value.trim().length < 1) {
@@ -352,7 +383,7 @@ class _CategoriaMpFormPanelState extends State<CategoriaMpFormPanel>
                               ),
                             ),
                             const SizedBox(height: 16),
-                            
+
                             // Factor de conversión
                             Card(
                               elevation: 0,
@@ -401,13 +432,16 @@ class _CategoriaMpFormPanelState extends State<CategoriaMpFormPanel>
                                           color: Color(0xFFC2185B),
                                         ),
                                         border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                         ),
-                                        helperText: 'Número entero para conversión de unidades',
+                                        helperText:
+                                            'Número entero para conversión de unidades',
                                       ),
                                       keyboardType: TextInputType.number,
                                       inputFormatters: [
-                                        FilteringTextInputFormatter.digitsOnly
+                                        FilteringTextInputFormatter.digitsOnly,
                                       ],
                                       validator: (value) {
                                         if (value == null || value.isEmpty) {
@@ -425,7 +459,7 @@ class _CategoriaMpFormPanelState extends State<CategoriaMpFormPanel>
                               ),
                             ),
                             const SizedBox(height: 16),
-                            
+
                             // Ejemplos de factor de conversión
                             Card(
                               elevation: 0,
@@ -501,19 +535,24 @@ class _CategoriaMpFormPanelState extends State<CategoriaMpFormPanel>
                         const SizedBox(width: 16),
                         FilledButton.icon(
                           onPressed: _isLoading ? null : _guardarCategoria,
-                          icon: _isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
+                          icon:
+                              _isLoading
+                                  ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
                                     ),
-                                  ),
-                                )
-                              : const Icon(Icons.save),
-                          label: Text(widget.categoria == null ? 'Crear Categoría' : 'Actualizar Categoría'),
+                                  )
+                                  : const Icon(Icons.save),
+                          label: Text(
+                            widget.categoria == null
+                                ? 'Crear Categoría'
+                                : 'Actualizar Categoría',
+                          ),
                           style: FilledButton.styleFrom(
                             backgroundColor: const Color(0xFFC2185B),
                           ),

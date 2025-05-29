@@ -118,136 +118,52 @@ class _CategoriasMpPageState extends State<CategoriasMpPage> {
               ),
             ),
           ],
-          child:
-              _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _error != null
-                  ? Center(child: Text('Error: $_error'))
-                  : GridView.builder(
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate:
-                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 300,
-                          childAspectRatio: 1,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                        ),
-                    itemCount: _categorias.length,
-                    itemBuilder: (context, index) {
-                      final categoria = _categorias[index];
-                      return Card(
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () => _toggleFormulario(categoria),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Header con icono y acciones
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(
-                                          context,
-                                        ).primaryColor.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Icon(
-                                        Icons.category_outlined,
-                                        color: Theme.of(context).primaryColor,
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    PopupMenuButton<String>(
-                                      itemBuilder:
-                                          (context) => [
-                                            const PopupMenuItem(
-                                              value: 'edit',
-                                              child: Row(
-                                                children: [
-                                                  Icon(Icons.edit, size: 20),
-                                                  SizedBox(width: 8),
-                                                  Text('Editar'),
-                                                ],
-                                              ),
-                                            ),
-                                            const PopupMenuItem(
-                                              value: 'delete',
-                                              child: Row(
-                                                children: [
-                                                  Icon(Icons.delete, size: 20),
-                                                  SizedBox(width: 8),
-                                                  Text('Eliminar'),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                      onSelected: (value) {
-                                        if (value == 'edit') {
-                                          _toggleFormulario(categoria);
-                                        } else if (value == 'delete') {
-                                          _confirmarEliminar(categoria);
-                                        }
-                                      },
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                // Nombre de la categoría
-                                Text(
-                                  categoria.nombre,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 8),
-                                // Información adicional
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey[200],
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        categoria.unidad,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey[700],
+          child: Card(
+            child:
+                _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _error != null
+                    ? Center(child: Text('Error: $_error'))
+                    : SingleChildScrollView(
+                      child: DataTable(
+                        columns: const [
+                          DataColumn(label: Text('Nombre')),
+                          DataColumn(label: Text('Unidad')),
+                          DataColumn(label: Text('Factor de Conversión')),
+                          DataColumn(label: Text('Acciones')),
+                        ],
+                        rows:
+                            _categorias.map((categoria) {
+                              return DataRow(
+                                cells: [
+                                  DataCell(Text(categoria.nombre)),
+                                  DataCell(Text(categoria.unidad)),
+                                  DataCell(Text(categoria.fc.toString())),
+                                  DataCell(
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.edit),
+                                          onPressed:
+                                              () =>
+                                                  _toggleFormulario(categoria),
                                         ),
-                                      ),
+                                        IconButton(
+                                          icon: const Icon(Icons.delete),
+                                          onPressed:
+                                              () =>
+                                                  _confirmarEliminar(categoria),
+                                        ),
+                                      ],
                                     ),
-                                    const Spacer(),
-                                    Text(
-                                      'FC: ${categoria.fc}',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                                  ),
+                                ],
+                              );
+                            }).toList(),
+                      ),
+                    ),
+          ),
         ),
 
         // Overlay para el formulario

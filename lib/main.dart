@@ -48,6 +48,7 @@ class MainApp extends StatelessWidget {
         '/': (context) => const AuthWrapper(),
         '/home': (context) => const HomePage(),
         '/login': (context) => const LoginPage(),
+        '/categorias-mp': (context) => const CategoriasMpPage(),
       },
     );
   }

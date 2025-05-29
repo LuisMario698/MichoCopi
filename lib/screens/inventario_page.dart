@@ -1,12 +1,9 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../models/materia_prima.dart';
-import '../models/categoria_mp.dart';
 import '../services/materia_prima_service.dart';
 import '../widgets/responsive_layout.dart';
 import '../services/categoria_mp_service.dart';
 import '../widgets/materia_prima_form_panel.dart';
-import '../widgets/categoria_mp_form_panel.dart';
 
 class InventarioPage extends StatefulWidget {
   const InventarioPage({super.key});
@@ -17,32 +14,16 @@ class InventarioPage extends StatefulWidget {
 
 class _InventarioPageState extends State<InventarioPage> {
   final _materiaPrimaService = MateriaPrimaService();
-  final _categoriaMpService = CategoriaMpService();
   final _searchController = TextEditingController();
   String _filterValue = 'Todos';
   List<MateriaPrima> _materiasPrimas = [];
-  List<CategoriaMp> _categorias = [];
   bool _isLoading = true;
   String? _error;
-  bool _mostrarFormularioCategoria = false;
-  CategoriaMp? _categoriaSeleccionada;
+
   @override
   void initState() {
     super.initState();
     _cargarMateriasPrimas();
-    _cargarCategorias();
-  }
-  
-  Future<void> _cargarCategorias() async {
-    try {
-      final categorias = await _categoriaMpService.obtenerTodas();
-      setState(() {
-        _categorias = categorias;
-      });
-    } catch (e) {
-      // Manejo silencioso de errores para categorías
-      print('Error al cargar categorías: $e');
-    }
   }
 
   Future<void> _cargarMateriasPrimas() async {
@@ -64,6 +45,7 @@ class _InventarioPageState extends State<InventarioPage> {
       });
     }
   }
+
   List<MateriaPrima> _getMateriasPrimasFiltradas() {
     var materiasFiltered = _materiasPrimas;
 
@@ -97,48 +79,39 @@ class _InventarioPageState extends State<InventarioPage> {
 
     return materiasFiltered;
   }
-    @override
+
+  @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        // Página principal
-        Scaffold(
-          appBar: AppBar(
-            title: const Text('Inventario de Materias Primas'),
+    return PageWrapper(
+      title: 'Inventario de Materias Primas',
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.category),
+          tooltip: 'Gestionar Categorías',
+          onPressed: () {
+            Navigator.pushNamed(context, '/categorias-mp');
+          },
+        ),
+        const SizedBox(width: 8),
+        OutlinedButton.icon(
+          onPressed: () {
+            // TODO: Implementar reporte de inventario
+          },
+          icon: const Icon(Icons.download),
+          label: const Text('Exportar'),
+        ),
+        const SizedBox(width: 8),
+        ElevatedButton.icon(
+          onPressed: () => _mostrarDialogoAgregarMP(context),
+          icon: const Icon(Icons.add),
+          label: const Text('Nueva Materia Prima'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Theme.of(context).primaryColor,
+            foregroundColor: Colors.white,
           ),
-          body: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        // TODO: Implementar reporte de inventario
-                      },
-                      icon: const Icon(Icons.download),
-                      label: const Text('Exportar'),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      onPressed: () => _mostrarDialogoAgregarMP(context),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Nueva Materia Prima'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.category),
-                      tooltip: 'Gestionar Categorías',
-                      onPressed: () => _toggleFormularioCategoria(),
-                    ),
-                  ],
-                ),
+        ),
+      ],
+      child: Column(
         children: [
           // Resumen de inventario
           Row(
@@ -358,12 +331,9 @@ class _InventarioPageState extends State<InventarioPage> {
                 ),
               ),
             ),
-          ],
-        ),
-      ),
         ],
-      );
-    }
+      ),
+    );
   }
 
   Widget _buildInventoryCard(
@@ -439,58 +409,6 @@ class _InventarioPageState extends State<InventarioPage> {
           ),
     );
   }
-  // Métodos para gestionar Categorías MP
-  void _toggleFormularioCategoria([CategoriaMp? categoria]) {
-    setState(() {
-      _mostrarFormularioCategoria = !_mostrarFormularioCategoria;
-      _categoriaSeleccionada = categoria;
-    });
-  }
-  
-  void _onCategoriaCreated(bool success) {
-    if (success) {
-      _toggleFormularioCategoria();
-      _cargarCategorias();
-    }
-  }
-  
-  Future<void> _confirmarEliminarCategoria(CategoriaMp categoria) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar eliminación'),
-        content: Text('¿Está seguro de eliminar la categoría ${categoria.nombre}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      try {
-        await _categoriaMpService.eliminar(categoria.id!);
-        if (mounted) {
-          await _cargarCategorias();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Categoría eliminada correctamente')),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error al eliminar: $e')),
-          );
-        }
-      }
-    }
-  }
 
   Future<void> _confirmarEliminar(BuildContext context, MateriaPrima mp) async {
     final confirmed = await showDialog<bool>(
@@ -528,40 +446,12 @@ class _InventarioPageState extends State<InventarioPage> {
           ).showSnackBar(SnackBar(content: Text('Error al eliminar: $e')));
         }
       }
-    }  }
+    }
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
   }
-  
-  // Agregar overlay y panel de categorías
-  Widget _buildCategoriaOverlay() {
-    return Stack(
-      children: [
-        // Fondo semitransparente
-        Positioned.fill(
-          child: Container(
-            color: Colors.black.withOpacity(0.3),
-          ),
-        ),
-        
-        // Backdrop blur
-        Positioned.fill(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
-            child: Container(
-              color: Colors.transparent,
-            ),
-          ),
-        ),
-        
-        // Gesture detector para cerrar
-        Positioned.fill(
-          child: GestureDetector(
-            onTap: _toggleFormularioCategoria,
-          ),
-        ),
-      ],
-    );
-  }
+}
