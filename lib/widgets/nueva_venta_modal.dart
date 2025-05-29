@@ -677,52 +677,56 @@ class _NuevaVentaModalState extends State<NuevaVentaModal> {
                         fontSize: 14,
                       ),
                     ),
-                    TextFormField(
-                      controller: _pagoController,
-                      keyboardType: TextInputType.numberWithOptions(decimal: true),
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFC2185B),
-                      ),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
-                      ],
-                      decoration: InputDecoration(
-                        prefixText: '\$',
-                        prefixStyle: const TextStyle(
+                    Container(
+                      width: 180, // Ancho fijo más compacto
+                      child: TextFormField(
+                        controller: _pagoController,
+                        keyboardType: TextInputType.numberWithOptions(decimal: true),
+                        style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFFC2185B),
                         ),
-                        hintText: '0.00',
-                        hintStyle: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w300,
-                          color: Colors.grey[400],
+                        textAlign: TextAlign.center, // Centrar el texto
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                        ],
+                        decoration: InputDecoration(
+                          prefixText: '\$',
+                          prefixStyle: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFC2185B),
+                          ),
+                          hintText: '0.00',
+                          hintStyle: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w300,
+                            color: Colors.grey[400],
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Color(0xFFC2185B), width: 2),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          isDense: true, // Hace el campo más compacto verticalmente
                         ),
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFC2185B), width: 2),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        onChanged: (value) {
+                          setState(() {
+                            if (value.isEmpty) {
+                              _pagoAmount = 0;
+                            } else {
+                              _pagoAmount = double.tryParse(value) ?? 0;
+                            }
+                          });
+                        },
                       ),
-                      onChanged: (value) {
-                        setState(() {
-                          // Recalculate change when payment amount changes
-                          if (value.isEmpty) {
-                            _pagoAmount = 0;
-                          } else {
-                            _pagoAmount = double.tryParse(value) ?? 0;
-                          }
-                        });
-                      },
                     ),
                   ],
                 ),
