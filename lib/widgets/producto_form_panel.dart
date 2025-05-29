@@ -497,12 +497,27 @@ class _ProductoFormPanelState extends State<ProductoFormPanel> with SingleTicker
                                         children: [
                                           Expanded(
                                             child: DropdownButtonFormField<int>(
-                                              value: _categoriaSeleccionada,
-                                              decoration: const InputDecoration(
+                                              value: _categoriaSeleccionada,                                              decoration: InputDecoration(
                                                 labelText: 'Categoría *',
-                                                prefixIcon: Icon(Icons.category),
-                                                border: OutlineInputBorder(),
+                                                prefixIcon: const Icon(Icons.category, color: Color(0xFFC2185B)),
+                                                border: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  borderSide: BorderSide(color: Colors.grey[300]!),
+                                                ),
+                                                enabledBorder: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  borderSide: BorderSide(color: Colors.grey[300]!),
+                                                ),
+                                                focusedBorder: const OutlineInputBorder(
+                                                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                                                  borderSide: BorderSide(color: Color(0xFFC2185B)),
+                                                ),
+                                                filled: true,
+                                                fillColor: Colors.white,
                                               ),
+                                              icon: const Icon(Icons.arrow_drop_down, color: Color(0xFFC2185B)),
+                                              dropdownColor: Colors.white,
+                                              borderRadius: BorderRadius.circular(8),
                                               items: _categorias
                                                   .where((categoria) => categoria.id != null)
                                                   .map((categoria) {
@@ -553,12 +568,27 @@ class _ProductoFormPanelState extends State<ProductoFormPanel> with SingleTicker
                                       ),
                                       const SizedBox(height: 16),
                                       DropdownButtonFormField<int>(
-                                        value: _proveedorSeleccionado,
-                                        decoration: const InputDecoration(
+                                        value: _proveedorSeleccionado,                                        decoration: InputDecoration(
                                           labelText: 'Proveedor *',
-                                          prefixIcon: Icon(Icons.business),
-                                          border: OutlineInputBorder(),
+                                          prefixIcon: const Icon(Icons.business, color: Color(0xFFC2185B)),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                            borderSide: BorderSide(color: Colors.grey[300]!),
+                                          ),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                            borderSide: BorderSide(color: Colors.grey[300]!),
+                                          ),
+                                          focusedBorder: const OutlineInputBorder(
+                                            borderRadius: BorderRadius.all(Radius.circular(8)),
+                                            borderSide: BorderSide(color: Color(0xFFC2185B)),
+                                          ),
+                                          filled: true,
+                                          fillColor: Colors.white,
                                         ),
+                                        icon: const Icon(Icons.arrow_drop_down, color: Color(0xFFC2185B)),
+                                        dropdownColor: Colors.white,
+                                        borderRadius: BorderRadius.circular(8),
                                         items: _proveedores
                                             .where((proveedor) => proveedor.id != null)
                                             .map((proveedor) {
