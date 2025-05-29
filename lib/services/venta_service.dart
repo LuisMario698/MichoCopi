@@ -28,13 +28,11 @@ class VentaService {
           'success': false,
           'message': 'El pago no puede ser menor al total',
         };
-      }
-
-      // Verificar que todos los productos existen y tienen stock
+      }      // Verificar que todos los productos existen
       for (int idProducto in venta.idProductos) {
         final productoResponse = await _client
             .from('Productos')
-            .select('id, nombre, stock, precio')
+            .select('id')
             .eq('id', idProducto)
             .maybeSingle();
 
@@ -42,15 +40,6 @@ class VentaService {
           return {
             'success': false,
             'message': 'El producto con ID $idProducto no existe',
-          };
-        }
-
-        final stock = productoResponse['stock'] as int;
-        if (stock <= 0) {
-          final nombre = productoResponse['nombre'] as String;
-          return {
-            'success': false,
-            'message': 'El producto "$nombre" no tiene stock disponible',
           };
         }
       }
@@ -63,23 +52,14 @@ class VentaService {
           .from('Ventas')
           .insert(ventaData)
           .select()
-          .single();
-
-      // Actualizar stock de productos vendidos (asumiendo 1 unidad por producto)
+          .single();      // Ya no actualizamos el stock de productos vendidos
       for (int idProducto in venta.idProductos) {
-        final productoResponse = await _client
-            .from('Productos')
-            .select('stock')
-            .eq('id', idProducto)
-            .single();
-
-        final stockActual = productoResponse['stock'] as int;
-        final nuevoStock = stockActual - 1;
-
+        // Verificar que el producto aún existe
         await _client
             .from('Productos')
-            .update({'stock': nuevoStock})
-            .eq('id', idProducto);
+            .select('id')
+            .eq('id', idProducto)
+            .single();
       }
 
       final ventaCreada = Venta.fromJson(response);
@@ -343,11 +323,11 @@ class VentaService {
         };
       }
 
-      // Verificar stock disponible para todos los productos
+      // Verificar que los productos existan
       for (var item in carrito) {
         final productoResponse = await _client
             .from('Productos')
-            .select('stock')
+            .select('id')
             .eq('id', item.productoId)
             .maybeSingle();
 
@@ -355,14 +335,6 @@ class VentaService {
           return {
             'success': false,
             'message': 'El producto ${item.nombre} ya no está disponible',
-          };
-        }
-
-        final stockActual = productoResponse['stock'] as int;
-        if (stockActual < item.cantidad) {
-          return {
-            'success': false,
-            'message': 'Stock insuficiente para "${item.nombre}". Disponible: $stockActual',
           };
         }
       }
@@ -404,23 +376,6 @@ class VentaService {
           .insert(nuevaVenta.toJson())
           .select()
           .single();
-
-      // Actualizar stock de productos vendidos
-      for (var item in carrito) {
-        final productoResponse = await _client
-            .from('Productos')
-            .select('stock')
-            .eq('id', item.productoId)
-            .single();
-
-        final stockActual = productoResponse['stock'] as int;
-        final nuevoStock = stockActual - item.cantidad;
-
-        await _client
-            .from('Productos')
-            .update({'stock': nuevoStock})
-            .eq('id', item.productoId);
-      }
 
       final ventaCreada = Venta.fromJson(response);
 

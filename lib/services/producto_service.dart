@@ -23,57 +23,25 @@ class ProductoService {
         };
       }
 
-      if (producto.stock < 0) {
-        return {
-          'success': false,
-          'message': 'El stock no puede ser negativo',
-        };
-      }
+      print('📝 Creando producto: ${producto.nombre}');
 
-      // Verificar si la categoría existe
-      try {
-        final categoriaResponse = await _client
-            .from('Categoria_producto')
-            .select('id, nombre')
-            .eq('id', producto.idCategoriaProducto)
-            .single();
-        print('✅ Categoría verificada: $categoriaResponse');
-      } catch (e) {
-        print('❌ Error verificando categoría: $e');
-        return {
-          'success': false,
-          'message': 'La categoría seleccionada no existe',
-        };
-      }
-
-      // Verificar si ya existe un producto con el mismo nombre
-      final nombreExists = await verificarNombreProducto(producto.nombre);
-      if (nombreExists['success'] && nombreExists['existe']) {
-        return {
-          'success': false,
-          'message': 'Ya existe un producto con este nombre',
-        };
-      }
-
-      // Preparar datos para inserción usando toJson del modelo
+      // Preparar datos del producto para insertar
       final productoData = producto.toJson();
-      // Remover el id si existe (para inserción)
-      productoData.remove('id');
 
-      print('📝 Datos a enviar a Supabase: $productoData');
-
-      // Insertar el producto
+      // Crear el producto
       final response = await _client
           .from('Productos')
           .insert(productoData)
           .select()
           .single();
 
-      print('✅ Producto creado exitosamente en Supabase: $response');
+      final productoCreado = Producto.fromJson(response);
+
+      print('✅ Producto creado exitosamente en Supabase');
 
       return {
         'success': true,
-        'data': Producto.fromJson(response),
+        'data': productoCreado,
         'message': 'Producto creado exitosamente',
       };
     } catch (e) {
@@ -85,13 +53,19 @@ class ProductoService {
         print('❌ Mensaje: ${e.message}');
         print('❌ Detalles: ${e.details}');
 
-        // Mensajes más específicos según el tipo de error
         switch (e.code) {
           case '23505': // unique_violation
             errorMessage = 'Ya existe un producto con este nombre';
             break;
           case '23503': // foreign_key_violation
-            errorMessage = 'La categoría seleccionada no existe';
+            String detail = e.details?.toString() ?? '';
+            if (detail.contains('id_Categoria_producto')) {
+              errorMessage = 'La categoría seleccionada no existe';
+            } else if (detail.contains('id_Receta')) {
+              errorMessage = 'La receta especificada no existe';
+            } else {
+              errorMessage = 'Error de referencia en la base de datos';
+            }
             break;
           case '23502': // not_null_violation
             errorMessage = 'Faltan datos requeridos';
@@ -103,8 +77,8 @@ class ProductoService {
 
       return {
         'success': false,
-        'error': e.toString(),
         'message': errorMessage,
+        'error': e.toString(),
       };
     }
   }

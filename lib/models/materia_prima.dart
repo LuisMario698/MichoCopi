@@ -16,19 +16,19 @@ class MateriaPrima {
     this.seVende = false,
     this.siVendePrecio,
   });
-
   factory MateriaPrima.fromJson(Map<String, dynamic> json) {
     return MateriaPrima(
-      id: json['id'] as int?,
+      id: json['id'] != null ? (json['id'] as num).toInt() : null,
       nombre: json['nombre'] as String,
-      idCategoriaMp: json['id_Categoria_mp'] as int,
-      stock: json['stock'] as int,
+      idCategoriaMp: (json['id_Categoria_mp'] as num).toInt(),
+      stock: (json['stock'] as num).toInt(),
       fechaCreacion: DateTime.parse(json['fecha_creacion'] as String),
       seVende: json['seVende'] as bool? ?? false,
-      siVendePrecio: json['siVendePrecio'] as double?,
+      siVendePrecio: json['siVendePrecio'] != null 
+          ? (json['siVendePrecio'] as num).toDouble() 
+          : null,
     );
   }
-
   Map<String, dynamic> toJson() {
     return {
       if (id != null) 'id': id,

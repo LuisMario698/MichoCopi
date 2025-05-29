@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/producto.dart';
+import '../models/receta.dart';
 import '../models/categoria_producto.dart';
-import '../models/proveedor.dart';
+import '../models/materia_prima.dart';
 import '../services/producto_service.dart';
+import '../services/receta_service.dart';
 import '../services/proveedor_service.dart';
+import '../services/materia_prima_service.dart';
 import 'categoria_form_panel.dart';
+import '../models/proveedor.dart';
+import '../models/categoria_mp.dart';
 
 class ProductoFormPanel extends StatefulWidget {
   final VoidCallback onClose;
@@ -29,19 +34,28 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
   final _formKey = GlobalKey<FormState>();
   final _nombreController = TextEditingController();
   final _precioController = TextEditingController();
-  final _stockController = TextEditingController();
+  final _searchController = TextEditingController();
 
   List<Categoria> _categorias = [];
   List<Proveedor> _proveedores = [];
-
-  int? _categoriaSeleccionada;
-  int? _proveedorSeleccionado;
-  DateTime? _fechaCaducidad;
+  List<MateriaPrima> _materiasPrimas = [];
+  List<MateriaPrima> _selectedMateriasPrimas = [];
 
   bool _isLoading = false;
   bool _isLoadingData = true;
   bool _nombreExiste = false;
   bool _validandoNombre = false;
+  bool _isRecipe = false;
+  String _searchQuery = '';
+
+  int? _categoriaSeleccionada;
+  int? _proveedorSeleccionado;
+  DateTime? _fechaCaducidad;
+
+  List<MateriaPrima> get _filteredMateriasPrimas => _materiasPrimas
+      .where((material) =>
+          material.nombre.toLowerCase().contains(_searchQuery.toLowerCase()))
+      .toList();
 
   // Función para verificar si la categoría seleccionada permite caducidad
   bool get _categoriaPermiteCaducidad {
@@ -75,10 +89,10 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
 
   @override
   void dispose() {
-    _animationController.dispose();
     _nombreController.dispose();
     _precioController.dispose();
-    _stockController.dispose();
+    _searchController.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -101,13 +115,49 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
         setState(() {
           _categorias = List<Categoria>.from(categoriasResult['data']);
         });
-      }
-
-      // Obtener proveedores
+      }      // Obtener proveedores
       final proveedoresResult = await ProveedorService.obtenerTodos();
       if (proveedoresResult['success'] == true) {
         setState(() {
           _proveedores = List<Proveedor>.from(proveedoresResult['data']);
+        });
+      }      // Obtener materias primas
+      try {
+        final materiaPrimaService = MateriaPrimaService();
+        final materiasPrimas = await materiaPrimaService.obtenerTodas();
+        setState(() {
+          _materiasPrimas = materiasPrimas;
+        });
+      } catch (e) {
+        print('💥 Error al cargar materias primas: $e');
+      }
+
+      // Agregar materias primas de prueba si no hay datos
+      if (_materiasPrimas.isEmpty) {
+        setState(() {
+          _materiasPrimas = [
+            MateriaPrima(
+              id: 1,
+              nombre: 'Harina',
+              stock: 100,
+              idCategoriaMp: 1,
+              fechaCreacion: DateTime.now(),
+            ),
+            MateriaPrima(
+              id: 2,
+              nombre: 'Azúcar',
+              stock: 50,
+              idCategoriaMp: 1,
+              fechaCreacion: DateTime.now(),
+            ),
+            MateriaPrima(
+              id: 3,
+              nombre: 'Levadura',
+              stock: 25,
+              idCategoriaMp: 1,
+              fechaCreacion: DateTime.now(),
+            ),
+          ];
         });
       }
 
@@ -182,9 +232,17 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
       });
     }
   }
-
   Future<void> _guardarProducto() async {
     if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    // Validar que haya materias primas seleccionadas si es una receta
+    if (_isRecipe && _selectedMateriasPrimas.isEmpty) {
+      _mostrarSnackBar(
+        'Debes seleccionar al menos una materia prima para la receta',
+        true,
+      );
       return;
     }
 
@@ -193,34 +251,61 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
     });
 
     try {
+      // Create recipe first if necessary
+      int? idReceta;
+      
+      if (_isRecipe && _selectedMateriasPrimas.isNotEmpty) {
+        final recetaService = RecetaService();
+        final List<int> cantidades = List<int>.filled(_selectedMateriasPrimas.length, 1);
+        final List<int> materiaPrimaIds = _selectedMateriasPrimas.map((m) => m.id!).toList();
+        
+        try {
+          final receta = Receta(
+            idsMps: materiaPrimaIds,
+            cantidades: cantidades,
+          );
+          
+          final recetaCreada = await recetaService.crear(receta);
+          idReceta = recetaCreada.id;
+          print('✅ Receta creada exitosamente con ID: ${recetaCreada.id}');
+        } catch (e) {
+          print('❌ Error al crear la receta: $e');
+          _mostrarSnackBar('Error al crear la receta: $e', true);
+          setState(() {
+            _isLoading = false;
+          });
+          return;
+        }
+      }
+
+      // Create product with recipe if one was created
       final producto = Producto(
         nombre: _nombreController.text.trim(),
         precio: double.parse(_precioController.text),
-        stock: int.parse(_stockController.text),
         idCategoriaProducto: _categoriaSeleccionada!,
         caducidad: _fechaCaducidad,
+        idReceta: idReceta,
       );
 
       final result = await ProductoService.crearProducto(producto);
 
       if (result['success']) {
+        print('✅ Producto creado exitosamente con receta: ${result['data'].id}');
         _mostrarSnackBar('Producto agregado exitosamente', false);
         widget.onProductoCreated(true);
       } else {
         _mostrarSnackBar(
-          result['message'] ?? 'Error al guardar el producto',
+          'Error al crear el producto: ${result['message']}',
           true,
         );
       }
     } catch (e) {
-      print('💥 Error al guardar: $e');
-      _mostrarSnackBar('Error al guardar el producto', true);
+      print('❌ Error inesperado: $e');
+      _mostrarSnackBar('Error inesperado: $e', true);
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -237,13 +322,14 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
   void _limpiarFormulario() {
     _nombreController.clear();
     _precioController.clear();
-    _stockController.clear();
     setState(() {
       _categoriaSeleccionada = null;
       _proveedorSeleccionado = null;
       _fechaCaducidad = null;
       _nombreExiste = false;
       _validandoNombre = false;
+      _isRecipe = false;
+      _selectedMateriasPrimas.clear();
     });
   }
 
@@ -320,31 +406,6 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
         final precio = double.tryParse(value);
         if (precio == null || precio <= 0) {
           return 'Ingresa un precio válido mayor a 0';
-        }
-        return null;
-      },
-    );
-  }
-
-  Widget _buildStockField() {
-    return TextFormField(
-      controller: _stockController,
-      decoration: const InputDecoration(
-        labelText: 'Stock inicial *',
-        prefixIcon: Icon(Icons.inventory),
-        border: OutlineInputBorder(),
-        suffixText: 'unidades',
-        helperText: 'Cantidad inicial disponible',
-      ),
-      keyboardType: TextInputType.number,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'El stock es obligatorio';
-        }
-        final stock = int.tryParse(value);
-        if (stock == null || stock < 0) {
-          return 'Ingresa un stock válido (0 o mayor)';
         }
         return null;
       },
@@ -745,7 +806,7 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
                                 ),
                                 const SizedBox(height: 16),
 
-                                // Inventario y Precio
+                                // Sección de precio
                                 Card(
                                   elevation: 0,
                                   color: Colors.grey[50],
@@ -758,13 +819,13 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
                                         const Row(
                                           children: [
                                             Icon(
-                                              Icons.inventory_2_outlined,
+                                              Icons.attach_money,
                                               color: Color(0xFFC2185B),
                                               size: 20,
                                             ),
                                             SizedBox(width: 8),
                                             Text(
-                                              'Inventario y Precio',
+                                              'Precio',
                                               style: TextStyle(
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.bold,
@@ -773,19 +834,12 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
                                           ],
                                         ),
                                         const SizedBox(height: 16),
-                                        Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Expanded(child: _buildPriceField()),
-                                            const SizedBox(width: 16),
-                                            Expanded(child: _buildStockField()),
-                                          ],
-                                        ),
+                                        _buildPriceField(),
                                       ],
                                     ),
                                   ),
                                 ),
+
                                 const SizedBox(height: 16),
 
                                 // Caducidad (condicional)
@@ -867,6 +921,192 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
                                       ),
                                     ),
                                   ),
+
+                                const SizedBox(height: 16),
+
+                                // Modo receta y selección de materias primas
+                                Card(
+                                  elevation: 0,
+                                  color: Colors.grey[50],
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        // Encabezado de Receta
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.receipt_long,
+                                              color: Color(0xFFC2185B),
+                                              size: 24,
+                                            ),
+                                            SizedBox(width: 8),
+                                            Text(
+                                              'Receta',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        SizedBox(height: 16),
+                                        
+                                        // Switch para activar modo receta
+                                        SwitchListTile(
+                                          title: Text(
+                                            'Este producto requiere una receta',
+                                            style: TextStyle(fontWeight: FontWeight.w500),
+                                          ),
+                                          subtitle: Text(
+                                            'Activa esta opción si el producto se elabora usando materias primas',
+                                            style: TextStyle(fontSize: 12),
+                                          ),
+                                          value: _isRecipe,
+                                          onChanged: (value) {
+                                            setState(() {
+                                              _isRecipe = value;
+                                              if (!value) {
+                                                _selectedMateriasPrimas.clear();
+                                              }
+                                            });
+                                          },
+                                          secondary: Icon(
+                                            Icons.kitchen,
+                                            color: Color(0xFFC2185B),
+                                          ),
+                                        ),
+
+                                        if (_isRecipe) ...[
+                                          SizedBox(height: 16),
+
+                                          // Buscador de materias primas
+                                          TextField(
+                                            decoration: InputDecoration(
+                                              labelText: 'Buscar materia prima',
+                                              hintText: 'Escribe para buscar...',
+                                              prefixIcon: Icon(
+                                                Icons.search,
+                                                color: Color(0xFFC2185B),
+                                              ),
+                                              border: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              focusedBorder: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                                borderSide: BorderSide(
+                                                  color: Color(0xFFC2185B),
+                                                  width: 2,
+                                                ),
+                                              ),
+                                            ),
+                                            onChanged: (value) {
+                                              setState(() {
+                                                _searchQuery = value;
+                                              });
+                                            },
+                                          ),
+                                          SizedBox(height: 16),
+
+                                          // Lista de materias primas disponibles
+                                          Container(
+                                            height: 200,
+                                            decoration: BoxDecoration(
+                                              border: Border.all(color: Colors.grey[300]!),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: ListView.builder(
+                                              itemCount: _filteredMateriasPrimas.length,
+                                              itemBuilder: (context, index) {
+                                                final material = _filteredMateriasPrimas[index];
+                                                final yaSeleccionado = _selectedMateriasPrimas.contains(material);
+                                                return ListTile(
+                                                  title: Text(
+                                                    material.nombre,
+                                                    style: TextStyle(fontWeight: FontWeight.w500),
+                                                  ),
+                                                  subtitle: Row(
+                                                    children: [
+                                                      Icon(
+                                                        Icons.inventory_2_outlined,
+                                                        size: 14,
+                                                        color: material.stock > 10 ? Colors.green : Colors.orange,
+                                                      ),
+                                                      SizedBox(width: 4),
+                                                      Text(
+                                                        'Stock: ${material.stock}',
+                                                        style: TextStyle(fontSize: 12),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  trailing: yaSeleccionado
+                                                    ? IconButton(
+                                                        icon: Icon(Icons.check_circle, color: Color(0xFFC2185B)),
+                                                        onPressed: () {
+                                                          setState(() {
+                                                            _selectedMateriasPrimas.remove(material);
+                                                          });
+                                                        },
+                                                      )
+                                                    : OutlinedButton(
+                                                        onPressed: () {
+                                                          setState(() {
+                                                            _selectedMateriasPrimas.add(material);
+                                                          });
+                                                        },
+                                                        style: OutlinedButton.styleFrom(
+                                                          foregroundColor: Color(0xFFC2185B),
+                                                          side: BorderSide(color: Color(0xFFC2185B)),
+                                                        ),
+                                                        child: Text('Agregar'),
+                                                      ),
+                                                );
+                                              },
+                                            ),
+                                          ),
+
+                                          if (_selectedMateriasPrimas.isNotEmpty) ...[
+                                            SizedBox(height: 24),
+                                            Text(
+                                              'Materias Primas de la Receta',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.grey[700],
+                                              ),
+                                            ),
+                                            SizedBox(height: 8),
+                                            Container(
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(8),
+                                                border: Border.all(color: Colors.grey[300]!),
+                                              ),
+                                              child: Column(
+                                                children: _selectedMateriasPrimas.map((material) {
+                                                  return ListTile(
+                                                    leading: Icon(Icons.check, color: Color(0xFFC2185B)),
+                                                    title: Text(material.nombre),
+                                                    trailing: IconButton(
+                                                      icon: Icon(Icons.remove_circle_outline, color: Colors.red[300]),
+                                                      onPressed: () {
+                                                        setState(() {
+                                                          _selectedMateriasPrimas.remove(material);
+                                                        });
+                                                      },
+                                                      tooltip: 'Remover de la receta',
+                                                    ),
+                                                  );
+                                                }).toList(),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ),
 
                                 const SizedBox(height: 32),
 

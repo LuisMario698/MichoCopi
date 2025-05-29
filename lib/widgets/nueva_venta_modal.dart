@@ -77,11 +77,7 @@ class _NuevaVentaModalState extends State<NuevaVentaModal> {
       if (index != -1) {
         // Si ya existe, aumentar cantidad
         final item = _carrito[index];
-        if (item.puedeAumentar) {
-          _carrito[index] = item.copyWith(cantidad: item.cantidad + 1);
-        } else {
-          _mostrarError('No hay suficiente stock disponible');
-        }
+        _carrito[index] = item.copyWith(cantidad: item.cantidad + 1);
       } else {
         // Agregar nuevo item al carrito
         _carrito.add(CarritoItem(
@@ -89,7 +85,7 @@ class _NuevaVentaModalState extends State<NuevaVentaModal> {
           nombre: producto.nombre,
           precio: producto.precio,
           cantidad: 1,
-          stock: producto.stock,
+          stock: null, // Stock is now null since we don't manage inventory
         ));
       }
     });
@@ -97,18 +93,13 @@ class _NuevaVentaModalState extends State<NuevaVentaModal> {
     // Limpiar búsqueda después de agregar
     _busquedaController.clear();
   }
-
   void _modificarCantidad(int index, int nuevaCantidad) {
     if (nuevaCantidad <= 0) {
       _eliminarDelCarrito(index);
     } else {
       setState(() {
         final item = _carrito[index];
-        if (nuevaCantidad <= (item.stock ?? 999)) {
-          _carrito[index] = item.copyWith(cantidad: nuevaCantidad);
-        } else {
-          _mostrarError('No hay suficiente stock disponible');
-        }
+        _carrito[index] = item.copyWith(cantidad: nuevaCantidad);
       });
     }
   }
@@ -397,24 +388,11 @@ class _NuevaVentaModalState extends State<NuevaVentaModal> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
-            title: Text(
+            ),            title: Text(
               producto.nombre,
               style: const TextStyle(fontWeight: FontWeight.w500),
             ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('\$${producto.precio.toStringAsFixed(2)}'),
-                Text(
-                  'Stock: ${producto.stock}',
-                  style: TextStyle(
-                    color: producto.stock > 5 ? Colors.green : Colors.orange,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
+            subtitle: Text('\$${producto.precio.toStringAsFixed(2)}'),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -436,7 +414,7 @@ class _NuevaVentaModalState extends State<NuevaVentaModal> {
                   ),
                 const SizedBox(width: 8),
                 ElevatedButton(
-                  onPressed: producto.stock > 0 ? () => _agregarAlCarrito(producto) : null,
+                  onPressed: () => _agregarAlCarrito(producto),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFC2185B),
                     foregroundColor: Colors.white,
@@ -449,7 +427,6 @@ class _NuevaVentaModalState extends State<NuevaVentaModal> {
                 ),
               ],
             ),
-            enabled: producto.stock > 0,
           ),
         );
       },

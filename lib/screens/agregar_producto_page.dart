@@ -11,11 +11,9 @@ class AgregarProductoPage extends StatefulWidget {
   State<AgregarProductoPage> createState() => _AgregarProductoPageState();
 }
 
-class _AgregarProductoPageState extends State<AgregarProductoPage> {
-  final _formKey = GlobalKey<FormState>();
+class _AgregarProductoPageState extends State<AgregarProductoPage> {  final _formKey = GlobalKey<FormState>();
   final _nombreController = TextEditingController();
   final _precioController = TextEditingController();
-  final _stockController = TextEditingController();
 
   List<Categoria> _categorias = [];
   int? _categoriaSeleccionada;
@@ -106,13 +104,10 @@ class _AgregarProductoPageState extends State<AgregarProductoPage> {
 
     setState(() {
       _isLoading = true;
-    });
-
-    try {
+    });    try {
       final producto = Producto(
         nombre: _nombreController.text.trim(),
         precio: double.parse(_precioController.text),
-        stock: int.parse(_stockController.text),
         idCategoriaProducto: _categoriaSeleccionada!,
         caducidad: _fechaCaducidad,
       );
@@ -136,11 +131,9 @@ class _AgregarProductoPageState extends State<AgregarProductoPage> {
       });
     }
   }
-
   void _limpiarFormulario() {
     _nombreController.clear();
     _precioController.clear();
-    _stockController.clear();
     setState(() {
       _categoriaSeleccionada = null;
       _fechaCaducidad = null;
@@ -155,12 +148,10 @@ class _AgregarProductoPageState extends State<AgregarProductoPage> {
       ),
     );
   }
-
   @override
   void dispose() {
     _nombreController.dispose();
     _precioController.dispose();
-    _stockController.dispose();
     super.dispose();
   }
 
@@ -200,9 +191,7 @@ class _AgregarProductoPageState extends State<AgregarProductoPage> {
                                   return null;
                                 },
                               ),
-                              const SizedBox(height: 16),
-
-                              // Campo Precio
+                              const SizedBox(height: 16),                              // Campo Precio
                               TextFormField(
                                 controller: _precioController,
                                 decoration: const InputDecoration(
@@ -225,32 +214,6 @@ class _AgregarProductoPageState extends State<AgregarProductoPage> {
                                   }
                                   if (double.parse(value) <= 0) {
                                     return 'El precio debe ser mayor a 0';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Campo Stock
-                              TextFormField(
-                                controller: _stockController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Stock inicial *',
-                                  border: OutlineInputBorder(),
-                                ),
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                ],
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Por favor ingresa el stock inicial';
-                                  }
-                                  if (int.tryParse(value) == null) {
-                                    return 'Por favor ingresa un número válido';
-                                  }
-                                  if (int.parse(value) < 0) {
-                                    return 'El stock no puede ser negativo';
                                   }
                                   return null;
                                 },

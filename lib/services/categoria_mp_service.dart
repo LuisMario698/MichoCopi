@@ -3,7 +3,7 @@ import '../models/categoria_mp.dart';
 
 class CategoriaMpService {
   final SupabaseClient _supabase = Supabase.instance.client;
-  static const String _tableName = 'categoria_mp';
+  static const String _tableName = 'Categoria_mp';
 
   // Obtener todas las categorías de materia prima
   Future<List<CategoriaMp>> obtenerTodas() async {
@@ -151,9 +151,8 @@ class CategoriaMpService {
 
   // Verificar si la categoría está siendo utilizada
   Future<bool> _verificarEnUso(int id) async {
-    try {
-      final response = await _supabase
-          .from('materia_prima')
+    try {      final response = await _supabase
+          .from('Materia_prima')
           .select('id')
           .eq('id_categoria_mp', id)
           .maybeSingle();
@@ -165,9 +164,8 @@ class CategoriaMpService {
   }
   // Obtener estadísticas de la categoría
   Future<Map<String, dynamic>> obtenerEstadisticas(int id) async {
-    try {
-      final materiaPrimaCount = await _supabase
-          .from('materia_prima')
+    try {      final materiaPrimaCount = await _supabase
+          .from('Materia_prima')
           .select('id')
           .eq('id_categoria_mp', id);
 

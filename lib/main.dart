@@ -412,13 +412,11 @@ class _HomePageState extends State<HomePage> {
         });
         return;
       }
-      
-      final categorias = categoriasResult['data'] as List<Categoria>;
+        final categorias = categoriasResult['data'] as List<Categoria>;
       final primeraCategoria = categorias.first;
         final producto = Producto(
         nombre: 'Producto Test ${DateTime.now().millisecondsSinceEpoch}',
         precio: 10.50,
-        stock: 5,
         idCategoriaProducto: primeraCategoria.id!,
       );
       

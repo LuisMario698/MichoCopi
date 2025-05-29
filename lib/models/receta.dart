@@ -1,40 +1,26 @@
 class Receta {
   final int? id;
-  final String nombre;
-  final String descripcion;
-  final List<int> idMateriasPrimas;
-  final List<double> cantidades;
+  final List<int> idsMps;
+  final List<int> cantidades;
 
   Receta({
     this.id,
-    required this.nombre,
-    required this.descripcion,
-    required this.idMateriasPrimas,
+    required this.idsMps,
     required this.cantidades,
   });
 
-  // Constructor para crear desde JSON (para Supabase)
   factory Receta.fromJson(Map<String, dynamic> json) {
     return Receta(
-      id: json['id'] as int?,
-      nombre: json['nombre'] as String,
-      descripcion: json['descripcion'] as String,
-      idMateriasPrimas: (json['id_materias_primas'] as List<dynamic>)
-          .map((e) => e as int)
-          .toList(),
-      cantidades: (json['cantidades'] as List<dynamic>)
-          .map((e) => (e as num).toDouble())
-          .toList(),
+      id: json['id'] != null ? (json['id'] as num).toInt() : null,
+      idsMps: (json['ids_Mps'] as List).map((e) => (e as num).toInt()).toList(),
+      cantidades: (json['cantidades'] as List).map((e) => (e as num).toInt()).toList(),
     );
   }
 
-  // Convertir a JSON (para Supabase)
   Map<String, dynamic> toJson() {
     return {
       if (id != null) 'id': id,
-      'nombre': nombre,
-      'descripcion': descripcion,
-      'id_materias_primas': idMateriasPrimas,
+      'ids_Mps': idsMps,
       'cantidades': cantidades,
     };
   }
@@ -42,61 +28,31 @@ class Receta {
   // Método copyWith para crear copias con modificaciones
   Receta copyWith({
     int? id,
-    String? nombre,
-    String? descripcion,
-    List<int>? idMateriasPrimas,
-    List<double>? cantidades,
+    List<int>? idsMps,
+    List<int>? cantidades,
   }) {
     return Receta(
       id: id ?? this.id,
-      nombre: nombre ?? this.nombre,
-      descripcion: descripcion ?? this.descripcion,
-      idMateriasPrimas: idMateriasPrimas ?? List.from(this.idMateriasPrimas),
+      idsMps: idsMps ?? List.from(this.idsMps),
       cantidades: cantidades ?? List.from(this.cantidades),
     );
   }
 
   // Validaciones
-  String? validarNombre() {
-    if (nombre.trim().isEmpty) {
-      return 'El nombre de la receta es requerido';
-    }
-    if (nombre.trim().length < 2) {
-      return 'El nombre debe tener al menos 2 caracteres';
-    }
-    if (nombre.trim().length > 100) {
-      return 'El nombre no puede exceder 100 caracteres';
-    }
-    return null;
-  }
-
-  String? validarDescripcion() {
-    if (descripcion.trim().isEmpty) {
-      return 'La descripción es requerida';
-    }
-    if (descripcion.trim().length < 5) {
-      return 'La descripción debe tener al menos 5 caracteres';
-    }
-    if (descripcion.trim().length > 500) {
-      return 'La descripción no puede exceder 500 caracteres';
-    }
-    return null;
-  }
-
-  String? validarMateriasPrimas() {
-    if (idMateriasPrimas.isEmpty) {
+  String? validarIdsMps() {
+    if (idsMps.isEmpty) {
       return 'Debe agregar al menos una materia prima';
     }
-    if (idMateriasPrimas.length > 20) {
+    if (idsMps.length > 20) {
       return 'No puede agregar más de 20 materias primas';
     }
     // Verificar que no haya IDs duplicados
-    Set<int> idsUnicos = Set.from(idMateriasPrimas);
-    if (idsUnicos.length != idMateriasPrimas.length) {
+    Set<int> idsUnicos = Set.from(idsMps);
+    if (idsUnicos.length != idsMps.length) {
       return 'No puede agregar la misma materia prima más de una vez';
     }
     // Verificar que todos los IDs sean válidos
-    for (int id in idMateriasPrimas) {
+    for (int id in idsMps) {
       if (id <= 0) {
         return 'Todas las materias primas deben tener un ID válido';
       }
@@ -108,7 +64,7 @@ class Receta {
     if (cantidades.isEmpty) {
       return 'Debe especificar cantidades para las materias primas';
     }
-    if (cantidades.length != idMateriasPrimas.length) {
+    if (cantidades.length != idsMps.length) {
       return 'El número de cantidades debe coincidir con el número de materias primas';
     }
     // Verificar que todas las cantidades sean válidas
@@ -127,14 +83,8 @@ class Receta {
   List<String> validar() {
     List<String> errores = [];
     
-    String? errorNombre = validarNombre();
-    if (errorNombre != null) errores.add(errorNombre);
-    
-    String? errorDescripcion = validarDescripcion();
-    if (errorDescripcion != null) errores.add(errorDescripcion);
-    
-    String? errorMateriasPrimas = validarMateriasPrimas();
-    if (errorMateriasPrimas != null) errores.add(errorMateriasPrimas);
+    String? errorIdsMps = validarIdsMps();
+    if (errorIdsMps != null) errores.add(errorIdsMps);
     
     String? errorCantidades = validarCantidades();
     if (errorCantidades != null) errores.add(errorCantidades);
@@ -146,66 +96,64 @@ class Receta {
   bool get esValida => validar().isEmpty;
 
   // Agregar materia prima a la receta
-  Receta agregarMateriaPrima(int idMateriaPrima, double cantidad) {
-    if (idMateriasPrimas.contains(idMateriaPrima)) {
+  Receta agregarMateriaPrima(int idMateriaPrima, int cantidad) {
+    if (idsMps.contains(idMateriaPrima)) {
       throw ArgumentError('La materia prima ya existe en la receta');
     }
     
-    List<int> nuevosIds = List.from(idMateriasPrimas)..add(idMateriaPrima);
-    List<double> nuevasCantidades = List.from(cantidades)..add(cantidad);
+    List<int> nuevosIds = List.from(idsMps)..add(idMateriaPrima);
+    List<int> nuevasCantidades = List.from(cantidades)..add(cantidad);
     
     return copyWith(
-      idMateriasPrimas: nuevosIds,
+      idsMps: nuevosIds,
       cantidades: nuevasCantidades,
     );
   }
 
   // Remover materia prima de la receta
   Receta removerMateriaPrima(int idMateriaPrima) {
-    int index = idMateriasPrimas.indexOf(idMateriaPrima);
+    int index = idsMps.indexOf(idMateriaPrima);
     if (index == -1) {
       throw ArgumentError('La materia prima no existe en la receta');
     }
     
-    List<int> nuevosIds = List.from(idMateriasPrimas)..removeAt(index);
-    List<double> nuevasCantidades = List.from(cantidades)..removeAt(index);
+    List<int> nuevosIds = List.from(idsMps)..removeAt(index);
+    List<int> nuevasCantidades = List.from(cantidades)..removeAt(index);
     
     return copyWith(
-      idMateriasPrimas: nuevosIds,
+      idsMps: nuevosIds,
       cantidades: nuevasCantidades,
     );
   }
 
   // Actualizar cantidad de materia prima
-  Receta actualizarCantidad(int idMateriaPrima, double nuevaCantidad) {
-    int index = idMateriasPrimas.indexOf(idMateriaPrima);
+  Receta actualizarCantidad(int idMateriaPrima, int nuevaCantidad) {
+    int index = idsMps.indexOf(idMateriaPrima);
     if (index == -1) {
       throw ArgumentError('La materia prima no existe en la receta');
     }
     
-    List<double> nuevasCantidades = List.from(cantidades);
+    List<int> nuevasCantidades = List.from(cantidades);
     nuevasCantidades[index] = nuevaCantidad;
     
     return copyWith(cantidades: nuevasCantidades);
   }
 
   // Obtener cantidad de una materia prima específica
-  double? obtenerCantidad(int idMateriaPrima) {
-    int index = idMateriasPrimas.indexOf(idMateriaPrima);
+  int? obtenerCantidad(int idMateriaPrima) {
+    int index = idsMps.indexOf(idMateriaPrima);
     return index != -1 ? cantidades[index] : null;
   }
 
   // Número total de ingredientes
-  int get numeroIngredientes => idMateriasPrimas.length;
+  int get numeroIngredientes => idsMps.length;
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is Receta &&
         other.id == id &&
-        other.nombre == nombre &&
-        other.descripcion == descripcion &&
-        _listEquals(other.idMateriasPrimas, idMateriasPrimas) &&
+        _listEquals(other.idsMps, idsMps) &&
         _listEquals(other.cantidades, cantidades);
   }
 
@@ -222,15 +170,13 @@ class Receta {
   int get hashCode {
     return Object.hash(
       id,
-      nombre,
-      descripcion,
-      Object.hashAll(idMateriasPrimas),
+      Object.hashAll(idsMps),
       Object.hashAll(cantidades),
     );
   }
 
   @override
   String toString() {
-    return 'Receta{id: $id, nombre: $nombre, descripcion: $descripcion, ingredientes: ${idMateriasPrimas.length}}';
+    return 'Receta{id: $id, ingredientes: ${idsMps.length}}';
   }
 }

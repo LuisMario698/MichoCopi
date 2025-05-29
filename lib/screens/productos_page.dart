@@ -396,143 +396,115 @@ class _ProductosPageState extends State<ProductosPage> {
                                   nombre: 'Sin categoría',
                                   conCaducidad: false,
                                 ),
-                              );
-                              return InkWell(
+                              );                              return InkWell(
                                 onTap: () => _toggleDetalles(producto),
                                 child: Card(
-                                  elevation: 2,
+                                  elevation: 3,
+                                  shadowColor: Colors.black26,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
                                     children: [
-                                      Expanded(
-                                        flex: 2,
-                                        child: Container(
-                                          width: double.infinity,
-                                          decoration: BoxDecoration(
-                                            color: Colors.grey[100],
-                                            borderRadius: const BorderRadius.only(
-                                              topLeft: Radius.circular(12),
-                                              topRight: Radius.circular(12),
-                                            ),
+                                      // Sección superior con gradiente e icono
+                                      Container(
+                                        height: 200,
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                            colors: [
+                                              const Color(0xFFC2185B).withOpacity(0.15),
+                                              Colors.grey[50]!,
+                                            ],
+                                            stops: const [0.3, 1.0],
                                           ),
-                                          child: const Center(
-                                            child: Icon(
-                                              Icons.icecream,
-                                              size: 72,
-                                              color: Color(0xFFC2185B),
-                                            ),
+                                          borderRadius: const BorderRadius.vertical(
+                                            top: Radius.circular(16),
+                                          ),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(horizontal: 30),
+                                        child: Center(
+                                          child: Icon(
+                                            Icons.icecream_rounded,
+                                            size: 120,
+                                            color: const Color(0xFFC2185B).withOpacity(0.7),
                                           ),
                                         ),
                                       ),
+                                      // Contenido del producto
                                       Expanded(
-                                        flex: 3,
                                         child: Padding(
-                                          padding: const EdgeInsets.all(12),
+                                          padding: const EdgeInsets.all(16),
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
+                                              // Nombre del producto (más grande)
                                               Text(
                                                 producto.nombre,
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.bold,
-                                                  fontSize: 24,
-                                                  height: 1.1,
+                                                  fontSize: 30,
+                                                  height: 1.2,
+                                                  color: Color(0xFF1E1E1E),
                                                 ),
                                                 maxLines: 2,
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                               const SizedBox(height: 8),
+                                              // Categoría justo debajo del nombre
                                               Container(
                                                 padding: const EdgeInsets.symmetric(
-                                                  horizontal: 8,
+                                                  horizontal: 10,
                                                   vertical: 4,
                                                 ),
                                                 decoration: BoxDecoration(
-                                                  color: Colors.grey[200],
-                                                  borderRadius: BorderRadius.circular(6),
+                                                  color: const Color(0xFFC2185B).withOpacity(0.1),
+                                                  borderRadius: BorderRadius.circular(8),
                                                 ),
-                                                child: Text(
-                                                  categoria.nombre,
-                                                  style: TextStyle(
-                                                    fontSize: 14,
-                                                    color: Colors.grey[700],
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.category_outlined,
+                                                      size: 16,
+                                                      color: const Color(0xFFC2185B).withOpacity(0.8),
+                                                    ),
+                                                    const SizedBox(width: 6),
+                                                    Text(
+                                                      categoria.nombre,
+                                                      style: TextStyle(
+                                                        fontSize: 14,
+                                                        color: const Color(0xFFC2185B).withOpacity(0.8),
+                                                        fontWeight: FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
                                               const Spacer(),
-                                              Row(
-                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                children: [
-                                                  Container(
-                                                    padding: const EdgeInsets.symmetric(
-                                                      horizontal: 10,
-                                                      vertical: 6,
-                                                    ),
-                                                    decoration: BoxDecoration(
-                                                      color: const Color.fromARGB(255, 238, 97, 154).withOpacity(0.1),
-                                                      borderRadius: BorderRadius.circular(8),
-                                                    ),
-                                                    child: Text(
-                                                      '\$${producto.precio.toStringAsFixed(2)}',
-                                                      style: const TextStyle(
-                                                        fontWeight: FontWeight.bold,
-                                                        color: Color(0xFFC2185B),
-                                                        fontSize: 18,
-                                                      ),
+                                              // Precio abajo a la derecha
+                                              Align(
+                                                alignment: Alignment.bottomRight,
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 6,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(0xFFC2185B),
+                                                    borderRadius: BorderRadius.circular(12),
+                                                  ),
+                                                  child: Text(
+                                                    '\$${producto.precio.toStringAsFixed(2)}',
+                                                    style: const TextStyle(
+                                                      fontWeight: FontWeight.bold,
+                                                      color: Colors.white,
+                                                      fontSize: 23,
                                                     ),
                                                   ),
-                                                  if (categoria.conCaducidad && producto.caducidad != null) ...[
-                                                    Builder(
-                                                      builder: (context) {
-                                                        final estadoCaducidad = _calcularEstadoCaducidad(producto.caducidad!);
-                                                        return Container(
-                                                          padding: const EdgeInsets.symmetric(
-                                                            horizontal: 10,
-                                                            vertical: 6,
-                                                          ),
-                                                          decoration: BoxDecoration(
-                                                            color: estadoCaducidad['backgroundColor'],
-                                                            borderRadius: BorderRadius.circular(8),
-                                                          ),
-                                                          child: Row(
-                                                            mainAxisSize: MainAxisSize.min,
-                                                            children: [
-                                                              Icon(
-                                                                estadoCaducidad['icon'],
-                                                                size: 14,
-                                                                color: estadoCaducidad['color'],
-                                                              ),
-                                                              const SizedBox(width: 4),
-                                                              Column(
-                                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                                mainAxisSize: MainAxisSize.min,
-                                                                children: [
-                                                                  Text(
-                                                                    estadoCaducidad['mensaje'],
-                                                                    style: TextStyle(
-                                                                      fontSize: 10,
-                                                                      fontWeight: FontWeight.w500,
-                                                                      color: estadoCaducidad['color'],
-                                                                    ),
-                                                                  ),
-                                                                  Text(
-                                                                    _formatearFecha(producto.caducidad!),
-                                                                    style: TextStyle(
-                                                                      fontSize: 12,
-                                                                      fontWeight: FontWeight.w600,
-                                                                      color: estadoCaducidad['color'],
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        );
-                                                      },
-                                                    ),
-                                                  ]
-                                                ],
+                                                ),
                                               ),
                                             ],
                                           ),
