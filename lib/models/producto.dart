@@ -3,18 +3,20 @@ class Producto {
   final String nombre;
   final double precio;
   final int stock;
-  final int categoria;
-  final int proveedor;
   final DateTime? caducidad;
+  final int idCategoriaProducto;
+  final int? idUsuario;
+  final int? idReceta;
 
   Producto({
     this.id,
     required this.nombre,
     required this.precio,
     required this.stock,
-    required this.categoria,
-    required this.proveedor,
     this.caducidad,
+    required this.idCategoriaProducto,
+    this.idUsuario,
+    this.idReceta,
   });
 
   // Constructor para crear desde JSON (para Supabase)
@@ -24,12 +26,13 @@ class Producto {
       nombre: json['nombre'] as String,
       precio: (json['precio'] as num).toDouble(),
       stock: json['stock'] as int,
-      categoria: json['categoria'] as int,
-      proveedor: json['proveedor'] as int,
       caducidad:
           json['caducidad'] != null
               ? DateTime.parse(json['caducidad'] as String)
               : null,
+      idCategoriaProducto: json['id_Categoria_producto'] as int,
+      idUsuario: json['id_Usuario'] as int?,
+      idReceta: json['id_Receta'] as int?,
     );
   }
 
@@ -40,10 +43,11 @@ class Producto {
       'nombre': nombre,
       'precio': precio,
       'stock': stock,
-      'categoria': categoria,
-      'proveedor': proveedor,
       if (caducidad != null)
         'caducidad': caducidad!.toIso8601String().split('T')[0],
+      'id_Categoria_producto': idCategoriaProducto,
+      if (idUsuario != null) 'id_Usuario': idUsuario,
+      if (idReceta != null) 'id_Receta': idReceta,
     };
   }
 
@@ -53,95 +57,52 @@ class Producto {
     String? nombre,
     double? precio,
     int? stock,
-    int? categoria,
-    int? proveedor,
     DateTime? caducidad,
+    int? idCategoriaProducto,
+    int? idUsuario,
+    int? idReceta,
   }) {
     return Producto(
       id: id ?? this.id,
       nombre: nombre ?? this.nombre,
       precio: precio ?? this.precio,
       stock: stock ?? this.stock,
-      categoria: categoria ?? this.categoria,
-      proveedor: proveedor ?? this.proveedor,
       caducidad: caducidad ?? this.caducidad,
+      idCategoriaProducto: idCategoriaProducto ?? this.idCategoriaProducto,
+      idUsuario: idUsuario ?? this.idUsuario,
+      idReceta: idReceta ?? this.idReceta,
     );
   }
 
   @override
   String toString() {
-    return 'Producto(id: $id, nombre: $nombre, precio: $precio, stock: $stock, categoria: $categoria, proveedor: $proveedor, caducidad: $caducidad)';
-  }
-}
-
-// Modelo para Categoría de Producto
-class Categoria {
-  final int? id;
-  final String nombre;
-  final bool conCaducidad;
-
-  Categoria({
-    this.id,
-    required this.nombre,
-    required this.conCaducidad,
-  });
-
-  factory Categoria.fromJson(Map<String, dynamic> json) {
-    return Categoria(
-      id: json['id'] as int?,
-      nombre: json['nombre'] as String,
-      conCaducidad: json['conCaducidad'] as bool? ?? false,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      if (id != null) 'id': id,
-      'nombre': nombre, 
-      'conCaducidad': conCaducidad,
-    };
+    return 'Producto(id: $id, nombre: $nombre, precio: $precio, stock: $stock, caducidad: $caducidad, idCategoriaProducto: $idCategoriaProducto, idUsuario: $idUsuario, idReceta: $idReceta)';
   }
 
   @override
-  String toString() {
-    return 'Categoria(id: $id, nombre: $nombre, conCaducidad: $conCaducidad)';
-  }
-}
-
-// Modelo para Proveedor
-class Proveedor {
-  final int? id;
-  final String nombre;
-  final String direccion;
-  final int telefono;
-
-  Proveedor({
-    this.id,
-    required this.nombre,
-    required this.direccion,
-    required this.telefono,
-  });
-
-  factory Proveedor.fromJson(Map<String, dynamic> json) {
-    return Proveedor(
-      id: json['id'] as int?,
-      nombre: json['nombre'] as String,
-      direccion: json['direccion'] as String,
-      telefono: json['telefono'] as int,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      if (id != null) 'id': id,
-      'nombre': nombre,
-      'direccion': direccion,
-      'telefono': telefono,
-    };
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Producto &&
+        other.id == id &&
+        other.nombre == nombre &&
+        other.precio == precio &&
+        other.stock == stock &&
+        other.caducidad == caducidad &&
+        other.idCategoriaProducto == idCategoriaProducto &&
+        other.idUsuario == idUsuario &&
+        other.idReceta == idReceta;
   }
 
   @override
-  String toString() {
-    return 'Proveedor(id: $id, nombre: $nombre, direccion: $direccion, telefono: $telefono)';
-  }
+  int get hashCode {
+    return Object.hash(
+      id,
+      nombre,
+      precio,
+      stock,
+      caducidad,
+      idCategoriaProducto,
+      idUsuario,
+      idReceta,
+    );  }
 }

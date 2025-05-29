@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/producto.dart';
+import '../models/categoria_producto.dart';
 import '../services/producto_service.dart';
 
 class ProductoDetailPanel extends StatefulWidget {

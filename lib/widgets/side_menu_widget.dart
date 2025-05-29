@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:invmicho/services/auth_service.dart';
 
 class SideMenuWidget extends StatefulWidget {
   final Function(String) onMenuItemSelected;
@@ -283,12 +284,18 @@ class _SideMenuWidgetState extends State<SideMenuWidget> {
                 'Cancelar',
                 style: TextStyle(color: Colors.grey[600]),
               ),
-            ),
-            ElevatedButton(
-              onPressed: () {
+            ),            ElevatedButton(
+              onPressed: () async {
                 Navigator.of(context).pop();
-                // Aquí puedes agregar la lógica de logout
-                widget.onMenuItemSelected('logout');
+                // Cerrar sesión usando AuthService
+                await AuthService.cerrarSesion();
+                // Navegar a login y limpiar el stack de navegación
+                if (context.mounted) {
+                  Navigator.of(context).pushNamedAndRemoveUntil(
+                    '/login',
+                    (route) => false,
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,

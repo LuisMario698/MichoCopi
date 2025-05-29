@@ -1,10 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../widgets/responsive_layout.dart';
 import '../widgets/producto_form_panel.dart';
 import '../widgets/producto_detail_panel.dart';
 import '../services/producto_service.dart';
 import '../models/producto.dart';
+import '../models/categoria_producto.dart';
 
 class ProductosPage extends StatefulWidget {
   const ProductosPage({super.key});
@@ -119,12 +119,10 @@ class _ProductosPageState extends State<ProductosPage> {
         }
       });
     }
-  }
-
-  List<dynamic> get _productosFiltrados {
+  }  List<dynamic> get _productosFiltrados {
     return _productos.where((producto) {
       final matchesCategoria = _categoriaSeleccionada == 'Todas las categorías' ||
-          producto.categoria == _categorias
+          producto.idCategoriaProducto == _categorias
               .firstWhere((cat) => cat.nombre == _categoriaSeleccionada)
               .id;
       final matchesSearch = _searchQuery.isEmpty ||
@@ -290,13 +288,12 @@ class _ProductosPageState extends State<ProductosPage> {
                         ),
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         child: DropdownButton<String>(
-                          value: _categoriaSeleccionada,
-                          items: [
+                          value: _categoriaSeleccionada,                          items: [
                             'Todas las categorías',
-                            ..._categorias.map((cat) => cat.nombre).toList(),
+                            ..._categorias.map((cat) => cat.nombre),
                           ]
                               .map(
-                                (item) => DropdownMenuItem(
+                                (item) => DropdownMenuItem<String>(
                                   value: item,
                                   child: Row(
                                     children: [
@@ -392,9 +389,8 @@ class _ProductosPageState extends State<ProductosPage> {
                             ),
                             itemCount: _productosFiltrados.length,
                             itemBuilder: (context, index) {
-                              final producto = _productosFiltrados[index];
-                              final categoria = _categorias.firstWhere(
-                                (cat) => cat.id == producto.categoria,
+                              final producto = _productosFiltrados[index];                              final categoria = _categorias.firstWhere(
+                                (cat) => cat.id == producto.idCategoriaProducto,
                                 orElse: () => Categoria(
                                   id: 0,
                                   nombre: 'Sin categoría',
@@ -593,9 +589,8 @@ class _ProductosPageState extends State<ProductosPage> {
             ),
         if (_mostrarDetalles && _productoSeleccionado != null)
           ProductoDetailPanel(
-            producto: _productoSeleccionado!,
-            categoria: _categorias.firstWhere(
-              (cat) => cat.id == _productoSeleccionado!.categoria,
+            producto: _productoSeleccionado!,            categoria: _categorias.firstWhere(
+              (cat) => cat.id == _productoSeleccionado!.idCategoriaProducto,
               orElse: () => Categoria(id: 0, nombre: 'Sin categoría', conCaducidad: false),
             ),
             onClose: () => _toggleDetalles(null),

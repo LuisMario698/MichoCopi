@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/producto.dart';
+import '../models/categoria_producto.dart';
+import '../models/proveedor.dart';
 import '../services/producto_service.dart';
 import 'categoria_form_panel.dart';
 
@@ -18,7 +20,8 @@ class ProductoFormPanel extends StatefulWidget {
   State<ProductoFormPanel> createState() => _ProductoFormPanelState();
 }
 
-class _ProductoFormPanelState extends State<ProductoFormPanel> with SingleTickerProviderStateMixin {
+class _ProductoFormPanelState extends State<ProductoFormPanel>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _animation;
 
@@ -42,7 +45,7 @@ class _ProductoFormPanelState extends State<ProductoFormPanel> with SingleTicker
   // Función para verificar si la categoría seleccionada permite caducidad
   bool get _categoriaPermiteCaducidad {
     if (_categoriaSeleccionada == null) return false;
-    
+
     try {
       final categoriaSeleccionada = _categorias.firstWhere(
         (categoria) => categoria.id == _categoriaSeleccionada,
@@ -126,9 +129,27 @@ class _ProductoFormPanelState extends State<ProductoFormPanel> with SingleTicker
       if (_proveedores.isEmpty) {
         setState(() {
           _proveedores = [
-            Proveedor(id: 1, nombre: 'Proveedor A', direccion: 'Calle 123', telefono: 123456789),
-            Proveedor(id: 2, nombre: 'Proveedor B', direccion: 'Avenida 456', telefono: 987654321),
-            Proveedor(id: 3, nombre: 'Proveedor C', direccion: 'Plaza 789', telefono: 555444333),
+            Proveedor(
+              id: 1,
+              nombre: 'Proveedor A',
+              direccion: 'Calle 123',
+              telefono: 123456789,
+              idCategoriaP: 1,
+            ),
+            Proveedor(
+              id: 2,
+              nombre: 'Proveedor B',
+              direccion: 'Avenida 456',
+              telefono: 987654321,
+              idCategoriaP: 1,
+            ),
+            Proveedor(
+              id: 3,
+              nombre: 'Proveedor C',
+              direccion: 'Plaza 789',
+              telefono: 555444333,
+              idCategoriaP: 1,
+            ),
           ];
         });
       }
@@ -177,8 +198,7 @@ class _ProductoFormPanelState extends State<ProductoFormPanel> with SingleTicker
         nombre: _nombreController.text.trim(),
         precio: double.parse(_precioController.text),
         stock: int.parse(_stockController.text),
-        categoria: _categoriaSeleccionada!,
-        proveedor: _proveedorSeleccionado!,
+        idCategoriaProducto: _categoriaSeleccionada!,
         caducidad: _fechaCaducidad,
       );
 
@@ -188,7 +208,10 @@ class _ProductoFormPanelState extends State<ProductoFormPanel> with SingleTicker
         _mostrarSnackBar('Producto agregado exitosamente', false);
         widget.onProductoCreated(true);
       } else {
-        _mostrarSnackBar(result['message'] ?? 'Error al guardar el producto', true);
+        _mostrarSnackBar(
+          result['message'] ?? 'Error al guardar el producto',
+          true,
+        );
       }
     } catch (e) {
       print('💥 Error al guardar: $e');
@@ -239,7 +262,9 @@ class _ProductoFormPanelState extends State<ProductoFormPanel> with SingleTicker
     });
 
     try {
-      final result = await ProductoService.verificarNombreProducto(nombre.trim());
+      final result = await ProductoService.verificarNombreProducto(
+        nombre.trim(),
+      );
 
       if (mounted) {
         setState(() {
@@ -257,20 +282,22 @@ class _ProductoFormPanelState extends State<ProductoFormPanel> with SingleTicker
       }
     }
   }
+
   Future<void> _agregarNuevaCategoria() async {
     await showDialog(
       context: context,
       barrierColor: Colors.transparent,
-      builder: (BuildContext context) => CategoriaFormPanel(
-        onClose: () => Navigator.of(context).pop(),
-        onCategoriaCreated: (success) {
-          Navigator.of(context).pop();
-          if (success) {
-            _mostrarSnackBar('Categoría creada exitosamente', false);
-            _cargarDatos(); // Recargar categorías
-          }
-        },
-      ),
+      builder:
+          (BuildContext context) => CategoriaFormPanel(
+            onClose: () => Navigator.of(context).pop(),
+            onCategoriaCreated: (success) {
+              Navigator.of(context).pop();
+              if (success) {
+                _mostrarSnackBar('Categoría creada exitosamente', false);
+                _cargarDatos(); // Recargar categorías
+              }
+            },
+          ),
     );
   }
 
@@ -311,9 +338,7 @@ class _ProductoFormPanelState extends State<ProductoFormPanel> with SingleTicker
         helperText: 'Cantidad inicial disponible',
       ),
       keyboardType: TextInputType.number,
-      inputFormatters: [
-        FilteringTextInputFormatter.digitsOnly,
-      ],
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       validator: (value) {
         if (value == null || value.isEmpty) {
           return 'El stock es obligatorio';
@@ -330,7 +355,8 @@ class _ProductoFormPanelState extends State<ProductoFormPanel> with SingleTicker
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width >= 600;
-    final panelWidth = isDesktop ? 600.0 : MediaQuery.of(context).size.width * 0.92;
+    final panelWidth =
+        isDesktop ? 600.0 : MediaQuery.of(context).size.width * 0.92;
 
     return AnimatedBuilder(
       animation: _animation,
@@ -369,315 +395,47 @@ class _ProductoFormPanelState extends State<ProductoFormPanel> with SingleTicker
                 elevation: 0,
               ),
               Expanded(
-                child: _isLoadingData
-                    ? const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            CircularProgressIndicator(color: Color(0xFFC2185B)),
-                            SizedBox(height: 16),
-                            Text('Cargando datos...'),
-                          ],
-                        ),
-                      )
-                    : SingleChildScrollView(
-                        padding: const EdgeInsets.all(16),
-                        child: Form(
-                          key: _formKey,
+                child:
+                    _isLoadingData
+                        ? const Center(
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              // Información básica
-                              Card(
-                                elevation: 0,
-                                color: Colors.grey[50],
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Row(
-                                        children: [
-                                          Icon(Icons.info_outline, 
-                                            color: Color(0xFFC2185B),
-                                            size: 20,
-                                          ),
-                                          SizedBox(width: 8),
-                                          Text(
-                                            'Información Básica',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 16),
-                                      TextFormField(
-                                        controller: _nombreController,
-                                        decoration: InputDecoration(
-                                          labelText: 'Nombre del producto *',
-                                          prefixIcon: const Icon(Icons.shopping_bag),
-                                          border: const OutlineInputBorder(),
-                                          helperText: 'El nombre debe ser único',
-                                          suffixIcon: _validandoNombre 
-                                            ? const SizedBox(
-                                                width: 20,
-                                                height: 20,
-                                                child: Padding(
-                                                  padding: EdgeInsets.all(8.0),
-                                                  child: CircularProgressIndicator(
-                                                    strokeWidth: 2,
-                                                  ),
-                                                ),
-                                              )
-                                            : _nombreExiste
-                                                ? const Icon(
-                                                    Icons.error,
-                                                    color: Colors.red,
-                                                  )
-                                                : _nombreController.text.isNotEmpty
-                                                    ? const Icon(
-                                                        Icons.check_circle,
-                                                        color: Colors.green,
-                                                      )
-                                                    : null,
-                                        ),
-                                        validator: (value) {
-                                          if (value == null || value.trim().isEmpty) {
-                                            return 'El nombre es obligatorio';
-                                          }
-                                          if (value.trim().length < 2) {
-                                            return 'El nombre debe tener al menos 2 caracteres';
-                                          }
-                                          if (_nombreExiste) {
-                                            return 'Ya existe un producto con este nombre';
-                                          }
-                                          return null;
-                                        },
-                                        onChanged: (value) {
-                                          if (value.trim().length >= 2) {
-                                            _validarNombreProducto(value.trim());
-                                          }
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                              CircularProgressIndicator(
+                                color: Color(0xFFC2185B),
                               ),
-                              const SizedBox(height: 16),
-
-                              // Categorización
-                              Card(
-                                elevation: 0,
-                                color: Colors.grey[50],
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Row(
-                                        children: [
-                                          Icon(Icons.category_outlined,
-                                            color: Color(0xFFC2185B),
-                                            size: 20,
-                                          ),
-                                          SizedBox(width: 8),
-                                          Text(
-                                            'Categorización',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: DropdownButtonFormField<int>(
-                                              value: _categoriaSeleccionada,                                              decoration: InputDecoration(
-                                                labelText: 'Categoría *',
-                                                prefixIcon: const Icon(Icons.category, color: Color(0xFFC2185B)),
-                                                border: OutlineInputBorder(
-                                                  borderRadius: BorderRadius.circular(8),
-                                                  borderSide: BorderSide(color: Colors.grey[300]!),
-                                                ),
-                                                enabledBorder: OutlineInputBorder(
-                                                  borderRadius: BorderRadius.circular(8),
-                                                  borderSide: BorderSide(color: Colors.grey[300]!),
-                                                ),
-                                                focusedBorder: const OutlineInputBorder(
-                                                  borderRadius: BorderRadius.all(Radius.circular(8)),
-                                                  borderSide: BorderSide(color: Color(0xFFC2185B)),
-                                                ),
-                                                filled: true,
-                                                fillColor: Colors.white,
-                                              ),
-                                              icon: const Icon(Icons.arrow_drop_down, color: Color(0xFFC2185B)),
-                                              dropdownColor: Colors.white,
-                                              borderRadius: BorderRadius.circular(8),
-                                              items: _categorias
-                                                  .where((categoria) => categoria.id != null)
-                                                  .map((categoria) {
-                                                return DropdownMenuItem<int>(
-                                                  value: categoria.id!,
-                                                  child: Row(
-                                                    children: [
-                                                      Text(categoria.nombre),
-                                                      if (categoria.conCaducidad) ...[
-                                                        const SizedBox(width: 8),
-                                                        const Icon(
-                                                          Icons.schedule,
-                                                          size: 16,
-                                                          color: Colors.orange,
-                                                        ),
-                                                      ],
-                                                    ],
-                                                  ),
-                                                );
-                                              }).toList(),
-                                              onChanged: (value) {
-                                                setState(() {
-                                                  _categoriaSeleccionada = value;
-                                                  if (!_categoriaPermiteCaducidad) {
-                                                    _fechaCaducidad = null;
-                                                  }
-                                                });
-                                              },
-                                              validator: (value) {
-                                                if (value == null) {
-                                                  return 'Selecciona una categoría';
-                                                }
-                                                return null;
-                                              },
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          IconButton(
-                                            onPressed: _agregarNuevaCategoria,
-                                            icon: const Icon(Icons.add_circle),
-                                            tooltip: 'Agregar nueva categoría',
-                                            style: IconButton.styleFrom(
-                                              backgroundColor: const Color(0xFFC2185B),
-                                              foregroundColor: Colors.white,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 16),
-                                      DropdownButtonFormField<int>(
-                                        value: _proveedorSeleccionado,                                        decoration: InputDecoration(
-                                          labelText: 'Proveedor *',
-                                          prefixIcon: const Icon(Icons.business, color: Color(0xFFC2185B)),
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(8),
-                                            borderSide: BorderSide(color: Colors.grey[300]!),
-                                          ),
-                                          enabledBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(8),
-                                            borderSide: BorderSide(color: Colors.grey[300]!),
-                                          ),
-                                          focusedBorder: const OutlineInputBorder(
-                                            borderRadius: BorderRadius.all(Radius.circular(8)),
-                                            borderSide: BorderSide(color: Color(0xFFC2185B)),
-                                          ),
-                                          filled: true,
-                                          fillColor: Colors.white,
-                                        ),
-                                        icon: const Icon(Icons.arrow_drop_down, color: Color(0xFFC2185B)),
-                                        dropdownColor: Colors.white,
-                                        borderRadius: BorderRadius.circular(8),
-                                        items: _proveedores
-                                            .where((proveedor) => proveedor.id != null)
-                                            .map((proveedor) {
-                                          return DropdownMenuItem<int>(
-                                            value: proveedor.id!,
-                                            child: Text(proveedor.nombre),
-                                          );
-                                        }).toList(),
-                                        onChanged: (value) {
-                                          setState(() {
-                                            _proveedorSeleccionado = value;
-                                          });
-                                        },
-                                        validator: (value) {
-                                          if (value == null) {
-                                            return 'Selecciona un proveedor';
-                                          }
-                                          return null;
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Inventario y Precio
-                              Card(
-                                elevation: 0,
-                                color: Colors.grey[50],
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Row(
-                                        children: [
-                                          Icon(Icons.inventory_2_outlined,
-                                            color: Color(0xFFC2185B),
-                                            size: 20,
-                                          ),
-                                          SizedBox(width: 8),
-                                          Text(
-                                            'Inventario y Precio',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Row(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Expanded(
-                                            child: _buildPriceField(),
-                                          ),
-                                          const SizedBox(width: 16),
-                                          Expanded(
-                                            child: _buildStockField(),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Caducidad (condicional)
-                              if (_categoriaPermiteCaducidad)
+                              SizedBox(height: 16),
+                              Text('Cargando datos...'),
+                            ],
+                          ),
+                        )
+                        : SingleChildScrollView(
+                          padding: const EdgeInsets.all(16),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // Información básica
                                 Card(
                                   elevation: 0,
                                   color: Colors.grey[50],
                                   child: Padding(
                                     padding: const EdgeInsets.all(16),
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         const Row(
                                           children: [
-                                            Icon(Icons.schedule_outlined, 
-                                              color: Colors.orange,
+                                            Icon(
+                                              Icons.info_outline,
+                                              color: Color(0xFFC2185B),
                                               size: 20,
                                             ),
                                             SizedBox(width: 8),
                                             Text(
-                                              'Fecha de Caducidad',
+                                              'Información Básica',
                                               style: TextStyle(
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.bold,
@@ -686,110 +444,511 @@ class _ProductoFormPanelState extends State<ProductoFormPanel> with SingleTicker
                                           ],
                                         ),
                                         const SizedBox(height: 16),
-                                        InkWell(
-                                          onTap: _seleccionarFecha,
-                                          child: InputDecorator(
-                                            decoration: const InputDecoration(
-                                              labelText: 'Fecha de caducidad (opcional)',
-                                              prefixIcon: Icon(Icons.calendar_today),
-                                              border: OutlineInputBorder(),
+                                        TextFormField(
+                                          controller: _nombreController,
+                                          decoration: InputDecoration(
+                                            labelText: 'Nombre del producto *',
+                                            prefixIcon: const Icon(
+                                              Icons.shopping_bag,
                                             ),
-                                            child: Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                              children: [
-                                                Text(
-                                                  _fechaCaducidad != null
-                                                      ? '${_fechaCaducidad!.day}/${_fechaCaducidad!.month}/${_fechaCaducidad!.year}'
-                                                      : 'Seleccionar fecha',
-                                                  style: TextStyle(
-                                                    color: _fechaCaducidad != null
-                                                        ? Colors.black87
-                                                        : Colors.grey[600],
-                                                  ),
-                                                ),
-                                                if (_fechaCaducidad != null)
-                                                  IconButton(
-                                                    icon: const Icon(Icons.clear),
-                                                    onPressed: () {
-                                                      setState(() {
-                                                        _fechaCaducidad = null;
-                                                      });
-                                                    },
-                                                    tooltip: 'Limpiar fecha',
-                                                  ),
-                                              ],
-                                            ),
+                                            border: const OutlineInputBorder(),
+                                            helperText:
+                                                'El nombre debe ser único',
+                                            suffixIcon:
+                                                _validandoNombre
+                                                    ? const SizedBox(
+                                                      width: 20,
+                                                      height: 20,
+                                                      child: Padding(
+                                                        padding: EdgeInsets.all(
+                                                          8.0,
+                                                        ),
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                              strokeWidth: 2,
+                                                            ),
+                                                      ),
+                                                    )
+                                                    : _nombreExiste
+                                                    ? const Icon(
+                                                      Icons.error,
+                                                      color: Colors.red,
+                                                    )
+                                                    : _nombreController
+                                                        .text
+                                                        .isNotEmpty
+                                                    ? const Icon(
+                                                      Icons.check_circle,
+                                                      color: Colors.green,
+                                                    )
+                                                    : null,
                                           ),
+                                          validator: (value) {
+                                            if (value == null ||
+                                                value.trim().isEmpty) {
+                                              return 'El nombre es obligatorio';
+                                            }
+                                            if (value.trim().length < 2) {
+                                              return 'El nombre debe tener al menos 2 caracteres';
+                                            }
+                                            if (_nombreExiste) {
+                                              return 'Ya existe un producto con este nombre';
+                                            }
+                                            return null;
+                                          },
+                                          onChanged: (value) {
+                                            if (value.trim().length >= 2) {
+                                              _validarNombreProducto(
+                                                value.trim(),
+                                              );
+                                            }
+                                          },
                                         ),
                                       ],
                                     ),
                                   ),
                                 ),
+                                const SizedBox(height: 16),
 
-                              const SizedBox(height: 32),
-
-                              // Botones de acción
-                              Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
+                                // Categorización
+                                Card(
+                                  elevation: 0,
                                   color: Colors.grey[50],
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.grey[200]!),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                                  children: [
-                                    Text(
-                                      '* Campos obligatorios',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Row(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        Expanded(
-                                          child: OutlinedButton.icon(
-                                            onPressed: _isLoading ? null : () {
-                                              _limpiarFormulario();
-                                              _cerrarPanel();
-                                            },
-                                            icon: const Icon(Icons.close),
-                                            label: const Text('Cancelar'),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Expanded(
-                                          flex: 2,
-                                          child: ElevatedButton.icon(
-                                            onPressed: _isLoading ? null : _guardarProducto,
-                                            icon: _isLoading
-                                                ? const SizedBox(
-                                                    width: 20,
-                                                    height: 20,
-                                                    child: CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                      color: Colors.white,
-                                                    ),
-                                                  )
-                                                : const Icon(Icons.save),
-                                            label: const Text('Guardar Producto'),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: const Color(0xFFC2185B),
-                                              foregroundColor: Colors.white,
+                                        const Row(
+                                          children: [
+                                            Icon(
+                                              Icons.category_outlined,
+                                              color: Color(0xFFC2185B),
+                                              size: 20,
                                             ),
+                                            SizedBox(width: 8),
+                                            Text(
+                                              'Categorización',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: DropdownButtonFormField<
+                                                int
+                                              >(
+                                                value: _categoriaSeleccionada,
+                                                decoration: InputDecoration(
+                                                  labelText: 'Categoría *',
+                                                  prefixIcon: const Icon(
+                                                    Icons.category,
+                                                    color: Color(0xFFC2185B),
+                                                  ),
+                                                  border: OutlineInputBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          8,
+                                                        ),
+                                                    borderSide: BorderSide(
+                                                      color: Colors.grey[300]!,
+                                                    ),
+                                                  ),
+                                                  enabledBorder:
+                                                      OutlineInputBorder(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              8,
+                                                            ),
+                                                        borderSide: BorderSide(
+                                                          color:
+                                                              Colors.grey[300]!,
+                                                        ),
+                                                      ),
+                                                  focusedBorder:
+                                                      const OutlineInputBorder(
+                                                        borderRadius:
+                                                            BorderRadius.all(
+                                                              Radius.circular(
+                                                                8,
+                                                              ),
+                                                            ),
+                                                        borderSide: BorderSide(
+                                                          color: Color(
+                                                            0xFFC2185B,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                  filled: true,
+                                                  fillColor: Colors.white,
+                                                ),
+                                                icon: const Icon(
+                                                  Icons.arrow_drop_down,
+                                                  color: Color(0xFFC2185B),
+                                                ),
+                                                dropdownColor: Colors.white,
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                items:
+                                                    _categorias
+                                                        .where(
+                                                          (categoria) =>
+                                                              categoria.id !=
+                                                              null,
+                                                        )
+                                                        .map((categoria) {
+                                                          return DropdownMenuItem<
+                                                            int
+                                                          >(
+                                                            value:
+                                                                categoria.id!,
+                                                            child: Row(
+                                                              children: [
+                                                                Text(
+                                                                  categoria
+                                                                      .nombre,
+                                                                ),
+                                                                if (categoria
+                                                                    .conCaducidad) ...[
+                                                                  const SizedBox(
+                                                                    width: 8,
+                                                                  ),
+                                                                  const Icon(
+                                                                    Icons
+                                                                        .schedule,
+                                                                    size: 16,
+                                                                    color:
+                                                                        Colors
+                                                                            .orange,
+                                                                  ),
+                                                                ],
+                                                              ],
+                                                            ),
+                                                          );
+                                                        })
+                                                        .toList(),
+                                                onChanged: (value) {
+                                                  setState(() {
+                                                    _categoriaSeleccionada =
+                                                        value;
+                                                    if (!_categoriaPermiteCaducidad) {
+                                                      _fechaCaducidad = null;
+                                                    }
+                                                  });
+                                                },
+                                                validator: (value) {
+                                                  if (value == null) {
+                                                    return 'Selecciona una categoría';
+                                                  }
+                                                  return null;
+                                                },
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            IconButton(
+                                              onPressed: _agregarNuevaCategoria,
+                                              icon: const Icon(
+                                                Icons.add_circle,
+                                              ),
+                                              tooltip:
+                                                  'Agregar nueva categoría',
+                                              style: IconButton.styleFrom(
+                                                backgroundColor: const Color(
+                                                  0xFFC2185B,
+                                                ),
+                                                foregroundColor: Colors.white,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 16),
+                                        DropdownButtonFormField<int>(
+                                          value: _proveedorSeleccionado,
+                                          decoration: InputDecoration(
+                                            labelText: 'Proveedor *',
+                                            prefixIcon: const Icon(
+                                              Icons.business,
+                                              color: Color(0xFFC2185B),
+                                            ),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              borderSide: BorderSide(
+                                                color: Colors.grey[300]!,
+                                              ),
+                                            ),
+                                            enabledBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              borderSide: BorderSide(
+                                                color: Colors.grey[300]!,
+                                              ),
+                                            ),
+                                            focusedBorder:
+                                                const OutlineInputBorder(
+                                                  borderRadius:
+                                                      BorderRadius.all(
+                                                        Radius.circular(8),
+                                                      ),
+                                                  borderSide: BorderSide(
+                                                    color: Color(0xFFC2185B),
+                                                  ),
+                                                ),
+                                            filled: true,
+                                            fillColor: Colors.white,
                                           ),
+                                          icon: const Icon(
+                                            Icons.arrow_drop_down,
+                                            color: Color(0xFFC2185B),
+                                          ),
+                                          dropdownColor: Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          items:
+                                              _proveedores
+                                                  .where(
+                                                    (proveedor) =>
+                                                        proveedor.id != null,
+                                                  )
+                                                  .map((proveedor) {
+                                                    return DropdownMenuItem<
+                                                      int
+                                                    >(
+                                                      value: proveedor.id!,
+                                                      child: Text(
+                                                        proveedor.nombre,
+                                                      ),
+                                                    );
+                                                  })
+                                                  .toList(),
+                                          onChanged: (value) {
+                                            setState(() {
+                                              _proveedorSeleccionado = value;
+                                            });
+                                          },
+                                          validator: (value) {
+                                            if (value == null) {
+                                              return 'Selecciona un proveedor';
+                                            }
+                                            return null;
+                                          },
                                         ),
                                       ],
                                     ),
-                                  ],
+                                  ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 16),
+
+                                // Inventario y Precio
+                                Card(
+                                  elevation: 0,
+                                  color: Colors.grey[50],
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Row(
+                                          children: [
+                                            Icon(
+                                              Icons.inventory_2_outlined,
+                                              color: Color(0xFFC2185B),
+                                              size: 20,
+                                            ),
+                                            SizedBox(width: 8),
+                                            Text(
+                                              'Inventario y Precio',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Expanded(child: _buildPriceField()),
+                                            const SizedBox(width: 16),
+                                            Expanded(child: _buildStockField()),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+
+                                // Caducidad (condicional)
+                                if (_categoriaPermiteCaducidad)
+                                  Card(
+                                    elevation: 0,
+                                    color: Colors.grey[50],
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(16),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const Row(
+                                            children: [
+                                              Icon(
+                                                Icons.schedule_outlined,
+                                                color: Colors.orange,
+                                                size: 20,
+                                              ),
+                                              SizedBox(width: 8),
+                                              Text(
+                                                'Fecha de Caducidad',
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 16),
+                                          InkWell(
+                                            onTap: _seleccionarFecha,
+                                            child: InputDecorator(
+                                              decoration: const InputDecoration(
+                                                labelText:
+                                                    'Fecha de caducidad (opcional)',
+                                                prefixIcon: Icon(
+                                                  Icons.calendar_today,
+                                                ),
+                                                border: OutlineInputBorder(),
+                                              ),
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  Text(
+                                                    _fechaCaducidad != null
+                                                        ? '${_fechaCaducidad!.day}/${_fechaCaducidad!.month}/${_fechaCaducidad!.year}'
+                                                        : 'Seleccionar fecha',
+                                                    style: TextStyle(
+                                                      color:
+                                                          _fechaCaducidad !=
+                                                                  null
+                                                              ? Colors.black87
+                                                              : Colors
+                                                                  .grey[600],
+                                                    ),
+                                                  ),
+                                                  if (_fechaCaducidad != null)
+                                                    IconButton(
+                                                      icon: const Icon(
+                                                        Icons.clear,
+                                                      ),
+                                                      onPressed: () {
+                                                        setState(() {
+                                                          _fechaCaducidad =
+                                                              null;
+                                                        });
+                                                      },
+                                                      tooltip: 'Limpiar fecha',
+                                                    ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+
+                                const SizedBox(height: 32),
+
+                                // Botones de acción
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[50],
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: Colors.grey[200]!,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      Text(
+                                        '* Campos obligatorios',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: OutlinedButton.icon(
+                                              onPressed:
+                                                  _isLoading
+                                                      ? null
+                                                      : () {
+                                                        _limpiarFormulario();
+                                                        _cerrarPanel();
+                                                      },
+                                              icon: const Icon(Icons.close),
+                                              label: const Text('Cancelar'),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 16),
+                                          Expanded(
+                                            flex: 2,
+                                            child: ElevatedButton.icon(
+                                              onPressed:
+                                                  _isLoading
+                                                      ? null
+                                                      : _guardarProducto,
+                                              icon:
+                                                  _isLoading
+                                                      ? const SizedBox(
+                                                        width: 20,
+                                                        height: 20,
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                              strokeWidth: 2,
+                                                              color:
+                                                                  Colors.white,
+                                                            ),
+                                                      )
+                                                      : const Icon(Icons.save),
+                                              label: const Text(
+                                                'Guardar Producto',
+                                              ),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: const Color(
+                                                  0xFFC2185B,
+                                                ),
+                                                foregroundColor: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
               ),
             ],
           ),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/producto.dart';
+import '../models/categoria_producto.dart';
 import '../services/producto_service.dart';
 
 class AgregarCategoriaPage extends StatefulWidget {
@@ -12,11 +12,9 @@ class AgregarCategoriaPage extends StatefulWidget {
 class _AgregarCategoriaPageState extends State<AgregarCategoriaPage> {
   final _formKey = GlobalKey<FormState>();
   final _nombreController = TextEditingController();
-
   bool _conCaducidad = false;
   bool _isLoading = false;
   bool _nombreExiste = false;
-  bool _validandoNombre = false;
 
   Future<void> _guardarCategoria() async {
     if (!_formKey.currentState!.validate()) {
@@ -79,46 +77,7 @@ class _AgregarCategoriaPageState extends State<AgregarCategoriaPage> {
         backgroundColor: isError ? Colors.red : Colors.green,
         duration: const Duration(seconds: 3),
       ),
-    );
-  }
-
-  Future<void> _validarNombreCategoria(String nombre) async {
-    if (nombre.trim().isEmpty) {
-      setState(() {
-        _nombreExiste = false;
-        _validandoNombre = false;
-      });
-      return;
-    }
-
-    setState(() {
-      _validandoNombre = true;
-    });
-
-    try {
-      final result = await ProductoService.verificarNombreCategoria(
-        nombre.trim(),
-      );
-
-      if (result['success']) {
-        setState(() {
-          _nombreExiste = result['existe'] ?? false;
-          _validandoNombre = false;
-        });
-      } else {
-        setState(() {
-          _nombreExiste = false;
-          _validandoNombre = false;
-        });
-      }
-    } catch (e) {
-      print('Error validando nombre categoría: $e');
-      setState(() {
-        _nombreExiste = false;
-        _validandoNombre = false;
-      });
-    }
-  }
+    );  }
 
   @override
   void dispose() {
@@ -175,14 +134,7 @@ class _AgregarCategoriaPageState extends State<AgregarCategoriaPage> {
                       }
                       if (_nombreExiste) {
                         return 'Ya existe una categoría con este nombre';
-                      }
-                      return null;
-                    },
-                    onChanged: (value) {
-                      // Validar en tiempo real si el nombre ya existe
-                      if (value.trim().length >= 2) {
-                        _validarNombreCategoria(value.trim());
-                      }
+                      }                      return null;
                     },
                   ),
                   const SizedBox(height: 24),

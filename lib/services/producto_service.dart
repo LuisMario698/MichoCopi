@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/producto.dart';
+import '../models/categoria_producto.dart';
 
 class ProductoService {
   static final SupabaseClient _client = Supabase.instance.client;
@@ -34,7 +35,7 @@ class ProductoService {
         final categoriaResponse = await _client
             .from('Categoria_producto')
             .select('id, nombre')
-            .eq('id', producto.categoria)
+            .eq('id', producto.idCategoriaProducto)
             .single();
         print('✅ Categoría verificada: $categoriaResponse');
       } catch (e) {
@@ -42,22 +43,6 @@ class ProductoService {
         return {
           'success': false,
           'message': 'La categoría seleccionada no existe',
-        };
-      }
-
-      // Verificar si el proveedor existe
-      try {
-        final proveedorResponse = await _client
-            .from('Proveedores')
-            .select('id, nombre')
-            .eq('id', producto.proveedor)
-            .single();
-        print('✅ Proveedor verificado: $proveedorResponse');
-      } catch (e) {
-        print('❌ Error verificando proveedor: $e');
-        return {
-          'success': false,
-          'message': 'El proveedor seleccionado no existe',
         };
       }
 
@@ -70,16 +55,10 @@ class ProductoService {
         };
       }
 
-      // Preparar datos para inserción
-      final productoData = {
-        'nombre': producto.nombre.trim(),
-        'precio': double.parse(producto.precio.toStringAsFixed(2)),
-        'stock': producto.stock,
-        'categoria': producto.categoria,
-        'proveedor': producto.proveedor,
-        if (producto.caducidad != null)
-          'caducidad': producto.caducidad!.toIso8601String().split('T')[0],
-      };
+      // Preparar datos para inserción usando toJson del modelo
+      final productoData = producto.toJson();
+      // Remover el id si existe (para inserción)
+      productoData.remove('id');
 
       print('📝 Datos a enviar a Supabase: $productoData');
 
@@ -112,7 +91,7 @@ class ProductoService {
             errorMessage = 'Ya existe un producto con este nombre';
             break;
           case '23503': // foreign_key_violation
-            errorMessage = 'La categoría o proveedor seleccionado no existe';
+            errorMessage = 'La categoría seleccionada no existe';
             break;
           case '23502': // not_null_violation
             errorMessage = 'Faltan datos requeridos';
@@ -127,28 +106,6 @@ class ProductoService {
         'error': e.toString(),
         'message': errorMessage,
       };
-    }
-  }
-
-  // Función auxiliar para obtener el próximo ID de producto
-  static Future<int> _obtenerSiguienteIdProducto() async {
-    try {
-      final response = await _client
-          .from('Productos')
-          .select('id')
-          .order('id', ascending: false)
-          .limit(1);
-      
-      if (response.isEmpty) {
-        return 1; // Si no hay productos, empezar con 1
-      }
-      
-      final maxId = response.first['id'] as int;
-      return maxId + 1;
-    } catch (e) {
-      print('⚠️ Error obteniendo siguiente ID de producto: $e');
-      // En caso de error, usar timestamp como ID único
-      return DateTime.now().millisecondsSinceEpoch % 1000000;
     }
   }
 
@@ -203,13 +160,16 @@ class ProductoService {
     Producto producto,
   ) async {
     try {
-      final response =
-          await _client
-              .from('Productos')
-              .update(producto.toJson())
-              .eq('id', id)
-              .select()
-              .single();
+      final productoData = producto.toJson();
+      // Asegurar que usamos el ID correcto
+      productoData['id'] = id;
+
+      final response = await _client
+          .from('Productos')
+          .update(productoData)
+          .eq('id', id)
+          .select()
+          .single();
 
       return {
         'success': true,
@@ -326,28 +286,6 @@ class ProductoService {
     }
   }
 
-  // Función auxiliar para obtener el próximo ID de categoría
-  static Future<int> _obtenerSiguienteIdCategoria() async {
-    try {
-      final response = await _client
-          .from('Categoria_producto')
-          .select('id')
-          .order('id', ascending: false)
-          .limit(1);
-      
-      if (response.isEmpty) {
-        return 1; // Si no hay categorías, empezar con 1
-      }
-      
-      final maxId = response.first['id'] as int;
-      return maxId + 1;
-    } catch (e) {
-      print('⚠️ Error obteniendo siguiente ID: $e');
-      // En caso de error, usar timestamp como ID único
-      return DateTime.now().millisecondsSinceEpoch % 1000000;
-    }
-  }
-
   // Obtener todas las categorías
   static Future<Map<String, dynamic>> obtenerCategorias() async {
     try {
@@ -396,72 +334,65 @@ class ProductoService {
       };
     }
   }
-
-  // Obtener todos los proveedores
+  // Método de compatibilidad para obtener proveedores (datos de prueba)
   static Future<Map<String, dynamic>> obtenerProveedores() async {
     try {
-      final response = await _client
-          .from('Proveedores')
-          .select()
-          .order('nombre', ascending: true)
-          .timeout(const Duration(seconds: 5));
-
-      final proveedores =
-          (response as List).map((item) => Proveedor.fromJson(item)).toList();
-
-      return {
-        'success': true,
-        'data': proveedores,
-        'message': 'Proveedores obtenidos exitosamente',
-      };
-    } catch (e) {
-      print('⚠️ Error en obtenerProveedores: $e');
-      
-      // Determinar el tipo de error
-      String errorMessage = 'Sin conexión a la base de datos. Usando datos de prueba.';
-      if (e.toString().contains('TimeoutException')) {
-        errorMessage = 'Tiempo de espera agotado. Usando datos de prueba.';
-      }
-      
-      // Retornar datos de prueba en caso de error de conexión
+      // Como el esquema actual no incluye tabla de proveedores,
+      // devolvemos datos de prueba para compatibilidad con las pantallas
       final proveedoresPrueba = [
         Proveedor(
           id: 1,
           nombre: 'TechCorp S.A.',
           direccion: 'Av. Tecnología 123',
           telefono: 123456789,
+          idCategoriaP: 1,
+          email: 'techcorp@example.com',
         ),
         Proveedor(
           id: 2,
           nombre: 'Alimentos del Valle',
           direccion: 'Calle Principal 456',
           telefono: 987654321,
+          idCategoriaP: 2,
+          email: 'alimentos@example.com',
         ),
         Proveedor(
           id: 3,
           nombre: 'Distribuidora Central',
           direccion: 'Plaza Comercial 789',
           telefono: 555444333,
+          idCategoriaP: 1,
+          email: 'distcentral@example.com',
         ),
         Proveedor(
           id: 4,
           nombre: 'Farmacéutica Global',
           direccion: 'Zona Industrial 101',
           telefono: 111222333,
+          idCategoriaP: 3,
+          email: 'farmaglobal@example.com',
         ),
         Proveedor(
           id: 5,
           nombre: 'Textiles Modernos',
           direccion: 'Sector Textil 202',
           telefono: 444555666,
+          idCategoriaP: 4,
+          email: 'textiles@example.com',
         ),
       ];
 
       return {
         'success': true,
         'data': proveedoresPrueba,
-        'message': errorMessage,
+        'message': 'Datos de prueba de proveedores',
         'isOffline': true,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'error': e.toString(),
+        'message': 'Error al obtener proveedores',
       };
     }
   }
@@ -526,13 +457,12 @@ class ProductoService {
     int nuevoStock,
   ) async {
     try {
-      final response =
-          await _client
-              .from('Productos')
-              .update({'stock': nuevoStock})
-              .eq('id', id)
-              .select()
-              .single();
+      final response = await _client
+          .from('Productos')
+          .update({'stock': nuevoStock})
+          .eq('id', id)
+          .select()
+          .single();
 
       return {
         'success': true,
@@ -563,16 +493,6 @@ class ProductoService {
         print('  - ID: ${categoria['id']}, Nombre: ${categoria['nombre']}');
       }
 
-      // Verificar tabla Proveedores
-      final proveedoresResponse = await _client
-          .from('Proveedores')
-          .select('id, nombre');
-      print('✅ Tabla Proveedores accesible');
-      print('📊 Proveedores existentes en DB:');
-      for (var proveedor in proveedoresResponse as List) {
-        print('  - ID: ${proveedor['id']}, Nombre: ${proveedor['nombre']}');
-      }
-
       // Verificar tabla Productos
       final productosResponse = await _client
           .from('Productos')
@@ -587,7 +507,6 @@ class ProductoService {
         'success': true,
         'message': 'Estructura de base de datos verificada',
         'categorias': categoriasResponse,
-        'proveedores': proveedoresResponse,
         'productos': productosResponse,
       };
     } catch (e) {

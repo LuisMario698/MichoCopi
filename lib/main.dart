@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:invmicho/services/supabase_setup.dart';
 import 'package:invmicho/services/producto_service.dart';
+import 'package:invmicho/services/auth_service.dart';
 import 'package:invmicho/models/producto.dart';
+import 'package:invmicho/models/categoria_producto.dart';
 import 'package:invmicho/widgets/responsive_layout.dart';
 import 'package:invmicho/widgets/offline_banner.dart';
 import 'package:invmicho/widgets/connection_diagnostic_dialog.dart';
 import 'package:invmicho/widgets/macos_permissions_guide.dart';
+import 'package:invmicho/screens/login_page.dart';
 import 'package:invmicho/screens/dashboard_page.dart';
 import 'package:invmicho/screens/ventas_page.dart';
 import 'package:invmicho/screens/productos_page.dart';
@@ -37,9 +40,30 @@ class MainApp extends StatelessWidget {
           foregroundColor: Colors.white,
         ),
       ),
-      home: const HomePage(),
       debugShowCheckedModeBanner: false,
+      // Configurar rutas
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const AuthWrapper(),
+        '/home': (context) => const HomePage(),
+        '/login': (context) => const LoginPage(),
+      },
     );
+  }
+}
+
+// Wrapper para manejar autenticación
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // Verificar si hay usuario logueado
+    if (AuthService.isLoggedIn) {
+      return const HomePage();
+    } else {
+      return const LoginPage();
+    }
   }
 }
 
@@ -116,13 +140,18 @@ class _HomePageState extends State<HomePage> {
                 'Cancelar',
                 style: TextStyle(color: Colors.grey[600]),
               ),
-            ),
-            ElevatedButton(
-              onPressed: () {
+            ),            ElevatedButton(
+              onPressed: () async {
                 Navigator.of(context).pop();
-                setState(() {
-                  _selectedPage = 'dashboard';
-                });
+                // Cerrar sesión usando AuthService
+                await AuthService.cerrarSesion();
+                // Navegar a login y limpiar el stack de navegación
+                if (mounted) {
+                  Navigator.of(context).pushNamedAndRemoveUntil(
+                    '/login',
+                    (route) => false,
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
@@ -387,13 +416,11 @@ class _HomePageState extends State<HomePage> {
       
       final categorias = categoriasResult['data'] as List<Categoria>;
       final primeraCategoria = categorias.first;
-      
-      final producto = Producto(
+        final producto = Producto(
         nombre: 'Producto Test ${DateTime.now().millisecondsSinceEpoch}',
         precio: 10.50,
         stock: 5,
-        categoria: primeraCategoria.id!,
-        proveedor: 1, // Asumiendo que existe un proveedor con ID 1
+        idCategoriaProducto: primeraCategoria.id!,
       );
       
       print('📦 Datos del producto: ${producto.toJson()}');

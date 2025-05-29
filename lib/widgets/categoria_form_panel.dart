@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../models/producto.dart';
+import '../models/categoria_producto.dart';
 import '../services/producto_service.dart';
 
 class CategoriaFormPanel extends StatefulWidget {
