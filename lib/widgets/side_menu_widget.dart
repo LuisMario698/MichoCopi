@@ -129,6 +129,12 @@ class _SideMenuWidgetState extends State<SideMenuWidget> {
                   page: 'configuraciones',
                   isWideScreen: isWideScreen,
                 ),
+                _buildMenuItem(
+                  icon: Icons.info_outline,
+                  title: 'Acerca de',
+                  page: 'acerca_de',
+                  isWideScreen: isWideScreen,
+                ),
               ],
             ),
           ),

@@ -9,11 +9,13 @@ import '../services/producto_service.dart';
 class ProveedorFormPanel extends StatefulWidget {
   final VoidCallback onClose;
   final Function(bool) onProveedorCreated;
+  final Proveedor? proveedor;
 
   const ProveedorFormPanel({
     super.key,
     required this.onClose,
     required this.onProveedorCreated,
+    this.proveedor,
   });
 
   @override
@@ -33,7 +35,6 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
 
   List<Categoria> _categorias = [];
   int? _categoriaSeleccionada;
-  
   bool _isLoading = false;
   bool _isLoadingData = true;
   bool _nombreExiste = false;
@@ -51,6 +52,14 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
       curve: Curves.easeInOut,
     );
     _animationController.forward();
+    // Inicializar controladores con datos del proveedor si existe
+    if (widget.proveedor != null) {
+      _nombreController.text = widget.proveedor!.nombre;
+      _direccionController.text = widget.proveedor!.direccion;
+      _telefonoController.text = widget.proveedor!.telefono.toString();
+      _emailController.text = widget.proveedor!.email ?? '';
+      _categoriaSeleccionada = widget.proveedor!.idCategoriaP;
+    }
     _cargarDatos();
   }
 
@@ -152,6 +161,7 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
 
     try {
       final proveedor = Proveedor(
+        id: widget.proveedor?.id,
         nombre: _nombreController.text.trim(),
         direccion: _direccionController.text.trim(),
         telefono: int.parse(_telefonoController.text.replaceAll(RegExp(r'\D'), '')),
@@ -159,12 +169,18 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
         email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
       );
 
-      // Crear el proveedor usando el servicio
-      await ProveedorService.crear(proveedor);
-      widget.onProveedorCreated(true);
+      if (widget.proveedor != null) {
+        // Actualizar proveedor existente
+        await ProveedorService.actualizar(proveedor);
+        widget.onProveedorCreated(true);
+      } else {
+        // Crear nuevo proveedor
+        await ProveedorService.crear(proveedor);
+        widget.onProveedorCreated(true);
+      }
     } catch (e) {
       print('Error al guardar: $e');
-      _mostrarSnackBar('Error al guardar el proveedor: ${e.toString()}', true);
+      _mostrarSnackBar('Error al ${widget.proveedor != null ? 'actualizar' : 'guardar'} el proveedor: ${e.toString()}', true);
     } finally {
       if (mounted) {
         setState(() {
@@ -226,7 +242,7 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       AppBar(
-                        title: const Text('Nuevo Proveedor'),
+                        title: Text(widget.proveedor != null ? 'Editar Proveedor' : 'Nuevo Proveedor'),
                         backgroundColor: const Color(0xFFC2185B),
                         foregroundColor: Colors.white,
                         leading: IconButton(
@@ -323,7 +339,15 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
                                                 ],
                                               ),
                                               const SizedBox(height: 16),
-                                              
+                                              const Text(
+                                                'Ingresa los datos del proveedor',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 24),
+
                                               // Nombre
                                               TextFormField(
                                                 controller: _nombreController,

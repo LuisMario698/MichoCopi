@@ -17,6 +17,7 @@ class _ProveedoresPageState extends State<ProveedoresPage> {
   bool _isLoading = true;
   List<Proveedor> _proveedores = [];
   String _searchQuery = '';
+  Proveedor? _proveedorEditar;
 
   @override
   void initState() {
@@ -72,18 +73,161 @@ class _ProveedoresPageState extends State<ProveedoresPage> {
     }
   }
 
-  void _toggleFormulario() {
+  void _toggleFormulario([Proveedor? proveedor]) {
     setState(() {
       _mostrarFormulario = !_mostrarFormulario;
+      _proveedorEditar = _mostrarFormulario ? proveedor : null;
     });
   }
 
-  void _onProveedorCreated(bool success) {
+  void _onProveedorCreatedOrUpdated(bool success) {
     if (success) {
       _toggleFormulario();
       _cargarProveedores();
     }
   }
+
+  void _eliminarProveedor(Proveedor proveedor) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icono de advertencia
+                Stack(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      child: Icon(
+                        Icons.warning_rounded,
+                        size: 56,
+                        color: Colors.red.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                // Título
+                const Text(
+                  'Confirmar eliminación',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFC2185B),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Mensaje
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                    '¿Estás seguro de que deseas eliminar al proveedor "${proveedor.nombre}"?',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      height: 1.5,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Botones
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: BorderSide(color: Colors.grey[300]!),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          'Cancelar',
+                          style: TextStyle(
+                            color: Colors.grey[800],
+                            fontWeight: FontWeight.w500,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          try {
+                            await ProveedorService.eliminar(proveedor.id!);
+                            Navigator.of(context).pop();
+                            _cargarProveedores();
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Error al eliminar el proveedor: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.delete_forever, size: 20),
+                        label: const Text(
+                          'Sí, eliminar',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFC2185B),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -92,7 +236,7 @@ class _ProveedoresPageState extends State<ProveedoresPage> {
           title: 'Proveedores',
           actions: [
             ElevatedButton.icon(
-              onPressed: _toggleFormulario,
+              onPressed: () => _toggleFormulario(),
               icon: const Icon(Icons.add),
               label: const Text('Nuevo Proveedor'),
               style: ElevatedButton.styleFrom(
@@ -182,121 +326,159 @@ class _ProveedoresPageState extends State<ProveedoresPage> {
                             child: Padding(
                               padding: const EdgeInsets.all(16),
                               child: Column(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Header con avatar y nombre
-                                  Row(
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      CircleAvatar(
-                                        backgroundColor: const Color(0xFFC2185B),
-                                        child: Text(
-                                          proveedor.nombre.substring(0, 1).toUpperCase(),
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              proveedor.nombre,
+                                      // Header con avatar y nombre
+                                      Row(
+                                        children: [
+                                          CircleAvatar(
+                                            backgroundColor: const Color(0xFFC2185B),
+                                            child: Text(
+                                              proveedor.nombre.substring(0, 1).toUpperCase(),
                                               style: const TextStyle(
-                                                fontSize: 16,
+                                                color: Colors.white,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
-                                            Text(
-                                              'Categoría ${proveedor.idCategoriaP}',
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  proveedor.nombre,
+                                                  style: const TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  'Categoría ${proveedor.idCategoriaP}',
+                                                  style: TextStyle(
+                                                    color: Colors.grey[600],
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.green[100],
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Text(
+                                              'Activo',
                                               style: TextStyle(
-                                                color: Colors.grey[600],
-                                                fontSize: 12,
+                                                color: Colors.green[800],
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w500,
                                               ),
                                             ),
-                                          ],
-                                        ),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.green[100],
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: Text(
-                                          'Activo',
-                                          style: TextStyle(
-                                            color: Colors.green[800],
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w500,
                                           ),
-                                        ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16),
+                                      const SizedBox(height: 16),
 
-                                  // Información de contacto
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.email,
-                                        size: 16,
-                                        color: Colors.grey[600],
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          proveedor.email ?? 'No disponible',
-                                          style: TextStyle(
-                                            color: Colors.grey[700],
-                                            fontSize: 12,
+                                      // Información de contacto
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.email,
+                                            size: 16,
+                                            color: Colors.grey[600],
                                           ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              proveedor.email ?? 'No disponible',
+                                              style: TextStyle(
+                                                color: Colors.grey[700],
+                                                fontSize: 12,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.phone,
+                                            size: 16,
+                                            color: Colors.grey[600],
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            proveedor.telefonoFormateado,
+                                            style: TextStyle(
+                                              color: Colors.grey[700],
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.location_on,
+                                            size: 16,
+                                            color: Colors.grey[600],
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              proveedor.direccion,
+                                              style: TextStyle(
+                                                color: Colors.grey[700],
+                                                fontSize: 12,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 8),
+                                  // Botones de acción
                                   Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
                                     children: [
-                                      Icon(
-                                        Icons.phone,
-                                        size: 16,
-                                        color: Colors.grey[600],
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        proveedor.telefono.toString(),
-                                        style: TextStyle(
-                                          color: Colors.grey[700],
-                                          fontSize: 12,
+                                      // Botón Editar
+                                      IconButton(
+                                        onPressed: () => _toggleFormulario(proveedor),
+                                        icon: const Icon(Icons.edit),
+                                        tooltip: 'Editar proveedor',
+                                        style: IconButton.styleFrom(
+                                          foregroundColor: const Color(0xFFC2185B),
+                                          backgroundColor: const Color(0xFFC2185B).withOpacity(0.1),
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.location_on,
-                                        size: 16,
-                                        color: Colors.grey[600],
-                                      ),
                                       const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          proveedor.direccion,
-                                          style: TextStyle(
-                                            color: Colors.grey[700],
-                                            fontSize: 12,
+                                      // Botón Eliminar
+                                      SizedBox(
+                                        height: 32,
+                                        width: 32,
+                                        child: IconButton(
+                                          onPressed: () => _eliminarProveedor(proveedor),
+                                          icon: const Icon(Icons.delete, size: 18),
+                                          tooltip: 'Eliminar proveedor',
+                                          style: IconButton.styleFrom(
+                                            foregroundColor: Colors.red,
+                                            backgroundColor: Colors.red.withOpacity(0.1),
+                                            padding: EdgeInsets.zero,
                                           ),
-                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
                                     ],
@@ -332,7 +514,7 @@ class _ProveedoresPageState extends State<ProveedoresPage> {
                 ),
                 Positioned.fill(
                   child: GestureDetector(
-                    onTap: _toggleFormulario,
+                    onTap: () => _toggleFormulario(),
                   ),
                 ),
               ],
@@ -342,8 +524,9 @@ class _ProveedoresPageState extends State<ProveedoresPage> {
         // Formulario de proveedor
         if (_mostrarFormulario)
           ProveedorFormPanel(
-            onClose: _toggleFormulario,
-            onProveedorCreated: _onProveedorCreated,
+            onClose: () => _toggleFormulario(),
+            onProveedorCreated: _onProveedorCreatedOrUpdated,
+            proveedor: _proveedorEditar,
           ),
       ],
     );

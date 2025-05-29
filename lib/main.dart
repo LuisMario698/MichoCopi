@@ -15,6 +15,7 @@ import 'package:invmicho/screens/productos_page.dart';
 import 'package:invmicho/screens/inventario_page.dart';
 import 'package:invmicho/screens/proveedores_page.dart';
 import 'package:invmicho/screens/reportes_page.dart';
+import 'package:invmicho/screens/acerca_de_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -187,7 +188,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _getCurrentPage() {
-    switch (_selectedPage) {      case 'dashboard':
+    switch (_selectedPage) {
+      case 'dashboard':
         return const DashboardPage();
       case 'ventas':
         return const VentasPage();
@@ -201,6 +203,8 @@ class _HomePageState extends State<HomePage> {
         return const ReportesPage();
       case 'configuraciones':
         return _buildConfiguracionesPage();
+      case 'acerca_de':
+        return const AcercaDePage();
       default:
         return const DashboardPage();
     }
