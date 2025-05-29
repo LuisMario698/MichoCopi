@@ -149,10 +149,8 @@ class RecetaService {
 
       for (int i = 0; i < receta.idMateriasPrimas.length; i++) {
         final idMateria = receta.idMateriasPrimas[i];
-        final cantidadNecesaria = receta.cantidades[i] * cantidadAProducir;
-
-        final materiaPrima = await _supabase
-            .from('materia_prima')
+        final cantidadNecesaria = receta.cantidades[i] * cantidadAProducir;        final materiaPrima = await _supabase
+            .from('Materia_prima')
             .select('nombre, stock')
             .eq('id', idMateria)
             .single();
@@ -221,10 +219,8 @@ class RecetaService {
 
         for (int i = 0; i < receta.idMateriasPrimas.length; i++) {
           final idMateria = receta.idMateriasPrimas[i];
-          final cantidadNecesaria = receta.cantidades[i];
-
-          final materiaPrima = await _supabase
-              .from('materia_prima')
+          final cantidadNecesaria = receta.cantidades[i];          final materiaPrima = await _supabase
+              .from('Materia_prima')
               .select('stock')
               .eq('id', idMateria)
               .maybeSingle();
@@ -272,10 +268,8 @@ class RecetaService {
 
       for (int i = 0; i < receta.idMateriasPrimas.length; i++) {
         final idMateria = receta.idMateriasPrimas[i];
-        final cantidad = receta.cantidades[i];
-
-        final materiaPrima = await _supabase
-            .from('materia_prima')
+        final cantidad = receta.cantidades[i];        final materiaPrima = await _supabase
+            .from('Materia_prima')
             .select('nombre, stock, precio')
             .eq('id', idMateria)
             .single();
@@ -326,9 +320,8 @@ class RecetaService {
   // Verificar que todas las materias primas existan
   Future<void> _verificarMateriasPrimasExisten(List<int> idMateriasPrimas) async {
     try {
-      for (final id in idMateriasPrimas) {
-        final materiaPrima = await _supabase
-            .from('materia_prima')
+      for (final id in idMateriasPrimas) {        final materiaPrima = await _supabase
+            .from('Materia_prima')
             .select('id')
             .eq('id', id)
             .maybeSingle();

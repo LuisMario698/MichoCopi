@@ -10,13 +10,12 @@ class CategoriaMp {
     required this.unidad,
     required this.fc,
   });
-
   factory CategoriaMp.fromJson(Map<String, dynamic> json) {
     return CategoriaMp(
-      id: json['id'] as int?,
+      id: json['id'] != null ? (json['id'] as num).toInt() : null,
       nombre: json['nombre'] as String,
       unidad: json['unidad'] as String,
-      fc: json['fc'] as int,
+      fc: (json['fc'] as num).toInt(),
     );
   }
 

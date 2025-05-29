@@ -15,6 +15,7 @@ import 'package:invmicho/screens/productos_page.dart';
 import 'package:invmicho/screens/inventario_page.dart';
 import 'package:invmicho/screens/proveedores_page.dart';
 import 'package:invmicho/screens/reportes_page.dart';
+import 'package:invmicho/screens/categorias_mp_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -88,20 +89,23 @@ class _HomePageState extends State<HomePage> {
     try {
       // Usar el diagnóstico completo para obtener más información
       final connectionResult = await SupabaseSetup.fullConnectionDiagnostic();
-      
+
       setState(() {
         if (connectionResult['success']) {
           _connectionStatus = connectionResult['message'];
         } else {
           // Si hay un diagnóstico completo, mostrar información más detallada
-          if (connectionResult.containsKey('basicTest') && connectionResult.containsKey('recommendation')) {
+          if (connectionResult.containsKey('basicTest') &&
+              connectionResult.containsKey('recommendation')) {
             final basicTest = connectionResult['basicTest'];
-            _connectionStatus = '${basicTest['message']}: ${basicTest['details']}';
-            
+            _connectionStatus =
+                '${basicTest['message']}: ${basicTest['details']}';
+
             // Mostrar recomendación en consola para debug
             print('💡 Recomendación: ${connectionResult['recommendation']}');
           } else {
-            _connectionStatus = '${connectionResult['message']}: ${connectionResult['details']}';
+            _connectionStatus =
+                '${connectionResult['message']}: ${connectionResult['details']}';
           }
         }
       });
@@ -140,17 +144,17 @@ class _HomePageState extends State<HomePage> {
                 'Cancelar',
                 style: TextStyle(color: Colors.grey[600]),
               ),
-            ),            ElevatedButton(
+            ),
+            ElevatedButton(
               onPressed: () async {
                 Navigator.of(context).pop();
                 // Cerrar sesión usando AuthService
                 await AuthService.cerrarSesion();
                 // Navegar a login y limpiar el stack de navegación
                 if (mounted) {
-                  Navigator.of(context).pushNamedAndRemoveUntil(
-                    '/login',
-                    (route) => false,
-                  );
+                  Navigator.of(
+                    context,
+                  ).pushNamedAndRemoveUntil('/login', (route) => false);
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -180,14 +184,13 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _showMacOSPermissionsGuide() async {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const MacOSPermissionsGuide(),
-      ),
+      MaterialPageRoute(builder: (context) => const MacOSPermissionsGuide()),
     );
   }
 
   Widget _getCurrentPage() {
-    switch (_selectedPage) {      case 'dashboard':
+    switch (_selectedPage) {
+      case 'dashboard':
         return const DashboardPage();
       case 'ventas':
         return const VentasPage();
@@ -252,13 +255,17 @@ class _HomePageState extends State<HomePage> {
                           Row(
                             children: [
                               Icon(
-                                _connectionStatus.contains('exitosa') || _connectionStatus.contains('Conectado')
+                                _connectionStatus.contains('exitosa') ||
+                                        _connectionStatus.contains('Conectado')
                                     ? Icons.check_circle
                                     : _connectionStatus.contains('parcial')
                                     ? Icons.warning
                                     : Icons.error,
                                 color:
-                                    _connectionStatus.contains('exitosa') || _connectionStatus.contains('Conectado')
+                                    _connectionStatus.contains('exitosa') ||
+                                            _connectionStatus.contains(
+                                              'Conectado',
+                                            )
                                         ? Colors.green
                                         : _connectionStatus.contains('parcial')
                                         ? Colors.orange
@@ -270,9 +277,14 @@ class _HomePageState extends State<HomePage> {
                                   _connectionStatus,
                                   style: TextStyle(
                                     color:
-                                        _connectionStatus.contains('exitosa') || _connectionStatus.contains('Conectado')
+                                        _connectionStatus.contains('exitosa') ||
+                                                _connectionStatus.contains(
+                                                  'Conectado',
+                                                )
                                             ? Colors.green[700]
-                                            : _connectionStatus.contains('parcial')
+                                            : _connectionStatus.contains(
+                                              'parcial',
+                                            )
                                             ? Colors.orange[700]
                                             : Colors.red[700],
                                     fontWeight: FontWeight.w500,
@@ -373,21 +385,22 @@ class _HomePageState extends State<HomePage> {
   Future<void> _testCrearCategoria() async {
     try {
       print('🧪 Iniciando prueba de crear categoría...');
-      
+
       final categoria = Categoria(
         nombre: 'Categoría Test ${DateTime.now().millisecondsSinceEpoch}',
         conCaducidad: true,
       );
-      
+
       print('📦 Datos de la categoría: ${categoria.toJson()}');
-      
+
       final result = await ProductoService.crearCategoria(categoria);
-      
+
       print('✅ Resultado: $result');
-      
+
       setState(() {
         if (result['success']) {
-          _connectionStatus = 'Categoría creada exitosamente: ${result['data'].nombre}';
+          _connectionStatus =
+              'Categoría creada exitosamente: ${result['data'].nombre}';
         } else {
           _connectionStatus = 'Error al crear categoría: ${result['message']}';
         }
@@ -403,34 +416,37 @@ class _HomePageState extends State<HomePage> {
   Future<void> _testCrearProducto() async {
     try {
       print('🧪 Iniciando prueba de crear producto...');
-      
+
       // Primero obtener categorías disponibles
       final categoriasResult = await ProductoService.obtenerCategorias();
-      if (!categoriasResult['success'] || (categoriasResult['data'] as List).isEmpty) {
+      if (!categoriasResult['success'] ||
+          (categoriasResult['data'] as List).isEmpty) {
         setState(() {
-          _connectionStatus = 'No hay categorías disponibles. Crea una categoría primero.';
+          _connectionStatus =
+              'No hay categorías disponibles. Crea una categoría primero.';
         });
         return;
       }
-      
+
       final categorias = categoriasResult['data'] as List<Categoria>;
       final primeraCategoria = categorias.first;
-        final producto = Producto(
+      final producto = Producto(
         nombre: 'Producto Test ${DateTime.now().millisecondsSinceEpoch}',
         precio: 10.50,
         stock: 5,
         idCategoriaProducto: primeraCategoria.id!,
       );
-      
+
       print('📦 Datos del producto: ${producto.toJson()}');
-      
+
       final result = await ProductoService.crearProducto(producto);
-      
+
       print('✅ Resultado: $result');
-      
+
       setState(() {
         if (result['success']) {
-          _connectionStatus = 'Producto creado exitosamente: ${result['data'].nombre}';
+          _connectionStatus =
+              'Producto creado exitosamente: ${result['data'].nombre}';
         } else {
           _connectionStatus = 'Error al crear producto: ${result['message']}';
         }
@@ -446,23 +462,30 @@ class _HomePageState extends State<HomePage> {
   Future<void> _testListarDatos() async {
     try {
       print('🧪 Iniciando prueba de listar datos...');
-      
+
       final futures = await Future.wait([
         ProductoService.obtenerCategorias(),
         ProductoService.obtenerProductos(),
       ]);
-      
+
       final categoriasResult = futures[0];
       final productosResult = futures[1];
-      
+
       print('📋 Categorías: $categoriasResult');
       print('📋 Productos: $productosResult');
-      
-      final numCategorias = categoriasResult['success'] ? (categoriasResult['data'] as List).length : 0;
-      final numProductos = productosResult['success'] ? (productosResult['data'] as List).length : 0;
-      
+
+      final numCategorias =
+          categoriasResult['success']
+              ? (categoriasResult['data'] as List).length
+              : 0;
+      final numProductos =
+          productosResult['success']
+              ? (productosResult['data'] as List).length
+              : 0;
+
       setState(() {
-        _connectionStatus = 'Datos listados: $numCategorias categorías, $numProductos productos';
+        _connectionStatus =
+            'Datos listados: $numCategorias categorías, $numProductos productos';
       });
     } catch (e) {
       print('💥 Error en prueba: $e');

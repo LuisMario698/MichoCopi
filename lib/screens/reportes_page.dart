@@ -121,12 +121,6 @@ class ReportesPage extends StatelessWidget {
                   Icons.attach_money,
                   Colors.teal,
                 ),
-                _buildReportCard(
-                  'Reporte de Clientes',
-                  'Análisis de comportamiento y segmentación',
-                  Icons.people,
-                  Colors.purple,
-                ),
               ],
             ),
             const SizedBox(height: 24),

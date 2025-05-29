@@ -62,6 +62,7 @@ create table public."Proveedores" (
   telefono bigint not null,
   "id_Categoria_p" bigint not null,
   email character varying null,
+  horario character varying null,
   constraint Proveedores_pkey primary key (id),
   constraint Proveedores_id_key unique (id),
   constraint Proveedores_id_Categoria_p_fkey foreign KEY ("id_Categoria_p") references "Categoria_producto" (id)

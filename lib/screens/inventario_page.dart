@@ -1,43 +1,152 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../models/materia_prima.dart';
+import '../models/categoria_mp.dart';
+import '../services/materia_prima_service.dart';
 import '../widgets/responsive_layout.dart';
+import '../services/categoria_mp_service.dart';
+import '../widgets/materia_prima_form_panel.dart';
+import '../widgets/categoria_mp_form_panel.dart';
 
-class InventarioPage extends StatelessWidget {
+class InventarioPage extends StatefulWidget {
   const InventarioPage({super.key});
 
   @override
+  State<InventarioPage> createState() => _InventarioPageState();
+}
+
+class _InventarioPageState extends State<InventarioPage> {
+  final _materiaPrimaService = MateriaPrimaService();
+  final _categoriaMpService = CategoriaMpService();
+  final _searchController = TextEditingController();
+  String _filterValue = 'Todos';
+  List<MateriaPrima> _materiasPrimas = [];
+  List<CategoriaMp> _categorias = [];
+  bool _isLoading = true;
+  String? _error;
+  bool _mostrarFormularioCategoria = false;
+  CategoriaMp? _categoriaSeleccionada;
+  @override
+  void initState() {
+    super.initState();
+    _cargarMateriasPrimas();
+    _cargarCategorias();
+  }
+  
+  Future<void> _cargarCategorias() async {
+    try {
+      final categorias = await _categoriaMpService.obtenerTodas();
+      setState(() {
+        _categorias = categorias;
+      });
+    } catch (e) {
+      // Manejo silencioso de errores para categorías
+      print('Error al cargar categorías: $e');
+    }
+  }
+
+  Future<void> _cargarMateriasPrimas() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      final materiasPrimas = await _materiaPrimaService.obtenerTodas();
+      setState(() {
+        _materiasPrimas = materiasPrimas;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+  List<MateriaPrima> _getMateriasPrimasFiltradas() {
+    var materiasFiltered = _materiasPrimas;
+
+    // Aplicar filtro de búsqueda
+    if (_searchController.text.isNotEmpty) {
+      materiasFiltered =
+          materiasFiltered
+              .where(
+                (mp) => mp.nombre.toLowerCase().contains(
+                  _searchController.text.toLowerCase(),
+                ),
+              )
+              .toList();
+    }
+
+    // Aplicar filtro de estado
+    switch (_filterValue) {
+      case 'Stock bajo':
+        materiasFiltered =
+            materiasFiltered.where((mp) => mp.stock < 10).toList();
+        break;
+      case 'Sin stock':
+        materiasFiltered =
+            materiasFiltered.where((mp) => mp.stock == 0).toList();
+        break;
+      case 'Stock normal':
+        materiasFiltered =
+            materiasFiltered.where((mp) => mp.stock >= 10).toList();
+        break;
+    }
+
+    return materiasFiltered;
+  }
+    @override
   Widget build(BuildContext context) {
-    return PageWrapper(
-      title: 'Inventario',
-      actions: [
-        OutlinedButton.icon(
-          onPressed: () {
-            // TODO: Implementar reporte de inventario
-          },
-          icon: const Icon(Icons.download),
-          label: const Text('Exportar'),
-        ),
-        const SizedBox(width: 8),
-        ElevatedButton.icon(
-          onPressed: () {
-            // TODO: Implementar ajuste de inventario
-          },
-          icon: const Icon(Icons.edit),
-          label: const Text('Ajustar Stock'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFC2185B),
-            foregroundColor: Colors.white,
+    return Stack(
+      children: [
+        // Página principal
+        Scaffold(
+          appBar: AppBar(
+            title: const Text('Inventario de Materias Primas'),
           ),
-        ),
-      ],
-      child: Column(
+          body: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        // TODO: Implementar reporte de inventario
+                      },
+                      icon: const Icon(Icons.download),
+                      label: const Text('Exportar'),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: () => _mostrarDialogoAgregarMP(context),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Nueva Materia Prima'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.category),
+                      tooltip: 'Gestionar Categorías',
+                      onPressed: () => _toggleFormularioCategoria(),
+                    ),
+                  ],
+                ),
         children: [
           // Resumen de inventario
           Row(
             children: [
               Expanded(
                 child: _buildInventoryCard(
-                  'Total Productos',
-                  '1,234',
+                  'Total Materias Primas',
+                  _materiasPrimas.length.toString(),
                   Icons.inventory_2,
                   Colors.blue,
                 ),
@@ -46,7 +155,10 @@ class InventarioPage extends StatelessWidget {
               Expanded(
                 child: _buildInventoryCard(
                   'Stock Bajo',
-                  '23',
+                  _materiasPrimas
+                      .where((mp) => mp.stock < 10)
+                      .length
+                      .toString(),
                   Icons.warning,
                   Colors.orange,
                 ),
@@ -55,7 +167,10 @@ class InventarioPage extends StatelessWidget {
               Expanded(
                 child: _buildInventoryCard(
                   'Sin Stock',
-                  '5',
+                  _materiasPrimas
+                      .where((mp) => mp.stock == 0)
+                      .length
+                      .toString(),
                   Icons.remove_circle,
                   Colors.red,
                 ),
@@ -63,9 +178,9 @@ class InventarioPage extends StatelessWidget {
               const SizedBox(width: 16),
               Expanded(
                 child: _buildInventoryCard(
-                  'Valor Total',
-                  '\$45,678',
-                  Icons.attach_money,
+                  'Para Venta',
+                  _materiasPrimas.where((mp) => mp.seVende).length.toString(),
+                  Icons.shopping_cart,
                   Colors.green,
                 ),
               ),
@@ -81,16 +196,18 @@ class InventarioPage extends StatelessWidget {
                 children: [
                   Expanded(
                     child: TextField(
+                      controller: _searchController,
                       decoration: const InputDecoration(
-                        hintText: 'Buscar en inventario...',
+                        hintText: 'Buscar materia prima...',
                         prefixIcon: Icon(Icons.search),
                         border: OutlineInputBorder(),
                       ),
+                      onChanged: (value) => setState(() {}),
                     ),
                   ),
                   const SizedBox(width: 16),
                   DropdownButton<String>(
-                    value: 'Todos',
+                    value: _filterValue,
                     items:
                         ['Todos', 'Stock bajo', 'Sin stock', 'Stock normal']
                             .map(
@@ -101,7 +218,9 @@ class InventarioPage extends StatelessWidget {
                             )
                             .toList(),
                     onChanged: (value) {
-                      // TODO: Implementar filtro
+                      if (value != null) {
+                        setState(() => _filterValue = value);
+                      }
                     },
                   ),
                 ],
@@ -111,144 +230,140 @@ class InventarioPage extends StatelessWidget {
           const SizedBox(height: 16),
 
           // Tabla de inventario
-          Expanded(
-            child: Card(
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      border: Border(
-                        bottom: BorderSide(color: Colors.grey[300]!),
+          if (_isLoading)
+            const Expanded(child: Center(child: CircularProgressIndicator()))
+          else if (_error != null)
+            Expanded(child: Center(child: Text('Error: $_error')))
+          else
+            Expanded(
+              child: Card(
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        border: Border(
+                          bottom: BorderSide(color: Colors.grey[300]!),
+                        ),
                       ),
-                    ),
-                    child: const Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            'Producto',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 1,
-                          child: Text(
-                            'SKU',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 1,
-                          child: Text(
-                            'Stock Actual',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 1,
-                          child: Text(
-                            'Stock Mínimo',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 1,
-                          child: Text(
-                            'Precio',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 1,
-                          child: Text(
-                            'Estado',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: 50, // Placeholder
-                      itemBuilder: (context, index) {
-                        final stock = 50 - index;
-                        final minStock = 10;
-                        final status =
-                            stock == 0
-                                ? 'Sin stock'
-                                : stock <= minStock
-                                ? 'Stock bajo'
-                                : 'Normal';
-                        final statusColor =
-                            stock == 0
-                                ? Colors.red
-                                : stock <= minStock
-                                ? Colors.orange
-                                : Colors.green;
-
-                        return Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(color: Colors.grey[200]!),
+                      child: const Row(
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              'Materia Prima',
+                              style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                           ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                flex: 2,
-                                child: Text('Producto ${index + 1}'),
-                              ),
-                              Expanded(
-                                flex: 1,
-                                child: Text('PRD${1000 + index}'),
-                              ),
-                              Expanded(flex: 1, child: Text('$stock')),
-                              Expanded(flex: 1, child: Text('$minStock')),
-                              Expanded(
-                                flex: 1,
-                                child: Text(
-                                  '\$${(10 + index * 2).toStringAsFixed(2)}',
-                                ),
-                              ),
-                              Expanded(
-                                flex: 1,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: statusColor[100],
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    status,
-                                    style: TextStyle(
-                                      color: statusColor[800],
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          Expanded(
+                            child: Text(
+                              'Categoría',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
-                        );
-                      },
+                          Expanded(
+                            child: Text(
+                              'Stock',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              'Se Vende',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              'Precio',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          SizedBox(width: 100),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: _getMateriasPrimasFiltradas().length,
+                        itemBuilder: (context, index) {
+                          final mp = _getMateriasPrimasFiltradas()[index];
+                          return Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(color: Colors.grey[200]!),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(flex: 2, child: Text(mp.nombre)),
+                                Expanded(
+                                  child: FutureBuilder(
+                                    future: CategoriaMpService().obtenerPorId(
+                                      mp.idCategoriaMp,
+                                    ),
+                                    builder: (context, snapshot) {
+                                      return Text(
+                                        snapshot.data?.nombre ?? '...',
+                                      );
+                                    },
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    mp.stockFormateado,
+                                    style: TextStyle(
+                                      color:
+                                          mp.stock == 0
+                                              ? Colors.red
+                                              : mp.stock < 10
+                                              ? Colors.orange
+                                              : null,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(child: Text(mp.seVende ? 'Sí' : 'No')),
+                                Expanded(child: Text(mp.precioFormateado)),
+                                SizedBox(
+                                  width: 100,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.edit),
+                                        onPressed:
+                                            () => _mostrarDialogoEditarMP(
+                                              context,
+                                              mp,
+                                            ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete),
+                                        onPressed:
+                                            () =>
+                                                _confirmarEliminar(context, mp),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    );
+        ],
+      );
+    }
   }
 
   Widget _buildInventoryCard(
@@ -261,21 +376,192 @@ class InventarioPage extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 32, color: color),
+            Row(
+              children: [
+                Icon(icon, color: color),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 8),
             Text(
               value,
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            Text(
-              title,
-              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-              textAlign: TextAlign.center,
             ),
           ],
         ),
       ),
     );
   }
-}
+
+  Future<void> _mostrarDialogoAgregarMP(BuildContext context) async {
+    await showDialog(
+      context: context,
+      barrierColor: Colors.transparent,
+      builder:
+          (context) => MateriaPrimaFormPanel(
+            onClose: () => Navigator.of(context).pop(),
+            onMateriaPrimaCreated: (success) {
+              Navigator.of(context).pop();
+              if (success) {
+                _cargarMateriasPrimas();
+              }
+            },
+          ),
+    );
+  }
+
+  Future<void> _mostrarDialogoEditarMP(
+    BuildContext context,
+    MateriaPrima mp,
+  ) async {
+    await showDialog(
+      context: context,
+      barrierColor: Colors.transparent,
+      builder:
+          (context) => MateriaPrimaFormPanel(
+            materiaPrima: mp,
+            onClose: () => Navigator.of(context).pop(),
+            onMateriaPrimaCreated: (success) {
+              Navigator.of(context).pop();
+              if (success) {
+                _cargarMateriasPrimas();
+              }
+            },
+          ),
+    );
+  }
+  // Métodos para gestionar Categorías MP
+  void _toggleFormularioCategoria([CategoriaMp? categoria]) {
+    setState(() {
+      _mostrarFormularioCategoria = !_mostrarFormularioCategoria;
+      _categoriaSeleccionada = categoria;
+    });
+  }
+  
+  void _onCategoriaCreated(bool success) {
+    if (success) {
+      _toggleFormularioCategoria();
+      _cargarCategorias();
+    }
+  }
+  
+  Future<void> _confirmarEliminarCategoria(CategoriaMp categoria) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar eliminación'),
+        content: Text('¿Está seguro de eliminar la categoría ${categoria.nombre}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _categoriaMpService.eliminar(categoria.id!);
+        if (mounted) {
+          await _cargarCategorias();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Categoría eliminada correctamente')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error al eliminar: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _confirmarEliminar(BuildContext context, MateriaPrima mp) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Confirmar eliminación'),
+            content: Text('¿Está seguro de eliminar ${mp.nombre}?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Eliminar'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _materiaPrimaService.eliminar(mp.id!);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Materia prima eliminada')),
+          );
+          await _cargarMateriasPrimas();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error al eliminar: $e')));
+        }
+      }
+    }  }
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+  
+  // Agregar overlay y panel de categorías
+  Widget _buildCategoriaOverlay() {
+    return Stack(
+      children: [
+        // Fondo semitransparente
+        Positioned.fill(
+          child: Container(
+            color: Colors.black.withOpacity(0.3),
+          ),
+        ),
+        
+        // Backdrop blur
+        Positioned.fill(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
+            child: Container(
+              color: Colors.transparent,
+            ),
+          ),
+        ),
+        
+        // Gesture detector para cerrar
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: _toggleFormularioCategoria,
+          ),
+        ),
+      ],
+    );
+  }
