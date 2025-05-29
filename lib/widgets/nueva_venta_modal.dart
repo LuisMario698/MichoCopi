@@ -15,12 +15,14 @@ class NuevaVentaModal extends StatefulWidget {
 class _NuevaVentaModalState extends State<NuevaVentaModal> {
   final TextEditingController _busquedaController = TextEditingController();
   final TextEditingController _clienteController = TextEditingController();
+  final TextEditingController _pagoController = TextEditingController();
   
   List<Producto> _productosDisponibles = [];
   List<Producto> _productosFiltrados = [];
   List<CarritoItem> _carrito = [];
   bool _isLoading = false;
   bool _isSearching = false;
+  double _pagoAmount = 0;
 
   @override
   void initState() {
@@ -33,6 +35,7 @@ class _NuevaVentaModalState extends State<NuevaVentaModal> {
   void dispose() {
     _busquedaController.dispose();
     _clienteController.dispose();
+    _pagoController.dispose();
     super.dispose();
   }
 
@@ -137,6 +140,11 @@ class _NuevaVentaModalState extends State<NuevaVentaModal> {
       return;
     }
 
+    if (_pagoAmount < _total) {
+      _mostrarError('El pago debe ser igual o mayor al total');
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
@@ -147,8 +155,12 @@ class _NuevaVentaModalState extends State<NuevaVentaModal> {
         cliente: _clienteController.text.trim().isEmpty 
             ? null 
             : _clienteController.text.trim(),
-      );      if (resultado['success']) {
+      );
+
+      if (resultado['success']) {
         final total = _total;
+        final pago = _pagoAmount;
+        final cambio = _pagoAmount - total;
         final cliente = _clienteController.text.trim().isEmpty 
             ? 'Cliente Anónimo' 
             : _clienteController.text.trim();
@@ -157,6 +169,8 @@ class _NuevaVentaModalState extends State<NuevaVentaModal> {
           '¡Venta completada exitosamente!\n\n'
           'Cliente: $cliente\n'
           'Total: \$${total.toStringAsFixed(2)}\n'
+          'Pago: \$${pago.toStringAsFixed(2)}\n'
+          'Cambio: \$${cambio.toStringAsFixed(2)}\n'
           'ID de Venta: ${resultado['venta_id']}'
         );
         
@@ -621,34 +635,130 @@ class _NuevaVentaModalState extends State<NuevaVentaModal> {
           bottomRight: Radius.circular(16),
         ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Total
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Total de la venta',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 14,
-                  ),
-                ),
-                Text(
-                  '\$${_total.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFFC2185B),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Botones de acción
+          // Section for total, payment and change
           Row(
+            children: [
+              // Total section
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Total de la venta',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      '\$${_total.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFC2185B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Payment section
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pago en efectivo',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                    ),
+                    TextFormField(
+                      controller: _pagoController,
+                      keyboardType: TextInputType.numberWithOptions(decimal: true),
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFC2185B),
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                      ],
+                      decoration: InputDecoration(
+                        prefixText: '\$',
+                        prefixStyle: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFC2185B),
+                        ),
+                        hintText: '0.00',
+                        hintStyle: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w300,
+                          color: Colors.grey[400],
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[100],
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFC2185B), width: 2),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          // Recalculate change when payment amount changes
+                          if (value.isEmpty) {
+                            _pagoAmount = 0;
+                          } else {
+                            _pagoAmount = double.tryParse(value) ?? 0;
+                          }
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
+              // Change section
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Cambio',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      '\$${(_pagoAmount > _total ? _pagoAmount - _total : 0).toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green[700],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // Action buttons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
               OutlinedButton(
                 onPressed: () => Navigator.of(context).pop(),
@@ -664,7 +774,9 @@ class _NuevaVentaModalState extends State<NuevaVentaModal> {
               const SizedBox(width: 12),
               
               ElevatedButton(
-                onPressed: _carrito.isNotEmpty && !_isLoading ? _procesarVenta : null,
+                onPressed: _carrito.isNotEmpty && !_isLoading && _pagoAmount >= _total 
+                    ? _procesarVenta 
+                    : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFC2185B),
                   foregroundColor: Colors.white,
