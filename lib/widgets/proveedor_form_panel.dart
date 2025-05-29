@@ -39,8 +39,6 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
   bool _nombreExiste = false;
   bool _validandoNombre = false;
 
-  final _proveedorService = ProveedorService();
-
   @override
   void initState() {
     super.initState();
@@ -162,9 +160,7 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
       );
 
       // Crear el proveedor usando el servicio
-      await _proveedorService.crear(proveedor);
-      
-      _mostrarSnackBar('Proveedor creado exitosamente', false);
+      await ProveedorService.crear(proveedor);
       widget.onProveedorCreated(true);
     } catch (e) {
       print('Error al guardar: $e');

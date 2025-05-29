@@ -187,8 +187,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _getCurrentPage() {
-    switch (_selectedPage) {
-      case 'dashboard':
+    switch (_selectedPage) {      case 'dashboard':
         return const DashboardPage();
       case 'ventas':
         return const VentasPage();

@@ -4,6 +4,7 @@ import '../models/producto.dart';
 import '../models/categoria_producto.dart';
 import '../models/proveedor.dart';
 import '../services/producto_service.dart';
+import '../services/proveedor_service.dart';
 import 'categoria_form_panel.dart';
 
 class ProductoFormPanel extends StatefulWidget {
@@ -94,23 +95,19 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
     try {
       print('🔄 Iniciando carga de datos...');
 
-      final futures = await Future.wait([
-        ProductoService.obtenerCategorias(),
-        ProductoService.obtenerProveedores(),
-      ]);
-
-      final categoriasResult = futures[0];
-      final proveedoresResult = futures[1];
-
-      if (categoriasResult['success']) {
+      // Obtener categorías
+      final categoriasResult = await ProductoService.obtenerCategorias();
+      if (categoriasResult['success'] == true) {
         setState(() {
-          _categorias = categoriasResult['data'] as List<Categoria>;
+          _categorias = List<Categoria>.from(categoriasResult['data']);
         });
       }
 
-      if (proveedoresResult['success']) {
+      // Obtener proveedores
+      final proveedoresResult = await ProveedorService.obtenerTodos();
+      if (proveedoresResult['success'] == true) {
         setState(() {
-          _proveedores = proveedoresResult['data'] as List<Proveedor>;
+          _proveedores = List<Proveedor>.from(proveedoresResult['data']);
         });
       }
 
@@ -135,6 +132,7 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
               direccion: 'Calle 123',
               telefono: 123456789,
               idCategoriaP: 1,
+              email: 'proveedora@ejemplo.com',
             ),
             Proveedor(
               id: 2,
@@ -142,6 +140,7 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
               direccion: 'Avenida 456',
               telefono: 987654321,
               idCategoriaP: 1,
+              email: 'proveedorb@ejemplo.com',
             ),
             Proveedor(
               id: 3,
@@ -149,13 +148,13 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
               direccion: 'Plaza 789',
               telefono: 555444333,
               idCategoriaP: 1,
+              email: 'proveedorc@ejemplo.com',
             ),
           ];
         });
       }
     } catch (e) {
       print('💥 Error en _cargarDatos: $e');
-      // Mostrar mensaje de error
       _mostrarSnackBar('Error al cargar los datos', true);
     } finally {
       if (mounted) {

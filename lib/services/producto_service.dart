@@ -333,69 +333,7 @@ class ProductoService {
         'isOffline': true,
       };
     }
-  }
-  // Método de compatibilidad para obtener proveedores (datos de prueba)
-  static Future<Map<String, dynamic>> obtenerProveedores() async {
-    try {
-      // Como el esquema actual no incluye tabla de proveedores,
-      // devolvemos datos de prueba para compatibilidad con las pantallas
-      final proveedoresPrueba = [
-        Proveedor(
-          id: 1,
-          nombre: 'TechCorp S.A.',
-          direccion: 'Av. Tecnología 123',
-          telefono: 123456789,
-          idCategoriaP: 1,
-          email: 'techcorp@example.com',
-        ),
-        Proveedor(
-          id: 2,
-          nombre: 'Alimentos del Valle',
-          direccion: 'Calle Principal 456',
-          telefono: 987654321,
-          idCategoriaP: 2,
-          email: 'alimentos@example.com',
-        ),
-        Proveedor(
-          id: 3,
-          nombre: 'Distribuidora Central',
-          direccion: 'Plaza Comercial 789',
-          telefono: 555444333,
-          idCategoriaP: 1,
-          email: 'distcentral@example.com',
-        ),
-        Proveedor(
-          id: 4,
-          nombre: 'Farmacéutica Global',
-          direccion: 'Zona Industrial 101',
-          telefono: 111222333,
-          idCategoriaP: 3,
-          email: 'farmaglobal@example.com',
-        ),
-        Proveedor(
-          id: 5,
-          nombre: 'Textiles Modernos',
-          direccion: 'Sector Textil 202',
-          telefono: 444555666,
-          idCategoriaP: 4,
-          email: 'textiles@example.com',
-        ),
-      ];
-
-      return {
-        'success': true,
-        'data': proveedoresPrueba,
-        'message': 'Datos de prueba de proveedores',
-        'isOffline': true,
-      };
-    } catch (e) {
-      return {
-        'success': false,
-        'error': e.toString(),
-        'message': 'Error al obtener proveedores',
-      };
-    }
-  }
+  }  // El método obtenerProveedores se ha movido a ProveedorService
 
   // Buscar productos por nombre
   static Future<Map<String, dynamic>> buscarProductos(String termino) async {
