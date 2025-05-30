@@ -10,7 +10,6 @@ import '../services/proveedor_service.dart';
 import '../services/materia_prima_service.dart';
 import 'categoria_form_panel.dart';
 import '../models/proveedor.dart';
-import '../models/categoria_mp.dart';
 
 class ProductoFormPanel extends StatefulWidget {
   final VoidCallback onClose;
@@ -114,18 +113,21 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
       print('🔄 Iniciando carga de datos...');
 
       // Obtener categorías
-      final categoriasResult = await ProductoService.obtenerCategorias();
-      if (categoriasResult['success'] == true) {
+      final categoriasResult = await ProductoService.obtenerCategorias();      if (categoriasResult['success'] == true) {
         setState(() {
           _categorias = List<Categoria>.from(categoriasResult['data']);
         });
-      } // Obtener proveedores
+      }
+      
+      // Obtener proveedores
       final proveedoresResult = await ProveedorService.obtenerTodos();
       if (proveedoresResult['success'] == true) {
         setState(() {
           _proveedores = List<Proveedor>.from(proveedoresResult['data']);
         });
-      } // Obtener materias primas
+      }
+      
+      // Obtener materias primas
       try {
         final materiaPrimaService = MateriaPrimaService();
         final materiasPrimas = await materiaPrimaService.obtenerTodas();
@@ -229,7 +231,6 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
       int? idReceta;
 
       if (_isRecipe && _selectedMateriasPrimas.isNotEmpty) {
-        final recetaService = RecetaService();
         final List<int> cantidades = List<int>.filled(
           _selectedMateriasPrimas.length,
           1,
@@ -243,6 +244,7 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
             cantidades: cantidades,
           );
 
+          final recetaService = RecetaService();
           final recetaCreada = await recetaService.crear(receta);
           idReceta = recetaCreada.id;
           print('✅ Receta creada exitosamente con ID: ${recetaCreada.id}');
