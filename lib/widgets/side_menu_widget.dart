@@ -191,9 +191,10 @@ class _SideMenuWidgetState extends State<SideMenuWidget> {
             ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
-              border: isSelected
-                  ? Border(right: BorderSide(color: primaryColor, width: 3))
-                  : null,
+              border:
+                  isSelected
+                      ? Border(right: BorderSide(color: primaryColor, width: 3))
+                      : null,
             ),
             child: Row(
               children: [
@@ -209,7 +210,8 @@ class _SideMenuWidgetState extends State<SideMenuWidget> {
                       title,
                       style: TextStyle(
                         fontSize: 14,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                        fontWeight:
+                            isSelected ? FontWeight.w600 : FontWeight.w400,
                         color: isSelected ? primaryColor : Colors.grey[600],
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -222,7 +224,8 @@ class _SideMenuWidgetState extends State<SideMenuWidget> {
                       title,
                       style: TextStyle(
                         fontSize: 12,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                        fontWeight:
+                            isSelected ? FontWeight.w600 : FontWeight.w400,
                         color: isSelected ? primaryColor : Colors.grey[700],
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -313,10 +316,9 @@ class _SideMenuWidgetState extends State<SideMenuWidget> {
                 Navigator.of(context).pop();
                 await AuthService.cerrarSesion();
                 if (context.mounted) {
-                  Navigator.of(context).pushNamedAndRemoveUntil(
-                    '/login',
-                    (route) => false,
-                  );
+                  Navigator.of(
+                    context,
+                  ).pushNamedAndRemoveUntil('/login', (route) => false);
                 }
               },
               style: ElevatedButton.styleFrom(

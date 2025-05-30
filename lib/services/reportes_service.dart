@@ -237,13 +237,16 @@ class ReportesService {
   }
 
   // ========== REPORTES DE CORTES DE INVENTARIO ==========
-
   // Obtener reporte de cortes de inventario
   static Future<Map<String, dynamic>> obtenerReporteCortes({
     DateTime? fechaInicio,
     DateTime? fechaFin,
   }) async {
     try {
+      print('🔍 [obtenerReporteCortes] Iniciando consulta de cortes...');
+      print('📅 Fecha inicio: ${fechaInicio?.toIso8601String().split('T')[0]}');
+      print('📅 Fecha fin: ${fechaFin?.toIso8601String().split('T')[0]}');
+      
       var query = _supabase.from('Corte_inventario').select('*');
 
       if (fechaInicio != null) {
@@ -259,8 +262,16 @@ class ReportesService {
         );
       }
 
+      print('🚀 Ejecutando consulta...');
       final response = await query.order('fecha_corte', ascending: false);
       final cortes = response as List;
+      
+      print('📊 Cortes encontrados: ${cortes.length}');
+      if (cortes.isNotEmpty) {
+        print('📝 Primer corte: ${cortes.first}');
+      } else {
+        print('❌ No se encontraron cortes en el rango de fechas especificado');
+      }
 
       // Calcular estadísticas generales
       final totalCortes = cortes.length;
@@ -616,6 +627,123 @@ class ReportesService {
         'success': false,
         'data': '',
         'message': 'Error al generar CSV de productos: $e',
+      };
+    }  }
+  // Obtener ventas detalladas por día de la semana con productos
+  static Future<Map<String, dynamic>> obtenerVentasPorDiaSemana({
+    required int diaSemana, // 1 = lunes, 7 = domingo
+  }) async {
+    try {
+      // Obtener todas las fechas de este día de la semana en las últimas 12 semanas
+      final List<DateTime> fechasDelDia = [];
+      final DateTime hoy = DateTime.now();
+      
+      for (int i = 0; i < 84; i++) { // 12 semanas * 7 días
+        final fechaActual = hoy.subtract(Duration(days: i));
+        if (fechaActual.weekday == diaSemana) {
+          fechasDelDia.add(DateTime(fechaActual.year, fechaActual.month, fechaActual.day));
+        }
+      }
+
+      // Obtener ventas para todas esas fechas
+      final List<Map<String, dynamic>> todasLasVentas = [];
+      
+      for (final fechaDelDia in fechasDelDia) {
+        final fechaInicio = fechaDelDia;
+        final fechaFin = DateTime(fechaDelDia.year, fechaDelDia.month, fechaDelDia.day, 23, 59, 59);
+        
+        final response = await _supabase
+            .from('Ventas')
+            .select('''
+              id,
+              fecha,
+              total,
+              metodoPago,
+              estado,
+              DetallesVenta (
+                id,
+                idProducto,
+                cantidad,
+                precio,
+                subtotal,
+                Productos (
+                  id,
+                  nombre,
+                  precio
+                )
+              )
+            ''')
+            .gte('fecha', fechaInicio.toIso8601String())
+            .lte('fecha', fechaFin.toIso8601String())
+            .eq('estado', 'Completada')
+            .order('fecha', ascending: false);
+
+        todasLasVentas.addAll((response as List).cast<Map<String, dynamic>>());
+      }
+
+      // Procesar los datos para agrupar por producto
+      final Map<int, Map<String, dynamic>> productosSummary = {};
+      double totalVentasDia = 0;
+      int cantidadVentasDia = todasLasVentas.length;
+
+      for (final venta in todasLasVentas) {
+        totalVentasDia += (venta['total'] as num).toDouble();
+        
+        final detalles = venta['DetallesVenta'] as List?;
+        if (detalles != null) {
+          for (final detalle in detalles) {
+            final producto = detalle['Productos'];
+            if (producto != null) {
+              final productoId = producto['id'] as int;
+              final cantidad = (detalle['cantidad'] as num).toInt();
+              final subtotal = (detalle['subtotal'] as num).toDouble();
+
+              if (!productosSummary.containsKey(productoId)) {
+                productosSummary[productoId] = {
+                  'id': productoId,
+                  'nombre': producto['nombre'],
+                  'cantidadTotal': 0,
+                  'ingresoTotal': 0.0,
+                  'precioUnitario': (producto['precio'] as num).toDouble(),
+                  'numeroVentas': 0,
+                };
+              }
+
+              productosSummary[productoId]!['cantidadTotal'] += cantidad;
+              productosSummary[productoId]!['ingresoTotal'] += subtotal;
+              productosSummary[productoId]!['numeroVentas']++;
+            }
+          }
+        }
+      }
+
+      // Convertir a lista y ordenar por cantidad vendida
+      final productosVendidos = productosSummary.values.toList();
+      productosVendidos.sort((a, b) => (b['cantidadTotal'] as int).compareTo(a['cantidadTotal'] as int));
+
+      // Obtener nombres de días de la semana en español
+      final nombresDias = [
+        'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'
+      ];
+
+      return {
+        'success': true,
+        'data': {
+          'diaSemana': nombresDias[diaSemana - 1],
+          'numeroVentas': cantidadVentasDia,
+          'totalIngresos': totalVentasDia,
+          'promedioVenta': cantidadVentasDia > 0 ? totalVentasDia / cantidadVentasDia : 0,
+          'productosVendidos': productosVendidos,
+          'fechasAnalizadas': fechasDelDia.length,
+          'periodoAnalisis': '${fechasDelDia.length} ${nombresDias[diaSemana - 1]}s en las últimas 12 semanas',
+        },
+        'message': 'Ventas por día de la semana obtenidas exitosamente',
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'data': null,
+        'message': 'Error al obtener ventas por día de la semana: $e',
       };
     }
   }

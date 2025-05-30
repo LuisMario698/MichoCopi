@@ -346,7 +346,8 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ],
                       ),
-                    ),                  ),
+                    ),
+                  ),
                   // Sección de Tipo de Cambio
                   const SizedBox(height: 16),
                   const TipoCambioWidget(),
@@ -378,6 +379,7 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -427,7 +429,9 @@ class _HomePageState extends State<HomePage> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC2185B)),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Color(0xFFC2185B),
+                          ),
                         ),
                         const SizedBox(height: 16),
                         Text(

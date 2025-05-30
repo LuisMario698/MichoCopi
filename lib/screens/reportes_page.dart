@@ -26,10 +26,16 @@ class _ReportesPageState extends State<ReportesPage>
   Map<String, dynamic>? _reporteInventario;
   List<Map<String, dynamic>>? _categorias;
   List<dynamic>? _productos;
-
   // Variables para barras de búsqueda
   String _busquedaCategorias = '';
   String _busquedaProductos = '';
+
+  // Variables para cortes de inventario
+  Map<String, dynamic>? _reporteCortes;
+  String _busquedaCortes = '';
+  DateTime _fechaInicioCortes = DateTime.now().subtract(
+    const Duration(days: 30),
+  );  DateTime _fechaFinCortes = DateTime.now();
 
   @override
   void initState() {
@@ -43,9 +49,10 @@ class _ReportesPageState extends State<ReportesPage>
     _tabController.dispose();
     super.dispose();
   }
+
   Future<void> _cargarTodosLosReportes() async {
     if (!mounted) return;
-    
+
     setState(() {
       _cargando = true;
     });
@@ -55,7 +62,7 @@ class _ReportesPageState extends State<ReportesPage>
       final fechaFin = DateTime.now();
       final fechaInicio = fechaFin.subtract(
         const Duration(days: 30),
-      );// Para ventas, usar el rango de fechas seleccionado
+      ); // Para ventas, usar el rango de fechas seleccionado
       final fechaInicioVentas = DateTime(
         _fechaInicioVentas.year,
         _fechaInicioVentas.month,
@@ -80,8 +87,11 @@ class _ReportesPageState extends State<ReportesPage>
           fechaFin: fechaFin,
         ),
         ReportesService.obtenerReporteInventario(),
-        ProductoService.obtenerCategorias(),
-        ProductoService.obtenerProductos(),
+        ProductoService.obtenerCategorias(),        ProductoService.obtenerProductos(),
+        ReportesService.obtenerReporteCortes(
+          fechaInicio: _fechaInicioCortes,
+          fechaFin: _fechaFinCortes,
+        ),
       ]);
       setState(() {
         if (futures[0]['success']) _resumenVentas = futures[0]['data'];
@@ -102,6 +112,7 @@ class _ReportesPageState extends State<ReportesPage>
               }).toList();
         }
         if (futures[4]['success']) _productos = futures[4]['data'];
+        if (futures[5]['success']) _reporteCortes = futures[5]['data'];
       });
     } catch (e) {
       _mostrarError('Error al cargar reportes: $e');
@@ -206,6 +217,79 @@ class _ReportesPageState extends State<ReportesPage>
     }
   }
 
+  // Cargar solo los datos de cortes con el rango de fechas seleccionado
+  Future<void> _cargarDatosCortes() async {
+    if (!mounted) return;
+
+    setState(() {
+      _cargando = true;
+    });
+
+    try {
+      print('🔍 Cargando datos de cortes...');
+      print('📅 Fecha inicio: $_fechaInicioCortes');
+      print('📅 Fecha fin: $_fechaFinCortes');
+
+      final resultado = await ReportesService.obtenerReporteCortes(
+        fechaInicio: _fechaInicioCortes,
+        fechaFin: _fechaFinCortes,
+      );
+
+      print('📊 Resultado del servicio: ${resultado['success']}');
+      if (resultado['success']) {
+        print('📊 Datos recibidos: ${resultado['data']}');
+        final data = resultado['data'] as Map<String, dynamic>?;
+        if (data != null && data['data'] != null) {
+          final cortes = data['data']['cortes'] as List?;
+          print('📊 Número de cortes encontrados: ${cortes?.length ?? 0}');
+        }
+      } else {
+        print('❌ Error en el servicio: ${resultado['message']}');
+      }
+
+      setState(() {
+        if (resultado['success']) _reporteCortes = resultado['data'];
+      });
+    } catch (e) {
+      print('💥 Error al cargar datos de cortes: $e');
+      _mostrarError('Error al cargar datos de cortes: $e');
+    } finally {
+      setState(() {
+        _cargando = false;
+      });
+    }
+  }
+
+  // Seleccionar rango de fechas para el filtro de cortes
+  Future<void> _seleccionarFechaCortes() async {
+    final rango = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      initialDateRange: DateTimeRange(
+        start: _fechaInicioCortes,
+        end: _fechaFinCortes,
+      ),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(
+              context,
+            ).colorScheme.copyWith(primary: const Color(0xFFC2185B)),
+          ),
+          child: Center(child: Container(width: 500, child: child)),
+        );
+      },
+    );
+
+    if (rango != null) {
+      setState(() {
+        _fechaInicioCortes = rango.start;
+        _fechaFinCortes = rango.end;
+      });    await _cargarDatosCortes();
+    }
+  }
+
   void _mostrarError(String mensaje) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -269,6 +353,11 @@ class _ReportesPageState extends State<ReportesPage>
             nombreArchivo =
                 'productos_${DateFormat('yyyy-MM-dd').format(DateTime.now())}.csv';
           }
+          break;
+        case 'cortes':
+          csvData = _generarCSVCortes();
+          nombreArchivo =
+              'cortes_${DateFormat('yyyy-MM-dd').format(_fechaInicioCortes)}_${DateFormat('yyyy-MM-dd').format(_fechaFinCortes)}.csv';
           break;
       }
 
@@ -485,9 +574,7 @@ class _ReportesPageState extends State<ReportesPage>
               ),
             ],
           ),
-          const SizedBox(height: 24),
-
-          // Tarjetas de ventas
+          const SizedBox(height: 24), // Tarjetas de ventas
           if (_resumenVentas != null) ...[
             _buildTarjetasVentas(),
             const SizedBox(height: 24),
@@ -501,6 +588,9 @@ class _ReportesPageState extends State<ReportesPage>
                 Expanded(flex: 2, child: _buildVentasPorMetodoPago()),
               ],
             ),
+            const SizedBox(height: 24),
+
+            // Nueva sección: Análisis por día de la semana
           ] else
             _buildNoDataCard('ventas'),
         ],
@@ -524,48 +614,7 @@ class _ReportesPageState extends State<ReportesPage>
 
               // Date picker específico para ventas (un solo día)
               const Spacer(), // Date picker específico para ventas (rango de fechas)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFC2185B).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: const Color(0xFFC2185B).withOpacity(0.3),
-                  ),
-                ),
-                child: GestureDetector(
-                  onTap: _seleccionarFechaVentas,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.event,
-                        color: Color(0xFFC2185B),
-                        size: 18,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${formatoFecha.format(_fechaInicioVentas)} - ${formatoFecha.format(_fechaFinVentas)}',
-                        style: const TextStyle(
-                          color: Color(0xFFC2185B),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(
-                        Icons.arrow_drop_down,
-                        color: Color(0xFFC2185B),
-                        size: 18,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
+
               ElevatedButton.icon(
                 onPressed: () => _exportarCSV('productos'),
                 icon: const Icon(Icons.download),
@@ -613,49 +662,6 @@ class _ReportesPageState extends State<ReportesPage>
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const Spacer(),
-              // Date picker específico para ventas (rango de fechas)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFC2185B).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: const Color(0xFFC2185B).withOpacity(0.3),
-                  ),
-                ),
-                child: GestureDetector(
-                  onTap: _seleccionarFechaVentas,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.event,
-                        color: Color(0xFFC2185B),
-                        size: 18,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${formatoFecha.format(_fechaInicioVentas)} - ${formatoFecha.format(_fechaFinVentas)}',
-                        style: const TextStyle(
-                          color: Color(0xFFC2185B),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(
-                        Icons.arrow_drop_down,
-                        color: Color(0xFFC2185B),
-                        size: 18,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
               ElevatedButton.icon(
                 onPressed: () => _exportarCSV('materia-prima'),
                 icon: const Icon(Icons.download),
@@ -686,14 +692,57 @@ class _ReportesPageState extends State<ReportesPage>
           Row(
             children: [
               const Text(
-                'Cortes de Inventario',
+                'Reportes de Cortes de Inventario',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const Spacer(),
+              // Date picker específico para cortes (rango de fechas)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFC2185B).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFFC2185B).withOpacity(0.3),
+                  ),
+                ),
+                child: GestureDetector(
+                  onTap: _seleccionarFechaCortes,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.event,
+                        color: Color(0xFFC2185B),
+                        size: 18,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${formatoFecha.format(_fechaInicioCortes)} - ${formatoFecha.format(_fechaFinCortes)}',
+                        style: const TextStyle(
+                          color: Color(0xFFC2185B),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.arrow_drop_down,
+                        color: Color(0xFFC2185B),
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
               ElevatedButton.icon(
-                onPressed: () => _mostrarDialogoCorte(),
-                icon: const Icon(Icons.content_cut),
-                label: const Text('Nuevo Corte'),
+                onPressed: () => _exportarCSV('cortes'),
+                icon: const Icon(Icons.download),
+                label: const Text('Exportar CSV'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFC2185B),
                   foregroundColor: Colors.white,
@@ -702,7 +751,42 @@ class _ReportesPageState extends State<ReportesPage>
             ],
           ),
           const SizedBox(height: 24),
-          _buildNoDataCard('cortes de inventario'),
+
+          // Barra de búsqueda
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: TextField(
+              onChanged: (value) {
+                setState(() {
+                  _busquedaCortes = value;
+                });
+              },
+              decoration: const InputDecoration(
+                hintText: 'Buscar por fecha, estado o ID...',
+                prefixIcon: Icon(Icons.search, color: Color(0xFFC2185B)),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Estadísticas de cortes
+          if (_reporteCortes != null) ...[
+            _buildEstadisticasCortes(),
+            const SizedBox(height: 24),
+
+            // Tabla de cortes
+            _buildTablaCortes(),
+          ] else
+            _buildNoDataCard('cortes de inventario'),
         ],
       ),
     );
@@ -1151,25 +1235,6 @@ class _ReportesPageState extends State<ReportesPage>
     );
   }
 
-  void _mostrarDialogoCorte() {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Nuevo Corte de Inventario'),
-            content: const Text(
-              'Funcionalidad de cortes de inventario estará disponible próximamente.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Entendido'),
-              ),
-            ],
-          ),
-    );
-  }
-
   Widget _buildTablaCategorias() {
     if (_categorias == null || _categorias!.isEmpty) {
       return _buildNoDataCard('categorías');
@@ -1523,5 +1588,342 @@ class _ReportesPageState extends State<ReportesPage>
         ),
       ),
     );
+  }
+
+  Widget _buildEstadisticasCortes() {
+    if (_reporteCortes == null || _reporteCortes!['data'] == null) {
+      return const SizedBox.shrink();
+    }
+
+    final data = _reporteCortes!['data'] as Map<String, dynamic>;
+    final cortesTotales = data['totalCortes'] ?? 0;
+    final cortesCompletados = data['cortesCompletados'] ?? 0;
+    final cortesEnProceso = data['cortesEnProceso'] ?? 0;
+
+    return Row(
+      children: [
+        Expanded(
+          child: _buildTarjetaEstadistica(
+            'Total de Cortes',
+            cortesTotales.toString(),
+            Icons.content_cut,
+            const Color(0xFF2196F3),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _buildTarjetaEstadistica(
+            'Completados',
+            cortesCompletados.toString(),
+            Icons.check_circle,
+            const Color(0xFF4CAF50),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _buildTarjetaEstadistica(
+            'En Proceso',
+            cortesEnProceso.toString(),
+            Icons.schedule,
+            const Color(0xFFFF9800),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTablaCortes() {
+    if (_reporteCortes == null || _reporteCortes!['data'] == null) {
+      return const SizedBox.shrink();
+    }
+
+    final data = _reporteCortes!['data'] as Map<String, dynamic>;
+    final cortes = data['cortes'] as List? ?? [];
+
+    // Filtrar cortes según búsqueda
+    List<Map<String, dynamic>> cortesFiltrados =
+        cortes
+            .where((corte) {
+              if (_busquedaCortes.isEmpty) return true;
+
+              final busquedaLower = _busquedaCortes.toLowerCase();
+              return corte['id'].toString().contains(busquedaLower) ||
+                  corte['fecha_corte'].toString().contains(busquedaLower) ||
+                  corte['estado'].toString().toLowerCase().contains(
+                    busquedaLower,
+                  );
+            })
+            .toList()
+            .cast<Map<String, dynamic>>();
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Historial de Cortes',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey[300]!),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                children: [
+                  // Encabezado
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(8),
+                        topRight: Radius.circular(8),
+                      ),
+                    ),
+                    child: const Row(
+                      children: [
+                        Expanded(
+                          flex: 1,
+                          child: Text(
+                            'ID',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFC2185B),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            'Fecha',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFC2185B),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            'Hora Inicio',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFC2185B),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            'Hora Fin',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFC2185B),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            'Estado',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFC2185B),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            'Duración',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFC2185B),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Contenido
+                  if (cortesFiltrados.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(32),
+                      child: const Center(
+                        child: Text(
+                          'No se encontraron cortes con los criterios especificados',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                    )
+                  else
+                    ...cortesFiltrados
+                        .map(
+                          (corte) => Container(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 12,
+                              horizontal: 16,
+                            ),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(color: Colors.grey[200]!),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  flex: 1,
+                                  child: Text(
+                                    '#${corte['id']}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(
+                                    _formatearFecha(corte['fecha_corte']),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(corte['inicio_corte'] ?? '-'),
+                                ),
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(corte['fin_corte'] ?? '-'),
+                                ),
+                                Expanded(
+                                  flex: 2,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: _getColorEstado(
+                                        corte['estado'],
+                                      ).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      _capitalizarTexto(corte['estado']),
+                                      style: TextStyle(
+                                        color: _getColorEstado(corte['estado']),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(_calcularDuracionCorte(corte)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                        .toList(),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _busquedaCortes.isNotEmpty
+                  ? 'Mostrando ${cortesFiltrados.length} cortes encontrados'
+                  : 'Mostrando ${cortesFiltrados.length} de ${cortes.length} cortes',
+              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatearFecha(String fecha) {
+    try {
+      final DateTime fechaDateTime = DateTime.parse(fecha);
+      return DateFormat('dd/MM/yyyy').format(fechaDateTime);
+    } catch (e) {
+      return fecha;
+    }
+  }
+
+  Color _getColorEstado(String estado) {
+    switch (estado.toLowerCase()) {
+      case 'completado':
+        return const Color(0xFF4CAF50);
+      case 'en proceso':
+        return const Color(0xFFFF9800);
+      case 'cancelado':
+        return const Color(0xFFF44336);
+      default:
+        return const Color(0xFF9E9E9E);
+    }
+  }
+
+  String _calcularDuracionCorte(Map<String, dynamic> corte) {
+    if (corte['fin_corte'] == null) {
+      return '-';
+    }
+
+    try {
+      final inicioTime = TimeOfDay(
+        hour: int.parse(corte['inicio_corte'].split(':')[0]),
+        minute: int.parse(corte['inicio_corte'].split(':')[1]),
+      );
+      final finTime = TimeOfDay(
+        hour: int.parse(corte['fin_corte'].split(':')[0]),
+        minute: int.parse(corte['fin_corte'].split(':')[1]),
+      );
+
+      final inicioMinutos = inicioTime.hour * 60 + inicioTime.minute;
+      final finMinutos = finTime.hour * 60 + finTime.minute;
+      final duracionMinutos = finMinutos - inicioMinutos;
+
+      if (duracionMinutos < 60) {
+        return '${duracionMinutos}m';
+      } else {
+        final horas = duracionMinutos ~/ 60;
+        final minutos = duracionMinutos % 60;
+        return '${horas}h ${minutos}m';
+      }
+    } catch (e) {
+      return '-';
+    }
+  }  String _capitalizarTexto(String texto) {
+    if (texto.isEmpty) return texto;
+    return texto[0].toUpperCase() + texto.substring(1).toLowerCase();
+  }
+
+  String _generarCSVCortes() {
+    final buffer = StringBuffer();
+    buffer.writeln('ID,Fecha,Inicio,Fin,Estado,Duración');
+
+    final cortes = _reporteCortes?['data']?['cortes'] as List<dynamic>? ?? [];
+
+    for (final corte in cortes) {
+      final id = corte['id']?.toString() ?? '';
+      final fecha = _formatearFecha(corte['fecha_corte']?.toString() ?? '');
+      final inicio = corte['inicio_corte']?.toString() ?? '';
+      final fin = corte['fin_corte']?.toString() ?? '-';
+      final estado = _capitalizarTexto(corte['estado']?.toString() ?? '');
+      final duracion = _calcularDuracionCorte(corte);
+
+      buffer.writeln('$id,$fecha,$inicio,$fin,$estado,$duracion');
+    }
+
+    return buffer.toString();
   }
 }
