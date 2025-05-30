@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../services/reportes_service.dart';
+import '../models/venta.dart';
 import '../models/producto.dart';
 
 class ReportesPage extends StatefulWidget {

@@ -104,10 +104,8 @@ class _CategoriaFormPanelState extends State<CategoriaFormPanel>
 
     setState(() {
       _isLoading = true;
-    });
-
-    try {
-      final categoria = Categoria(
+    });    try {
+      final categoria = CategoriaProducto(
         nombre: _nombreController.text.trim(),
         conCaducidad: _conCaducidad,
       );

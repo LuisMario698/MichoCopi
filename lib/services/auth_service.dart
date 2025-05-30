@@ -10,7 +10,9 @@ class AuthService {
   static Usuario? get usuarioActual => _usuarioActual;
 
   // Verificar si hay usuario logueado
-  static bool get isLoggedIn => _usuarioActual != null;  // Función para hashear contraseñas (desactivada para esta implementación)
+  static bool get isLoggedIn =>
+      _usuarioActual !=
+      null; // Función para hashear contraseñas (desactivada para esta implementación)
   // No estamos usando hash para simplificar el login con la base de datos actual
   static String _hashPassword(String password) {
     // Devuelve la contraseña sin hashear para coincidir con la base de datos actual
@@ -28,10 +30,7 @@ class AuthService {
 
       // Validaciones iniciales
       if (nombre.trim().isEmpty) {
-        return {
-          'success': false,
-          'message': 'El nombre es requerido',
-        };
+        return {'success': false, 'message': 'El nombre es requerido'};
       }
 
       if (nombre.trim().length < 2) {
@@ -62,12 +61,13 @@ class AuthService {
           'success': false,
           'message': 'El tipo de usuario seleccionado no existe',
         };
-      }      // Verificar si ya existe un usuario con el mismo nombre
-      final existeResponse = await _client
-          .from('Usuarios')
-          .select('id')
-          .eq('nombre', nombre.trim())
-          .maybeSingle();
+      } // Verificar si ya existe un usuario con el mismo nombre
+      final existeResponse =
+          await _client
+              .from('Usuarios')
+              .select('id')
+              .eq('nombre', nombre.trim())
+              .maybeSingle();
 
       if (existeResponse != null) {
         return {
@@ -88,22 +88,22 @@ class AuthService {
       );
 
       // Insertar en la base de datos
-      final response = await _client
-          .from('Usuarios')
-          .insert(nuevoUsuario.toJson())
-          .select()
-          .single();
+      final response =
+          await _client
+              .from('Usuarios')
+              .insert(nuevoUsuario.toJson())
+              .select()
+              .single();
 
       Usuario usuarioCreado = Usuario.fromJson(response);
 
       print('✅ Usuario registrado exitosamente: ${usuarioCreado.nombre}');
-      
+
       return {
         'success': true,
         'message': 'Usuario registrado exitosamente',
         'data': usuarioCreado,
       };
-
     } catch (e) {
       print('❌ Error al registrar usuario: $e');
       return {
@@ -112,6 +112,7 @@ class AuthService {
       };
     }
   }
+
   // Iniciar sesión
   static Future<Map<String, dynamic>> iniciarSesion({
     required String nombre,
@@ -129,36 +130,30 @@ class AuthService {
       }
 
       if (password.isEmpty) {
-        return {
-          'success': false,
-          'message': 'La contraseña es requerida',
-        };
+        return {'success': false, 'message': 'La contraseña es requerida'};
       }
 
-      print('🔍 Buscando usuario con nombre: ${nombre.trim()}');      // No usar hash para comparar, ya que la contraseña en la BD no está hasheada
-      final response = await _client
-          .from('Usuarios')
-          .select()
-          .eq('nombre', nombre.trim())
-          .maybeSingle();
+      print(
+        '🔍 Buscando usuario con nombre: ${nombre.trim()}',
+      ); // No usar hash para comparar, ya que la contraseña en la BD no está hasheada
+      final response =
+          await _client
+              .from('Usuarios')
+              .select()
+              .eq('nombre', nombre.trim())
+              .maybeSingle();
 
       if (response == null) {
         print('❌ Usuario no encontrado');
-        return {
-          'success': false,
-          'message': 'Nombre de usuario no encontrado',
-        };
+        return {'success': false, 'message': 'Nombre de usuario no encontrado'};
       }
 
       print('📋 Usuario encontrado, verificando contraseña');
-      
+
       // Verificar contraseña manualmente (sin hash)
       if (response['password'] != password) {
         print('❌ Contraseña incorrecta');
-        return {
-          'success': false,
-          'message': 'Contraseña incorrecta',
-        };
+        return {'success': false, 'message': 'Contraseña incorrecta'};
       }
 
       // Crear el objeto usuario desde la respuesta
@@ -168,13 +163,12 @@ class AuthService {
       _usuarioActual = usuario;
 
       print('✅ Sesión iniciada exitosamente para: ${usuario.nombre}');
-      
+
       return {
         'success': true,
         'message': 'Sesión iniciada exitosamente',
         'data': usuario,
       };
-
     } catch (e) {
       print('❌ Error al iniciar sesión: $e');
       return {
@@ -198,10 +192,7 @@ class AuthService {
   }) async {
     try {
       if (_usuarioActual == null) {
-        return {
-          'success': false,
-          'message': 'No hay usuario logueado',
-        };
+        return {'success': false, 'message': 'No hay usuario logueado'};
       }
 
       // Validar contraseña nueva
@@ -222,7 +213,9 @@ class AuthService {
       }
 
       // Hashear nueva contraseña
-      String passwordNuevaHash = _hashPassword(passwordNueva);      // Actualizar en la base de datos
+      String passwordNuevaHash = _hashPassword(
+        passwordNueva,
+      ); // Actualizar en la base de datos
       await _client
           .from('Usuarios')
           .update({'password': passwordNuevaHash})
@@ -232,12 +225,8 @@ class AuthService {
       _usuarioActual = _usuarioActual!.copyWith(password: passwordNuevaHash);
 
       print('✅ Contraseña cambiada exitosamente');
-      
-      return {
-        'success': true,
-        'message': 'Contraseña cambiada exitosamente',
-      };
 
+      return {'success': true, 'message': 'Contraseña cambiada exitosamente'};
     } catch (e) {
       print('❌ Error al cambiar contraseña: $e');
       return {
@@ -245,14 +234,12 @@ class AuthService {
         'message': 'Error al cambiar contraseña: ${e.toString()}',
       };
     }
-  }  // Verificar si la tabla Usuarios existe
+  } // Verificar si la tabla Usuarios existe
+
   static Future<bool> verificarTablaUsuarios() async {
     try {
-      await _client
-          .from('Usuarios')
-          .select('id')
-          .limit(1);
-      
+      await _client.from('Usuarios').select('id').limit(1);
+
       return true;
     } catch (e) {
       print('❌ La tabla Usuarios no existe o no es accesible: $e');
@@ -262,9 +249,11 @@ class AuthService {
 
   // Obtener usuario por ID con información del tipo
   static Future<Map<String, dynamic>> obtenerUsuarioPorId(int id) async {
-    try {      final response = await _client
-          .from('Usuarios')
-          .select('''
+    try {
+      final response =
+          await _client
+              .from('Usuarios')
+              .select('''
             *,
             tipo_usuario:Tipo_Usuario(
               id,
@@ -272,8 +261,8 @@ class AuthService {
               descripcion
             )
           ''')
-          .eq('id', id)
-          .single();
+              .eq('id', id)
+              .single();
 
       Usuario usuario = Usuario.fromJson(response);
 
@@ -282,7 +271,6 @@ class AuthService {
         'message': 'Usuario encontrado',
         'data': usuario,
       };
-
     } catch (e) {
       print('❌ Error al obtener usuario por ID: $e');
       return {
@@ -295,7 +283,8 @@ class AuthService {
 
   // Obtener todos los usuarios (para administración)
   static Future<Map<String, dynamic>> obtenerTodosLosUsuarios() async {
-    try {      final response = await _client
+    try {
+      final response = await _client
           .from('Usuarios')
           .select('''
             *,
@@ -307,16 +296,14 @@ class AuthService {
           ''')
           .order('fecha_creacion', ascending: false);
 
-      List<Usuario> usuarios = (response as List)
-          .map((json) => Usuario.fromJson(json))
-          .toList();
+      List<Usuario> usuarios =
+          (response as List).map((json) => Usuario.fromJson(json)).toList();
 
       return {
         'success': true,
         'message': 'Usuarios obtenidos exitosamente',
         'data': usuarios,
       };
-
     } catch (e) {
       print('❌ Error al obtener usuarios: $e');
       return {

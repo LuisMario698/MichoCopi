@@ -7,7 +7,8 @@ class TipoUsuarioService {
   // Obtener todos los tipos de usuario
   static Future<Map<String, dynamic>> obtenerTiposUsuario() async {
     try {
-      print('📝 Obteniendo tipos de usuario...');      final response = await _client
+      print('📝 Obteniendo tipos de usuario...');
+      final response = await _client
           .from('Tipo_Usuario')
           .select('*')
           .order('nombre');
@@ -20,18 +21,16 @@ class TipoUsuarioService {
         };
       }
 
-      List<TipoUsuario> tiposUsuario = (response as List)
-          .map((json) => TipoUsuario.fromJson(json))
-          .toList();
+      List<TipoUsuario> tiposUsuario =
+          (response as List).map((json) => TipoUsuario.fromJson(json)).toList();
 
       print('✅ Se obtuvieron ${tiposUsuario.length} tipos de usuario');
-      
+
       return {
         'success': true,
         'message': 'Tipos de usuario obtenidos exitosamente',
         'data': tiposUsuario,
       };
-
     } catch (e) {
       print('❌ Error al obtener tipos de usuario: $e');
       return {
@@ -44,23 +43,20 @@ class TipoUsuarioService {
 
   // Obtener tipo de usuario por ID
   static Future<Map<String, dynamic>> obtenerTipoUsuarioPorId(int id) async {
-    try {      print('🔍 Buscando tipo de usuario con ID: $id');
-        final response = await _client
-          .from('Tipo_Usuario')
-          .select('*')
-          .eq('id', id)
-          .single();
+    try {
+      print('🔍 Buscando tipo de usuario con ID: $id');
+      final response =
+          await _client.from('Tipo_Usuario').select('*').eq('id', id).single();
 
       TipoUsuario tipoUsuario = TipoUsuario.fromJson(response);
 
       print('✅ Tipo de usuario encontrado: ${tipoUsuario.nombre}');
-      
+
       return {
         'success': true,
         'message': 'Tipo de usuario encontrado',
         'data': tipoUsuario,
       };
-
     } catch (e) {
       print('❌ Error al obtener tipo de usuario por ID: $e');
       return {
@@ -81,23 +77,18 @@ class TipoUsuarioService {
 
       // Validaciones iniciales
       if (nombre.trim().isEmpty) {
-        return {
-          'success': false,
-          'message': 'El nombre es requerido',
-        };
+        return {'success': false, 'message': 'El nombre es requerido'};
       }
 
       if (descripcion.trim().isEmpty) {
-        return {
-          'success': false,
-          'message': 'La descripción es requerida',
-        };
-      }      // Verificar si ya existe un tipo con ese nombre
-      final existeResponse = await _client
-          .from('Tipo_Usuario')
-          .select('id')
-          .eq('nombre', nombre.trim())
-          .maybeSingle();
+        return {'success': false, 'message': 'La descripción es requerida'};
+      } // Verificar si ya existe un tipo con ese nombre
+      final existeResponse =
+          await _client
+              .from('Tipo_Usuario')
+              .select('id')
+              .eq('nombre', nombre.trim())
+              .maybeSingle();
 
       if (existeResponse != null) {
         return {
@@ -115,28 +106,25 @@ class TipoUsuarioService {
       // Validar el objeto
       List<String> errores = nuevoTipo.validar();
       if (errores.isNotEmpty) {
-        return {
-          'success': false,
-          'message': errores.first,
-        };
+        return {'success': false, 'message': errores.first};
       }
 
-      final response = await _client
-          .from('tipo_usuario')
-          .insert(nuevoTipo.toJson())
-          .select()
-          .single();
+      final response =
+          await _client
+              .from('tipo_usuario')
+              .insert(nuevoTipo.toJson())
+              .select()
+              .single();
 
       TipoUsuario tipoCreado = TipoUsuario.fromJson(response);
 
       print('✅ Tipo de usuario creado exitosamente: ${tipoCreado.nombre}');
-      
+
       return {
         'success': true,
         'message': 'Tipo de usuario creado exitosamente',
         'data': tipoCreado,
       };
-
     } catch (e) {
       print('❌ Error al crear tipo de usuario: $e');
       return {
@@ -144,14 +132,12 @@ class TipoUsuarioService {
         'message': 'Error al crear tipo de usuario: ${e.toString()}',
       };
     }
-  }  // Verificar si la tabla Tipo_Usuario existe
+  } // Verificar si la tabla Tipo_Usuario existe
+
   static Future<bool> verificarTablaTipoUsuario() async {
     try {
-      await _client
-          .from('Tipo_Usuario')
-          .select('id')
-          .limit(1);
-      
+      await _client.from('Tipo_Usuario').select('id').limit(1);
+
       return true;
     } catch (e) {
       print('❌ La tabla Tipo_Usuario no existe o no es accesible: $e');
@@ -175,7 +161,8 @@ class TipoUsuarioService {
         },
         {
           'nombre': 'Empleado',
-          'descripcion': 'Empleado de la empresa con acceso a funciones básicas',
+          'descripcion':
+              'Empleado de la empresa con acceso a funciones básicas',
         },
       ];
 
@@ -183,11 +170,12 @@ class TipoUsuarioService {
 
       for (var tipoData in tiposBasicos) {
         // Verificar si ya existe
-        final existeResponse = await _client
-            .from('tipo_usuario')
-            .select('id')
-            .eq('nombre', tipoData['nombre']!)
-            .maybeSingle();
+        final existeResponse =
+            await _client
+                .from('tipo_usuario')
+                .select('id')
+                .eq('nombre', tipoData['nombre']!)
+                .maybeSingle();
 
         if (existeResponse == null) {
           // No existe, crearlo
@@ -216,7 +204,6 @@ class TipoUsuarioService {
           'data': <TipoUsuario>[],
         };
       }
-
     } catch (e) {
       print('❌ Error al inicializar tipos básicos: $e');
       return {

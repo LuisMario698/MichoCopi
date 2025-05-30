@@ -19,10 +19,10 @@ class _ProductosPageState extends State<ProductosPage> {
   Producto? _productoSeleccionado;
   bool _isLoading = true;
   List<dynamic> _productos = [];
-  List<Categoria> _categorias = [];
+  List<CategoriaProducto> _categorias = [];
   String _categoriaSeleccionada = 'Todas las categorías';
   String _searchQuery = '';
-  
+
   @override
   void initState() {
     super.initState();
@@ -61,7 +61,7 @@ class _ProductosPageState extends State<ProductosPage> {
         SnackBar(
           content: Text('Error al cargar los productos: $e'),
           backgroundColor: Colors.red,
-        )
+        ),
       );
     } finally {
       setState(() {
@@ -69,6 +69,7 @@ class _ProductosPageState extends State<ProductosPage> {
       });
     }
   }
+
   void _cerrarTodosLosPaneles() {
     setState(() {
       _mostrarFormulario = false;
@@ -103,6 +104,7 @@ class _ProductosPageState extends State<ProductosPage> {
       _productoSeleccionado = _mostrarDetalles ? producto : null;
     });
   }
+
   void _onProductoUpdated(bool success) {
     if (success) {
       // Solo recargamos los datos sin cerrar el panel
@@ -119,57 +121,22 @@ class _ProductosPageState extends State<ProductosPage> {
         }
       });
     }
-  }  List<dynamic> get _productosFiltrados {
+  }
+
+  List<dynamic> get _productosFiltrados {
     return _productos.where((producto) {
-      final matchesCategoria = _categoriaSeleccionada == 'Todas las categorías' ||
-          producto.idCategoriaProducto == _categorias
-              .firstWhere((cat) => cat.nombre == _categoriaSeleccionada)
-              .id;
-      final matchesSearch = _searchQuery.isEmpty ||
+      final matchesCategoria =
+          _categoriaSeleccionada == 'Todas las categorías' ||
+          producto.idCategoriaProducto ==
+              _categorias
+                  .firstWhere((cat) => cat.nombre == _categoriaSeleccionada)
+                  .id;
+      final matchesSearch =
+          _searchQuery.isEmpty ||
           producto.nombre.toLowerCase().contains(_searchQuery.toLowerCase());
       return matchesCategoria && matchesSearch;
     }).toList();
-  }
-
-  // Formatear fecha en formato dd/MM/yyyy
-  String _formatearFecha(DateTime fecha) {
-    return '${fecha.day.toString().padLeft(2, '0')}/${fecha.month.toString().padLeft(2, '0')}/${fecha.year}';
-  }
-  Map<String, dynamic> _calcularEstadoCaducidad(DateTime fecha) {
-    // Crear fecha actual sin la hora para comparar solo las fechas
-    final now = DateTime.now();
-    final fechaActual = DateTime(now.year, now.month, now.day);
-    final fechaVencimiento = DateTime(fecha.year, fecha.month, fecha.day);
-    
-    // Calcular diferencia en días
-    final diferencia = fechaVencimiento.difference(fechaActual).inDays;
-
-    if (diferencia < 0) {
-      // Producto vencido
-      return {
-        'color': Colors.red[700]!,
-        'backgroundColor': Colors.red[50]!,
-        'icon': Icons.warning_rounded,
-        'mensaje': 'Vencido (${-diferencia}d)',
-      };
-    } else if (diferencia <= 7) {
-      // Próximo a vencer (7 días o menos)
-      return {
-        'color': Colors.orange[700]!,
-        'backgroundColor': Colors.orange[50]!,
-        'icon': Icons.access_time,
-        'mensaje': diferencia == 0 ? 'Vence hoy' : '${diferencia}d restantes',
-      };
-    } else {
-      // Vigente (más de 7 días)
-      return {
-        'color': Colors.green[700]!,
-        'backgroundColor': Colors.green[50]!,
-        'icon': Icons.check_circle_outline,
-        'mensaje': 'Vigente ($diferencia días)',
-      };
-    }
-  }
+  }  // La función _calcularEstadoCaducidad ha sido eliminada
 
   @override
   Widget build(BuildContext context) {
@@ -188,10 +155,10 @@ class _ProductosPageState extends State<ProductosPage> {
                     duration: const Duration(milliseconds: 200),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                              colors: [Color(0xFFC2185B), Color(0xFFE91E63)],
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                            ),
+                        colors: [Color(0xFFC2185B), Color(0xFFE91E63)],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
                       borderRadius: BorderRadius.circular(30),
                       boxShadow: [
                         BoxShadow(
@@ -217,11 +184,12 @@ class _ProductosPageState extends State<ProductosPage> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               ShaderMask(
-                                shaderCallback: (bounds) => const LinearGradient(
-                                  colors: [Colors.white, Colors.white70],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ).createShader(bounds),
+                                shaderCallback:
+                                    (bounds) => const LinearGradient(
+                                      colors: [Colors.white, Colors.white70],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ).createShader(bounds),
                                 child: const Icon(
                                   Icons.add_circle,
                                   size: 24,
@@ -286,37 +254,42 @@ class _ProductosPageState extends State<ProductosPage> {
                           border: Border.all(color: Colors.grey[300]!),
                           color: Colors.white,
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
                         child: DropdownButton<String>(
-                          value: _categoriaSeleccionada,                          items: [
-                            'Todas las categorías',
-                            ..._categorias.map((cat) => cat.nombre),
-                          ]
-                              .map(
-                                (item) => DropdownMenuItem<String>(
-                                  value: item,
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        item == 'Todas las categorías' 
-                                          ? Icons.category_outlined
-                                          : Icons.label_outlined,
-                                        size: 20,
-                                        color: const Color(0xFFC2185B),
+                          value: _categoriaSeleccionada,
+                          items:
+                              [
+                                    'Todas las categorías',
+                                    ..._categorias.map((cat) => cat.nombre),
+                                  ]
+                                  .map(
+                                    (item) => DropdownMenuItem<String>(
+                                      value: item,
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            item == 'Todas las categorías'
+                                                ? Icons.category_outlined
+                                                : Icons.label_outlined,
+                                            size: 20,
+                                            color: const Color(0xFFC2185B),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            item,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        item,
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              )
-                              .toList(),
+                                    ),
+                                  )
+                                  .toList(),
                           onChanged: (value) {
                             if (value != null) {
                               setState(() {
@@ -324,8 +297,12 @@ class _ProductosPageState extends State<ProductosPage> {
                               });
                             }
                           },
-                          icon: const Icon(Icons.arrow_drop_down, color: Color(0xFFC2185B)),
-                          underline: const SizedBox(), // Elimina la línea inferior
+                          icon: const Icon(
+                            Icons.arrow_drop_down,
+                            color: Color(0xFFC2185B),
+                          ),
+                          underline:
+                              const SizedBox(), // Elimina la línea inferior
                           isExpanded: false,
                           borderRadius: BorderRadius.circular(8),
                           dropdownColor: Colors.white,
@@ -339,204 +316,228 @@ class _ProductosPageState extends State<ProductosPage> {
 
               // Grid de productos
               Expanded(
-                child: _isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(
-                          color: Color(0xFFC2185B),
-                        ),
-                      )
-                    : _productosFiltrados.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.restaurant,
-                                  size: 64,
-                                  color: Colors.grey[400],
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'No hay productos disponibles',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Agrega tu primer producto con el botón "Nuevo Producto"',
-                                  style: TextStyle(
-                                    color: Colors.grey[500],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : GridView.builder(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: MediaQuery.of(context).size.width > 1200
-                                  ? 4
-                                  : MediaQuery.of(context).size.width > 800
-                                      ? 3
-                                      : MediaQuery.of(context).size.width > 600
-                                          ? 2
-                                          : 1,
-                              crossAxisSpacing: 16,
-                              mainAxisSpacing: 16,
-                              childAspectRatio: 0.85,
-                            ),
-                            itemCount: _productosFiltrados.length,
-                            itemBuilder: (context, index) {
-                              final producto = _productosFiltrados[index];                              final categoria = _categorias.firstWhere(
-                                (cat) => cat.id == producto.idCategoriaProducto,
-                                orElse: () => Categoria(
-                                  id: 0,
-                                  nombre: 'Sin categoría',
-                                  conCaducidad: false,
-                                ),
-                              );                              return InkWell(
-                                onTap: () => _toggleDetalles(producto),
-                                child: Card(
-                                  elevation: 3,
-                                  shadowColor: Colors.black26,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                      // Sección superior con gradiente e icono
-                                      Container(
-                                        height: 200,
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                            colors: [
-                                              const Color(0xFFC2185B).withOpacity(0.15),
-                                              Colors.grey[50]!,
-                                            ],
-                                            stops: const [0.3, 1.0],
-                                          ),
-                                          borderRadius: const BorderRadius.vertical(
-                                            top: Radius.circular(16),
-                                          ),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(horizontal: 30),
-                                        child: Center(
-                                          child: Icon(
-                                            Icons.icecream_rounded,
-                                            size: 120,
-                                            color: const Color(0xFFC2185B).withOpacity(0.7),
-                                          ),
-                                        ),
-                                      ),
-                                      // Contenido del producto
-                                      Expanded(
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(16),
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              // Nombre del producto (más grande)
-                                              Text(
-                                                producto.nombre,
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 30,
-                                                  height: 1.2,
-                                                  color: Color(0xFF1E1E1E),
-                                                ),
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                              const SizedBox(height: 8),
-                                              // Categoría justo debajo del nombre
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 10,
-                                                  vertical: 4,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: const Color(0xFFC2185B).withOpacity(0.1),
-                                                  borderRadius: BorderRadius.circular(8),
-                                                ),
-                                                child: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.category_outlined,
-                                                      size: 16,
-                                                      color: const Color(0xFFC2185B).withOpacity(0.8),
-                                                    ),
-                                                    const SizedBox(width: 6),
-                                                    Text(
-                                                      categoria.nombre,
-                                                      style: TextStyle(
-                                                        fontSize: 14,
-                                                        color: const Color(0xFFC2185B).withOpacity(0.8),
-                                                        fontWeight: FontWeight.w500,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              const Spacer(),
-                                              // Precio abajo a la derecha
-                                              Align(
-                                                alignment: Alignment.bottomRight,
-                                                child: Container(
-                                                  padding: const EdgeInsets.symmetric(
-                                                    horizontal: 12,
-                                                    vertical: 6,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color: const Color(0xFFC2185B),
-                                                    borderRadius: BorderRadius.circular(12),
-                                                  ),
-                                                  child: Text(
-                                                    '\$${producto.precio.toStringAsFixed(2)}',
-                                                    style: const TextStyle(
-                                                      fontWeight: FontWeight.bold,
-                                                      color: Colors.white,
-                                                      fontSize: 23,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
+                child:
+                    _isLoading
+                        ? const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFFC2185B),
                           ),
+                        )
+                        : _productosFiltrados.isEmpty
+                        ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.restaurant,
+                                size: 64,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No hay productos disponibles',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Agrega tu primer producto con el botón "Nuevo Producto"',
+                                style: TextStyle(color: Colors.grey[500]),
+                              ),
+                            ],
+                          ),
+                        )
+                        : GridView.builder(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount:
+                                    MediaQuery.of(context).size.width > 1200
+                                        ? 4
+                                        : MediaQuery.of(context).size.width >
+                                            800
+                                        ? 3
+                                        : MediaQuery.of(context).size.width >
+                                            600
+                                        ? 2
+                                        : 1,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                                childAspectRatio: 0.85,
+                              ),
+                          itemCount: _productosFiltrados.length,
+                          itemBuilder: (context, index) {
+                            final producto = _productosFiltrados[index];
+                            final categoria = _categorias.firstWhere(
+                              (cat) => cat.id == producto.idCategoriaProducto,
+                              orElse:
+                                  () => CategoriaProducto(
+                                    id: 0,
+                                    nombre: 'Sin categoría',
+                                    conCaducidad: false,
+                                  ),
+                            );
+                            return InkWell(
+                              onTap: () => _toggleDetalles(producto),
+                              child: Card(
+                                elevation: 3,
+                                shadowColor: Colors.black26,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    // Sección superior con gradiente e icono
+                                    Container(
+                                      height: 200,
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: [
+                                            const Color(
+                                              0xFFC2185B,
+                                            ).withOpacity(0.15),
+                                            Colors.grey[50]!,
+                                          ],
+                                          stops: const [0.3, 1.0],
+                                        ),
+                                        borderRadius:
+                                            const BorderRadius.vertical(
+                                              top: Radius.circular(16),
+                                            ),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 30,
+                                      ),
+                                      child: Center(
+                                        child: Icon(
+                                          Icons.icecream_rounded,
+                                          size: 120,
+                                          color: const Color(
+                                            0xFFC2185B,
+                                          ).withOpacity(0.7),
+                                        ),
+                                      ),
+                                    ),
+                                    // Contenido del producto
+                                    Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(16),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            // Nombre del producto (más grande)
+                                            Text(
+                                              producto.nombre,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 30,
+                                                height: 1.2,
+                                                color: Color(0xFF1E1E1E),
+                                              ),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 8),
+                                            // Categoría justo debajo del nombre
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 4,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: const Color(
+                                                  0xFFC2185B,
+                                                ).withOpacity(0.1),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.category_outlined,
+                                                    size: 16,
+                                                    color: const Color(
+                                                      0xFFC2185B,
+                                                    ).withOpacity(0.8),
+                                                  ),
+                                                  const SizedBox(width: 6),
+                                                  Text(
+                                                    categoria.nombre,
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      color: const Color(
+                                                        0xFFC2185B,
+                                                      ).withOpacity(0.8),
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ],                                              ),
+                                            ),                                            const SizedBox(height: 8),
+                                            // La información de caducidad ha sido eliminada
+                                            const Spacer(),
+                                            // Precio abajo a la derecha
+                                            Align(
+                                              alignment: Alignment.bottomRight,
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 12,
+                                                      vertical: 6,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(
+                                                    0xFFC2185B,
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                                child: Text(
+                                                  '\$${producto.precio.toStringAsFixed(2)}',
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.white,
+                                                    fontSize: 23,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
               ),
             ],
           ),
-        ),        // Overlay y efecto de blur
+        ), // Overlay y efecto de blur
         if (_mostrarFormulario || _mostrarDetalles)
           Positioned.fill(
             child: Stack(
               children: [
                 // Capa de fondo oscuro
                 Positioned.fill(
-                  child: Container(
-                    color: Colors.black.withOpacity(0.3),
-                  ),
+                  child: Container(color: Colors.black.withOpacity(0.3)),
                 ),
                 // Capa de blur
                 Positioned.fill(
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
-                    child: Container(
-                      color: Colors.transparent,
-                    ),
+                    child: Container(color: Colors.transparent),
                   ),
                 ),
                 // Gesture detector para cerrar
@@ -554,16 +555,22 @@ class _ProductosPageState extends State<ProductosPage> {
               ],
             ),
           ),
-          if (_mostrarFormulario)
-            ProductoFormPanel(
-              onClose: _toggleFormulario,
-              onProductoCreated: _onProductoCreated,
-            ),
+        if (_mostrarFormulario)
+          ProductoFormPanel(
+            onClose: _toggleFormulario,
+            onProductoCreated: _onProductoCreated,
+          ),
         if (_mostrarDetalles && _productoSeleccionado != null)
           ProductoDetailPanel(
-            producto: _productoSeleccionado!,            categoria: _categorias.firstWhere(
+            producto: _productoSeleccionado!,
+            categoria: _categorias.firstWhere(
               (cat) => cat.id == _productoSeleccionado!.idCategoriaProducto,
-              orElse: () => Categoria(id: 0, nombre: 'Sin categoría', conCaducidad: false),
+              orElse:
+                  () => CategoriaProducto(
+                    id: 0,
+                    nombre: 'Sin categoría',
+                    conCaducidad: false,
+                  ),
             ),
             onClose: () => _toggleDetalles(null),
             onProductoUpdated: _onProductoUpdated,

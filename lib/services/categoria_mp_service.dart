@@ -24,11 +24,8 @@ class CategoriaMpService {
   // Obtener categoría por ID
   Future<CategoriaMp?> obtenerPorId(int id) async {
     try {
-      final response = await _supabase
-          .from(_tableName)
-          .select()
-          .eq('id', id)
-          .maybeSingle();
+      final response =
+          await _supabase.from(_tableName).select().eq('id', id).maybeSingle();
 
       return response != null ? CategoriaMp.fromJson(response) : null;
     } catch (e) {
@@ -51,11 +48,12 @@ class CategoriaMpService {
         throw Exception('Ya existe una categoría con ese nombre');
       }
 
-      final response = await _supabase
-          .from(_tableName)
-          .insert(categoria.toJson())
-          .select()
-          .single();
+      final response =
+          await _supabase
+              .from(_tableName)
+              .insert(categoria.toJson())
+              .select()
+              .single();
 
       return CategoriaMp.fromJson(response);
     } catch (e) {
@@ -77,17 +75,21 @@ class CategoriaMpService {
       }
 
       // Verificar si ya existe otra categoría con el mismo nombre
-      final existente = await _verificarNombreExistente(categoria.nombre, categoria.id);
+      final existente = await _verificarNombreExistente(
+        categoria.nombre,
+        categoria.id,
+      );
       if (existente) {
         throw Exception('Ya existe otra categoría con ese nombre');
       }
 
-      final response = await _supabase
-          .from(_tableName)
-          .update(categoria.toJson())
-          .eq('id', categoria.id!)
-          .select()
-          .single();
+      final response =
+          await _supabase
+              .from(_tableName)
+              .update(categoria.toJson())
+              .eq('id', categoria.id!)
+              .select()
+              .single();
 
       return CategoriaMp.fromJson(response);
     } catch (e) {
@@ -101,13 +103,12 @@ class CategoriaMpService {
       // Verificar si la categoría está siendo utilizada
       final enUso = await _verificarEnUso(id);
       if (enUso) {
-        throw Exception('No se puede eliminar la categoría porque está siendo utilizada por materias primas');
+        throw Exception(
+          'No se puede eliminar la categoría porque está siendo utilizada por materias primas',
+        );
       }
 
-      await _supabase
-          .from(_tableName)
-          .delete()
-          .eq('id', id);
+      await _supabase.from(_tableName).delete().eq('id', id);
     } catch (e) {
       throw Exception('Error al eliminar categoría de materia prima: $e');
     }
@@ -131,7 +132,10 @@ class CategoriaMpService {
   }
 
   // Verificar si existe una categoría con el mismo nombre
-  Future<bool> _verificarNombreExistente(String nombre, [int? excluirId]) async {
+  Future<bool> _verificarNombreExistente(
+    String nombre, [
+    int? excluirId,
+  ]) async {
     try {
       var query = _supabase
           .from(_tableName)
@@ -151,27 +155,29 @@ class CategoriaMpService {
 
   // Verificar si la categoría está siendo utilizada
   Future<bool> _verificarEnUso(int id) async {
-    try {      final response = await _supabase
-          .from('Materia_prima')
-          .select('id')
-          .eq('id_categoria_mp', id)
-          .maybeSingle();
+    try {
+      final response =
+          await _supabase
+              .from('Materia_prima')
+              .select('id')
+              .eq('id_categoria_mp', id)
+              .maybeSingle();
 
       return response != null;
     } catch (e) {
       return false;
     }
   }
+
   // Obtener estadísticas de la categoría
   Future<Map<String, dynamic>> obtenerEstadisticas(int id) async {
-    try {      final materiaPrimaCount = await _supabase
+    try {
+      final materiaPrimaCount = await _supabase
           .from('Materia_prima')
           .select('id')
           .eq('id_categoria_mp', id);
 
-      return {
-        'totalMateriasPrimas': (materiaPrimaCount as List).length,
-      };
+      return {'totalMateriasPrimas': (materiaPrimaCount as List).length};
     } catch (e) {
       throw Exception('Error al obtener estadísticas: $e');
     }

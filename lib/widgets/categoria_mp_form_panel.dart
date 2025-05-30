@@ -60,8 +60,6 @@ class _CategoriaMpFormPanelState extends State<CategoriaMpFormPanel>
   void _inicializarFormulario() {
     if (widget.categoria != null) {
       _nombreController.text = widget.categoria!.nombre;
-      _unidadController.text = widget.categoria!.unidad;
-      _fcController.text = widget.categoria!.fc.toString();
     }
   }
 
@@ -116,8 +114,6 @@ class _CategoriaMpFormPanelState extends State<CategoriaMpFormPanel>
       final categoria = CategoriaMp(
         id: widget.categoria?.id,
         nombre: _nombreController.text.trim(),
-        unidad: _unidadController.text.trim(),
-        fc: int.parse(_fcController.text),
       );
 
       if (widget.categoria == null) {

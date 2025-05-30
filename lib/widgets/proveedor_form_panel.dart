@@ -35,7 +35,7 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
   final _horaAperturaController = TextEditingController(text: '09:00');
   final _horaCierreController = TextEditingController(text: '18:00');
 
-  List<Categoria> _categorias = [];
+  List<CategoriaProducto> _categorias = [];
   int? _categoriaSeleccionada;
   bool _isLoading = false;
   bool _isLoadingData = true;
@@ -54,7 +54,7 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
       curve: Curves.easeInOut,
     );
     _animationController.forward();
-    
+
     // Inicializar controladores con datos del proveedor si existe
     if (widget.proveedor != null) {
       _nombreController.text = widget.proveedor!.nombre;
@@ -95,19 +95,7 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
 
       if (categoriasResult['success']) {
         setState(() {
-          _categorias = categoriasResult['data'] as List<Categoria>;
-        });
-      }
-
-      // Agregar datos de prueba si no hay categorías
-      if (_categorias.isEmpty) {
-        setState(() {
-          _categorias = [
-            Categoria(id: 1, nombre: 'Electrónicos', conCaducidad: false),
-            Categoria(id: 2, nombre: 'Alimentos', conCaducidad: true),
-            Categoria(id: 3, nombre: 'Medicamentos', conCaducidad: true),
-            Categoria(id: 4, nombre: 'Ropa', conCaducidad: false),
-          ];
+          _categorias = categoriasResult['data'] as List<CategoriaProducto>;
         });
       }
     } catch (e) {
@@ -139,10 +127,10 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
       // Aquí debería ir la verificación del nombre en el servicio
       // Por ahora simplemente simulamos la validación
       await Future.delayed(const Duration(milliseconds: 500));
-      
+
       if (mounted) {
         setState(() {
-          _nombreExiste = false;  // Reemplazar con la lógica real
+          _nombreExiste = false; // Reemplazar con la lógica real
           _validandoNombre = false;
         });
       }
@@ -171,9 +159,14 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
         id: widget.proveedor?.id,
         nombre: _nombreController.text.trim(),
         direccion: _direccionController.text.trim(),
-        telefono: int.parse(_telefonoController.text.replaceAll(RegExp(r'\D'), '')),
+        telefono: int.parse(
+          _telefonoController.text.replaceAll(RegExp(r'\D'), ''),
+        ),
         idCategoriaP: _categoriaSeleccionada!,
-        email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
+        email:
+            _emailController.text.trim().isEmpty
+                ? null
+                : _emailController.text.trim(),
         horaApertura: _horaAperturaController.text,
         horaCierre: _horaCierreController.text,
       );
@@ -189,7 +182,10 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
       }
     } catch (e) {
       print('Error al guardar: $e');
-      _mostrarSnackBar('Error al ${widget.proveedor != null ? 'actualizar' : 'guardar'} el proveedor: ${e.toString()}', true);
+      _mostrarSnackBar(
+        'Error al ${widget.proveedor != null ? 'actualizar' : 'guardar'} el proveedor: ${e.toString()}',
+        true,
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -230,9 +226,7 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
                     sigmaX: 2 * _animation.value,
                     sigmaY: 2 * _animation.value,
                   ),
-                  child: Container(
-                    color: Colors.transparent,
-                  ),
+                  child: Container(color: Colors.transparent),
                 ),
               ),
             ),
@@ -251,7 +245,11 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       AppBar(
-                        title: Text(widget.proveedor != null ? 'Editar Proveedor' : 'Nuevo Proveedor'),
+                        title: Text(
+                          widget.proveedor != null
+                              ? 'Editar Proveedor'
+                              : 'Nuevo Proveedor',
+                        ),
                         backgroundColor: const Color(0xFFC2185B),
                         foregroundColor: Colors.white,
                         leading: IconButton(
@@ -261,412 +259,545 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
                         elevation: 0,
                       ),
                       Expanded(
-                        child: _isLoadingData
-                            ? const Center(
-                                child: CircularProgressIndicator(
-                                  color: Color(0xFFC2185B),
-                                ),
-                              )
-                            : Form(
-                                key: _formKey,
-                                child: SingleChildScrollView(
-                                  padding: const EdgeInsets.all(24),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                      // Encabezado
-                                      Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(12),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFC2185B).withOpacity(0.1),
-                                              borderRadius: BorderRadius.circular(12),
+                        child:
+                            _isLoadingData
+                                ? const Center(
+                                  child: CircularProgressIndicator(
+                                    color: Color(0xFFC2185B),
+                                  ),
+                                )
+                                : Form(
+                                  key: _formKey,
+                                  child: SingleChildScrollView(
+                                    padding: const EdgeInsets.all(24),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        // Encabezado
+                                        Row(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.all(12),
+                                              decoration: BoxDecoration(
+                                                color: const Color(
+                                                  0xFFC2185B,
+                                                ).withOpacity(0.1),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              child: const Icon(
+                                                Icons.business,
+                                                color: Color(0xFFC2185B),
+                                                size: 32,
+                                              ),
                                             ),
-                                            child: const Icon(
-                                              Icons.business,
-                                              color: Color(0xFFC2185B),
-                                              size: 32,
+                                            const SizedBox(width: 16),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  const Text(
+                                                    'Nuevo Proveedor',
+                                                    style: TextStyle(
+                                                      fontSize: 24,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: Color(0xFFC2185B),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    'Ingresa los datos del proveedor',
+                                                    style: TextStyle(
+                                                      color: Colors.grey[600],
+                                                      fontSize: 14,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 32),
+
+                                        // Información básica
+                                        Card(
+                                          elevation: 0,
+                                          color: Colors.grey[50],
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            side: BorderSide(
+                                              color: Colors.grey[200]!,
                                             ),
                                           ),
-                                          const SizedBox(width: 16),
-                                          Expanded(
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(16),
                                             child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
-                                                const Text(
-                                                  'Nuevo Proveedor',
-                                                  style: TextStyle(
-                                                    fontSize: 24,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Color(0xFFC2185B),
-                                                  ),
+                                                const Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.info_outline,
+                                                      color: Color(0xFFC2185B),
+                                                      size: 20,
+                                                    ),
+                                                    SizedBox(width: 8),
+                                                    Text(
+                                                      'Información Básica',
+                                                      style: TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
-                                                const SizedBox(height: 4),
-                                                Text(
+                                                const SizedBox(height: 16),
+                                                const Text(
                                                   'Ingresa los datos del proveedor',
                                                   style: TextStyle(
-                                                    color: Colors.grey[600],
                                                     fontSize: 14,
+                                                    color: Colors.grey,
                                                   ),
+                                                ),
+                                                const SizedBox(height: 24),
+
+                                                // Nombre
+                                                TextFormField(
+                                                  controller: _nombreController,
+                                                  decoration: InputDecoration(
+                                                    labelText:
+                                                        'Nombre del proveedor *',
+                                                    prefixIcon: const Icon(
+                                                      Icons.business,
+                                                    ),
+                                                    border:
+                                                        const OutlineInputBorder(),
+                                                    helperText:
+                                                        'Nombre comercial o razón social',
+                                                    suffixIcon:
+                                                        _validandoNombre
+                                                            ? const SizedBox(
+                                                              width: 20,
+                                                              height: 20,
+                                                              child: Padding(
+                                                                padding:
+                                                                    EdgeInsets.all(
+                                                                      8.0,
+                                                                    ),
+                                                                child:
+                                                                    CircularProgressIndicator(
+                                                                      strokeWidth:
+                                                                          2,
+                                                                    ),
+                                                              ),
+                                                            )
+                                                            : _nombreExiste
+                                                            ? const Icon(
+                                                              Icons.error,
+                                                              color: Colors.red,
+                                                            )
+                                                            : _nombreController
+                                                                .text
+                                                                .isNotEmpty
+                                                            ? const Icon(
+                                                              Icons
+                                                                  .check_circle,
+                                                              color:
+                                                                  Colors.green,
+                                                            )
+                                                            : null,
+                                                  ),
+                                                  validator: (value) {
+                                                    if (value == null ||
+                                                        value.trim().isEmpty) {
+                                                      return 'El nombre es obligatorio';
+                                                    }
+                                                    if (value.trim().length <
+                                                        2) {
+                                                      return 'El nombre debe tener al menos 2 caracteres';
+                                                    }
+                                                    if (_nombreExiste) {
+                                                      return 'Ya existe un proveedor con este nombre';
+                                                    }
+                                                    return null;
+                                                  },
+                                                  onChanged: (value) {
+                                                    if (value.trim().length >=
+                                                        2) {
+                                                      _validarNombreProveedor(
+                                                        value.trim(),
+                                                      );
+                                                    }
+                                                  },
+                                                ),
+                                                const SizedBox(height: 16),
+
+                                                // Dirección
+                                                TextFormField(
+                                                  controller:
+                                                      _direccionController,
+                                                  decoration:
+                                                      const InputDecoration(
+                                                        labelText:
+                                                            'Dirección *',
+                                                        prefixIcon: Icon(
+                                                          Icons.location_on,
+                                                        ),
+                                                        border:
+                                                            OutlineInputBorder(),
+                                                        helperText:
+                                                            'Dirección completa',
+                                                      ),
+                                                  validator: (value) {
+                                                    if (value == null ||
+                                                        value.trim().isEmpty) {
+                                                      return 'La dirección es obligatoria';
+                                                    }
+                                                    if (value.trim().length <
+                                                        5) {
+                                                      return 'La dirección debe ser más detallada';
+                                                    }
+                                                    return null;
+                                                  },
+                                                ),
+
+                                                const SizedBox(height: 16),
+
+                                                // Email
+                                                TextFormField(
+                                                  controller: _emailController,
+                                                  decoration: const InputDecoration(
+                                                    labelText: 'Email',
+                                                    prefixIcon: Icon(
+                                                      Icons.email,
+                                                    ),
+                                                    border:
+                                                        OutlineInputBorder(),
+                                                    helperText:
+                                                        'Correo electrónico (opcional)',
+                                                  ),
+                                                  keyboardType:
+                                                      TextInputType
+                                                          .emailAddress,
+                                                  validator: (value) {
+                                                    if (value != null &&
+                                                        value
+                                                            .trim()
+                                                            .isNotEmpty) {
+                                                      // Validación simple de email
+                                                      final emailRegex = RegExp(
+                                                        r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+                                                      );
+                                                      if (!emailRegex.hasMatch(
+                                                        value.trim(),
+                                                      )) {
+                                                        return 'Ingresa un email válido';
+                                                      }
+                                                    }
+                                                    return null;
+                                                  },
                                                 ),
                                               ],
                                             ),
                                           ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 32),
-
-                                      // Información básica
-                                      Card(
-                                        elevation: 0,
-                                        color: Colors.grey[50],
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                          side: BorderSide(color: Colors.grey[200]!),
                                         ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(16),
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              const Row(
-                                                children: [
-                                                  Icon(
-                                                    Icons.info_outline,
-                                                    color: Color(0xFFC2185B),
-                                                    size: 20,
-                                                  ),
-                                                  SizedBox(width: 8),
-                                                  Text(
-                                                    'Información Básica',
-                                                    style: TextStyle(
-                                                      fontSize: 16,
-                                                      fontWeight: FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 16),
-                                              const Text(
-                                                'Ingresa los datos del proveedor',
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.grey,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 24),
+                                        const SizedBox(height: 16),
 
-                                              // Nombre
-                                              TextFormField(
-                                                controller: _nombreController,
-                                                decoration: InputDecoration(
-                                                  labelText: 'Nombre del proveedor *',
-                                                  prefixIcon: const Icon(Icons.business),
-                                                  border: const OutlineInputBorder(),
-                                                  helperText: 'Nombre comercial o razón social',
-                                                  suffixIcon: _validandoNombre
-                                                      ? const SizedBox(
-                                                          width: 20,
-                                                          height: 20,
-                                                          child: Padding(
-                                                            padding: EdgeInsets.all(8.0),
-                                                            child: CircularProgressIndicator(
-                                                              strokeWidth: 2,
-                                                            ),
-                                                          ),
-                                                        )
-                                                      : _nombreExiste
-                                                          ? const Icon(
-                                                              Icons.error,
-                                                              color: Colors.red,
-                                                            )
-                                                          : _nombreController.text.isNotEmpty
-                                                              ? const Icon(
-                                                                  Icons.check_circle,
-                                                                  color: Colors.green,
-                                                                )
-                                                              : null,
+                                        // Contacto y Categoría
+                                        Card(
+                                          elevation: 0,
+                                          color: Colors.grey[50],
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            side: BorderSide(
+                                              color: Colors.grey[200]!,
+                                            ),
+                                          ),
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(16),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                const Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.phone,
+                                                      color: Color(0xFFC2185B),
+                                                      size: 20,
+                                                    ),
+                                                    SizedBox(width: 8),
+                                                    Text(
+                                                      'Contacto y Categorización',
+                                                      style: TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
-                                                validator: (value) {
-                                                  if (value == null || value.trim().isEmpty) {
-                                                    return 'El nombre es obligatorio';
-                                                  }
-                                                  if (value.trim().length < 2) {
-                                                    return 'El nombre debe tener al menos 2 caracteres';
-                                                  }
-                                                  if (_nombreExiste) {
-                                                    return 'Ya existe un proveedor con este nombre';
-                                                  }
-                                                  return null;
-                                                },
-                                                onChanged: (value) {
-                                                  if (value.trim().length >= 2) {
-                                                    _validarNombreProveedor(value.trim());
-                                                  }
-                                                },
-                                              ),
-                                              const SizedBox(height: 16),
-                                              
-                                              // Dirección
-                                              TextFormField(
-                                                controller: _direccionController,
-                                                decoration: const InputDecoration(
-                                                  labelText: 'Dirección *',
-                                                  prefixIcon: Icon(Icons.location_on),
-                                                  border: OutlineInputBorder(),
-                                                  helperText: 'Dirección completa',
-                                                ),
-                                                validator: (value) {
-                                                  if (value == null || value.trim().isEmpty) {
-                                                    return 'La dirección es obligatoria';
-                                                  }
-                                                  if (value.trim().length < 5) {
-                                                    return 'La dirección debe ser más detallada';
-                                                  }
-                                                  return null;
-                                                },
-                                              ),
-                                              
-                                              const SizedBox(height: 16),
-                                              
-                                              // Email
-                                              TextFormField(
-                                                controller: _emailController,
-                                                decoration: const InputDecoration(
-                                                  labelText: 'Email',
-                                                  prefixIcon: Icon(Icons.email),
-                                                  border: OutlineInputBorder(),
-                                                  helperText: 'Correo electrónico (opcional)',
-                                                ),
-                                                keyboardType: TextInputType.emailAddress,
-                                                validator: (value) {
-                                                  if (value != null && value.trim().isNotEmpty) {
-                                                    // Validación simple de email
-                                                    final emailRegex = RegExp(
-                                                      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
-                                                    );
-                                                    if (!emailRegex.hasMatch(value.trim())) {
-                                                      return 'Ingresa un email válido';
+                                                const SizedBox(height: 16),
+
+                                                // Teléfono
+                                                TextFormField(
+                                                  controller:
+                                                      _telefonoController,
+                                                  decoration: const InputDecoration(
+                                                    labelText: 'Teléfono *',
+                                                    prefixIcon: Icon(
+                                                      Icons.phone,
+                                                    ),
+                                                    border:
+                                                        OutlineInputBorder(),
+                                                    helperText:
+                                                        'Número de teléfono principal',
+                                                  ),
+                                                  keyboardType:
+                                                      TextInputType.phone,
+                                                  inputFormatters: [
+                                                    FilteringTextInputFormatter
+                                                        .digitsOnly,
+                                                  ],
+                                                  validator: (value) {
+                                                    if (value == null ||
+                                                        value.trim().isEmpty) {
+                                                      return 'El teléfono es obligatorio';
                                                     }
-                                                  }
-                                                  return null;
-                                                },
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
+                                                    if (value.trim().length <
+                                                        7) {
+                                                      return 'Ingresa un número de teléfono válido';
+                                                    }
+                                                    return null;
+                                                  },
+                                                ),
+                                                const SizedBox(height: 16),
 
-                                      // Contacto y Categoría
-                                      Card(
-                                        elevation: 0,
-                                        color: Colors.grey[50],
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                          side: BorderSide(color: Colors.grey[200]!),
-                                        ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(16),
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              const Row(
-                                                children: [
-                                                  Icon(
-                                                    Icons.phone,
-                                                    color: Color(0xFFC2185B),
-                                                    size: 20,
-                                                  ),
-                                                  SizedBox(width: 8),
-                                                  Text(
-                                                    'Contacto y Categorización',
-                                                    style: TextStyle(
-                                                      fontSize: 16,
-                                                      fontWeight: FontWeight.bold,
+                                                // Categoría
+                                                DropdownButtonFormField<int>(
+                                                  value: _categoriaSeleccionada,
+                                                  decoration: const InputDecoration(
+                                                    labelText: 'Categoría *',
+                                                    prefixIcon: Icon(
+                                                      Icons.category,
                                                     ),
+                                                    border:
+                                                        OutlineInputBorder(),
+                                                    helperText:
+                                                        'Tipo de productos que ofrece',
                                                   ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 16),
-                                              
-                                              // Teléfono
-                                              TextFormField(
-                                                controller: _telefonoController,
-                                                decoration: const InputDecoration(
-                                                  labelText: 'Teléfono *',
-                                                  prefixIcon: Icon(Icons.phone),
-                                                  border: OutlineInputBorder(),
-                                                  helperText: 'Número de teléfono principal',
+                                                  items:
+                                                      _categorias
+                                                          .where(
+                                                            (categoria) =>
+                                                                categoria.id !=
+                                                                null,
+                                                          )
+                                                          .map((categoria) {
+                                                            return DropdownMenuItem<
+                                                              int
+                                                            >(
+                                                              value:
+                                                                  categoria.id!,
+                                                              child: Text(
+                                                                categoria
+                                                                    .nombre,
+                                                              ),
+                                                            );
+                                                          })
+                                                          .toList(),
+                                                  onChanged: (value) {
+                                                    setState(() {
+                                                      _categoriaSeleccionada =
+                                                          value;
+                                                    });
+                                                  },
+                                                  validator: (value) {
+                                                    if (value == null) {
+                                                      return 'Selecciona una categoría';
+                                                    }
+                                                    return null;
+                                                  },
                                                 ),
-                                                keyboardType: TextInputType.phone,
-                                                inputFormatters: [
-                                                  FilteringTextInputFormatter.digitsOnly,
-                                                ],
-                                                validator: (value) {
-                                                  if (value == null || value.trim().isEmpty) {
-                                                    return 'El teléfono es obligatorio';
-                                                  }
-                                                  if (value.trim().length < 7) {
-                                                    return 'Ingresa un número de teléfono válido';
-                                                  }
-                                                  return null;
-                                                },
-                                              ),
-                                              const SizedBox(height: 16),
-                                              
-                                              // Categoría
-                                              DropdownButtonFormField<int>(
-                                                value: _categoriaSeleccionada,
-                                                decoration: const InputDecoration(
-                                                  labelText: 'Categoría *',
-                                                  prefixIcon: Icon(Icons.category),
-                                                  border: OutlineInputBorder(),
-                                                  helperText: 'Tipo de productos que ofrece',
-                                                ),
-                                                items: _categorias
-                                                    .where((categoria) => categoria.id != null)
-                                                    .map((categoria) {
-                                                      return DropdownMenuItem<int>(
-                                                        value: categoria.id!,
-                                                        child: Text(categoria.nombre),
-                                                      );
-                                                    })
-                                                    .toList(),
-                                                onChanged: (value) {
-                                                  setState(() {
-                                                    _categoriaSeleccionada = value;
-                                                  });
-                                                },
-                                                validator: (value) {
-                                                  if (value == null) {
-                                                    return 'Selecciona una categoría';
-                                                  }
-                                                  return null;
-                                                },
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      
-                                      // Horarios de Atención
-                                      Card(
-                                        elevation: 0,
-                                        color: Colors.grey[50],
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                          side: BorderSide(color: Colors.grey[200]!),
-                                        ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(16),
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              const Row(
-                                                children: [
-                                                  Icon(
-                                                    Icons.schedule,
-                                                    color: Color(0xFFC2185B),
-                                                    size: 20,
-                                                  ),
-                                                  SizedBox(width: 8),
-                                                  Text(
-                                                    'Horario de Atención',
-                                                    style: TextStyle(
-                                                      fontSize: 16,
-                                                      fontWeight: FontWeight.bold,
+                                        const SizedBox(height: 16),
+
+                                        // Horarios de Atención
+                                        Card(
+                                          elevation: 0,
+                                          color: Colors.grey[50],
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            side: BorderSide(
+                                              color: Colors.grey[200]!,
+                                            ),
+                                          ),
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(16),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                const Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.schedule,
+                                                      color: Color(0xFFC2185B),
+                                                      size: 20,
                                                     ),
-                                                  ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 16),
-                                              
-                                              // Hora de apertura
-                                              TextFormField(
-                                                controller: _horaAperturaController,
-                                                decoration: const InputDecoration(
-                                                  labelText: 'Hora de apertura *',
-                                                  prefixIcon: Icon(Icons.access_time),
-                                                  border: OutlineInputBorder(),
-                                                  helperText: 'Formato 24h (HH:mm)',
+                                                    SizedBox(width: 8),
+                                                    Text(
+                                                      'Horario de Atención',
+                                                      style: TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
-                                                validator: (value) {
-                                                  if (value == null || value.trim().isEmpty) {
-                                                    return 'La hora de apertura es obligatoria';
-                                                  }
-                                                  final regex = RegExp(r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$');
-                                                  if (!regex.hasMatch(value)) {
-                                                    return 'Formato inválido. Use HH:mm (24h)';
-                                                  }
-                                                  return null;
-                                                },
-                                                onTap: () async {
-                                                  final TimeOfDay? picked = await showTimePicker(
-                                                    context: context,
-                                                    initialTime: TimeOfDay(
-                                                      hour: int.parse(_horaAperturaController.text.split(':')[0]),
-                                                      minute: int.parse(_horaAperturaController.text.split(':')[1]),
+                                                const SizedBox(height: 16),
+
+                                                // Hora de apertura
+                                                TextFormField(
+                                                  controller:
+                                                      _horaAperturaController,
+                                                  decoration: const InputDecoration(
+                                                    labelText:
+                                                        'Hora de apertura *',
+                                                    prefixIcon: Icon(
+                                                      Icons.access_time,
                                                     ),
-                                                  );
-                                                  if (picked != null) {
-                                                    setState(() {
-                                                      _horaAperturaController.text = 
-                                                        '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
-                                                    });
-                                                  }
-                                                },
-                                                readOnly: true,
-                                              ),
-                                              const SizedBox(height: 16),
-                                              
-                                              // Hora de cierre
-                                              TextFormField(
-                                                controller: _horaCierreController,
-                                                decoration: const InputDecoration(
-                                                  labelText: 'Hora de cierre *',
-                                                  prefixIcon: Icon(Icons.access_time),
-                                                  border: OutlineInputBorder(),
-                                                  helperText: 'Formato 24h (HH:mm)',
+                                                    border:
+                                                        OutlineInputBorder(),
+                                                    helperText:
+                                                        'Formato 24h (HH:mm)',
+                                                  ),
+                                                  validator: (value) {
+                                                    if (value == null ||
+                                                        value.trim().isEmpty) {
+                                                      return 'La hora de apertura es obligatoria';
+                                                    }
+                                                    final regex = RegExp(
+                                                      r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$',
+                                                    );
+                                                    if (!regex.hasMatch(
+                                                      value,
+                                                    )) {
+                                                      return 'Formato inválido. Use HH:mm (24h)';
+                                                    }
+                                                    return null;
+                                                  },
+                                                  onTap: () async {
+                                                    final TimeOfDay?
+                                                    picked = await showTimePicker(
+                                                      context: context,
+                                                      initialTime: TimeOfDay(
+                                                        hour: int.parse(
+                                                          _horaAperturaController
+                                                              .text
+                                                              .split(':')[0],
+                                                        ),
+                                                        minute: int.parse(
+                                                          _horaAperturaController
+                                                              .text
+                                                              .split(':')[1],
+                                                        ),
+                                                      ),
+                                                    );
+                                                    if (picked != null) {
+                                                      setState(() {
+                                                        _horaAperturaController
+                                                                .text =
+                                                            '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+                                                      });
+                                                    }
+                                                  },
+                                                  readOnly: true,
                                                 ),
-                                                validator: (value) {
-                                                  if (value == null || value.trim().isEmpty) {
-                                                    return 'La hora de cierre es obligatoria';
-                                                  }
-                                                  final regex = RegExp(r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$');
-                                                  if (!regex.hasMatch(value)) {
-                                                    return 'Formato inválido. Use HH:mm (24h)';
-                                                  }
-                                                  return null;
-                                                },
-                                                onTap: () async {
-                                                  final TimeOfDay? picked = await showTimePicker(
-                                                    context: context,
-                                                    initialTime: TimeOfDay(
-                                                      hour: int.parse(_horaCierreController.text.split(':')[0]),
-                                                      minute: int.parse(_horaCierreController.text.split(':')[1]),
-                                                    ),
-                                                  );
-                                                  if (picked != null) {
-                                                    setState(() {
-                                                      _horaCierreController.text = 
-                                                        '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
-                                                    });
-                                                  }
-                                                },
-                                                readOnly: true,
-                                              ),
-                                            ],
+                                                const SizedBox(height: 16),
+
+                                                // Hora de cierre
+                                                TextFormField(
+                                                  controller:
+                                                      _horaCierreController,
+                                                  decoration:
+                                                      const InputDecoration(
+                                                        labelText:
+                                                            'Hora de cierre *',
+                                                        prefixIcon: Icon(
+                                                          Icons.access_time,
+                                                        ),
+                                                        border:
+                                                            OutlineInputBorder(),
+                                                        helperText:
+                                                            'Formato 24h (HH:mm)',
+                                                      ),
+                                                  validator: (value) {
+                                                    if (value == null ||
+                                                        value.trim().isEmpty) {
+                                                      return 'La hora de cierre es obligatoria';
+                                                    }
+                                                    final regex = RegExp(
+                                                      r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$',
+                                                    );
+                                                    if (!regex.hasMatch(
+                                                      value,
+                                                    )) {
+                                                      return 'Formato inválido. Use HH:mm (24h)';
+                                                    }
+                                                    return null;
+                                                  },
+                                                  onTap: () async {
+                                                    final TimeOfDay?
+                                                    picked = await showTimePicker(
+                                                      context: context,
+                                                      initialTime: TimeOfDay(
+                                                        hour: int.parse(
+                                                          _horaCierreController
+                                                              .text
+                                                              .split(':')[0],
+                                                        ),
+                                                        minute: int.parse(
+                                                          _horaCierreController
+                                                              .text
+                                                              .split(':')[1],
+                                                        ),
+                                                      ),
+                                                    );
+                                                    if (picked != null) {
+                                                      setState(() {
+                                                        _horaCierreController
+                                                                .text =
+                                                            '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+                                                      });
+                                                    }
+                                                  },
+                                                  readOnly: true,
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                    ],
+                                        const SizedBox(height: 16),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
                       ),
                       // Botones de acción
                       Container(
@@ -692,18 +823,20 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
                             const SizedBox(width: 16),
                             FilledButton.icon(
                               onPressed: _isLoading ? null : _guardarProveedor,
-                              icon: _isLoading
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.white,
+                              icon:
+                                  _isLoading
+                                      ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                Colors.white,
+                                              ),
                                         ),
-                                      ),
-                                    )
-                                  : const Icon(Icons.save),
+                                      )
+                                      : const Icon(Icons.save),
                               label: const Text('Guardar Proveedor'),
                               style: FilledButton.styleFrom(
                                 backgroundColor: const Color(0xFFC2185B),

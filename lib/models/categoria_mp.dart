@@ -1,22 +1,15 @@
 class CategoriaMp {
   final int? id;
   final String nombre;
-  final String unidad;
-  final int fc;
+  final bool conCaducidad;
 
-  CategoriaMp({
-    this.id,
-    required this.nombre,
-    required this.unidad,
-    required this.fc,
-  });
+  CategoriaMp({this.id, required this.nombre, this.conCaducidad = false});
 
   factory CategoriaMp.fromJson(Map<String, dynamic> json) {
     return CategoriaMp(
       id: json['id'] as int?,
       nombre: json['nombre'] as String,
-      unidad: json['unidad'] as String,
-      fc: json['fc'] as int,
+      conCaducidad: json['conCaducidad'] as bool? ?? false,
     );
   }
 
@@ -24,22 +17,19 @@ class CategoriaMp {
     return {
       if (id != null) 'id': id,
       'nombre': nombre,
-      'unidad': unidad,
-      'fc': fc,
+      'conCaducidad': conCaducidad,
     };
   }
 
-  CategoriaMp copyWith({
-    int? id,
-    String? nombre,
-    String? unidad,
-    int? fc,
-  }) {
+  Map<String, dynamic> toJsonForInsert() {
+    return {'nombre': nombre, 'conCaducidad': conCaducidad};
+  }
+
+  CategoriaMp copyWith({int? id, String? nombre, bool? conCaducidad}) {
     return CategoriaMp(
       id: id ?? this.id,
       nombre: nombre ?? this.nombre,
-      unidad: unidad ?? this.unidad,
-      fc: fc ?? this.fc,
+      conCaducidad: conCaducidad ?? this.conCaducidad,
     );
   }
 
@@ -54,33 +44,13 @@ class CategoriaMp {
     return null;
   }
 
-  String? validarUnidad() {
-    if (unidad.trim().isEmpty) {
-      return 'La unidad de medida es requerida';
-    }
-    return null;
-  }
-
-  String? validarFc() {
-    if (fc < 0) {
-      return 'El factor de conversión no puede ser negativo';
-    }
-    return null;
-  }
-
   // Método para validar todos los campos
   List<String> validar() {
     List<String> errores = [];
-    
+
     String? errorNombre = validarNombre();
     if (errorNombre != null) errores.add(errorNombre);
-    
-    String? errorUnidad = validarUnidad();
-    if (errorUnidad != null) errores.add(errorUnidad);
-    
-    String? errorFc = validarFc();
-    if (errorFc != null) errores.add(errorFc);
-    
+
     return errores;
   }
 
@@ -89,7 +59,7 @@ class CategoriaMp {
 
   @override
   String toString() {
-    return 'CategoriaMp(id: $id, nombre: $nombre, unidad: $unidad, fc: $fc)';
+    return 'CategoriaMp(id: $id, nombre: $nombre, conCaducidad: $conCaducidad)';
   }
 
   @override
@@ -98,12 +68,9 @@ class CategoriaMp {
     return other is CategoriaMp &&
         other.id == id &&
         other.nombre == nombre &&
-        other.unidad == unidad &&
-        other.fc == fc;
+        other.conCaducidad == conCaducidad;
   }
 
   @override
-  int get hashCode {
-    return Object.hash(id, nombre, unidad, fc);
-  }
+  int get hashCode => Object.hash(id, nombre, conCaducidad);
 }

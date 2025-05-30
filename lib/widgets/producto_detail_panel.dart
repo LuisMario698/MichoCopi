@@ -6,7 +6,7 @@ import '../services/producto_service.dart';
 
 class ProductoDetailPanel extends StatefulWidget {
   final Producto producto;
-  final Categoria categoria;
+  final CategoriaProducto categoria;
   final VoidCallback onClose;
   final Function(bool) onProductoUpdated;
 

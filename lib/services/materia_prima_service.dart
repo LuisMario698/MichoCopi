@@ -24,11 +24,8 @@ class MateriaPrimaService {
   // Obtener materia prima por ID
   Future<MateriaPrima?> obtenerPorId(int id) async {
     try {
-      final response = await _supabase
-          .from(_tableName)
-          .select()
-          .eq('id', id)
-          .maybeSingle();
+      final response =
+          await _supabase.from(_tableName).select().eq('id', id).maybeSingle();
 
       return response != null ? MateriaPrima.fromJson(response) : null;
     } catch (e) {
@@ -42,7 +39,7 @@ class MateriaPrimaService {
       final response = await _supabase
           .from(_tableName)
           .select()
-          .eq('id_categoria_mp', idCategoria)
+          .eq('id_Categoria_mp', idCategoria)
           .order('nombre');
 
       return (response as List)
@@ -68,11 +65,12 @@ class MateriaPrimaService {
         throw Exception('Ya existe una materia prima con ese nombre');
       }
 
-      final response = await _supabase
-          .from(_tableName)
-          .insert(materiaPrima.toJson())
-          .select()
-          .single();
+      final response =
+          await _supabase
+              .from(_tableName)
+              .insert(materiaPrima.toJson())
+              .select()
+              .single();
 
       return MateriaPrima.fromJson(response);
     } catch (e) {
@@ -84,7 +82,9 @@ class MateriaPrimaService {
   Future<MateriaPrima> actualizar(MateriaPrima materiaPrima) async {
     try {
       if (materiaPrima.id == null) {
-        throw Exception('El ID de la materia prima es requerido para actualizar');
+        throw Exception(
+          'El ID de la materia prima es requerido para actualizar',
+        );
       }
 
       // Validar antes de actualizar
@@ -94,17 +94,21 @@ class MateriaPrimaService {
       }
 
       // Verificar si ya existe otra materia prima con el mismo nombre
-      final existente = await _verificarNombreExistente(materiaPrima.nombre, materiaPrima.id);
+      final existente = await _verificarNombreExistente(
+        materiaPrima.nombre,
+        materiaPrima.id,
+      );
       if (existente) {
         throw Exception('Ya existe otra materia prima con ese nombre');
       }
 
-      final response = await _supabase
-          .from(_tableName)
-          .update(materiaPrima.toJson())
-          .eq('id', materiaPrima.id!)
-          .select()
-          .single();
+      final response =
+          await _supabase
+              .from(_tableName)
+              .update(materiaPrima.toJson())
+              .eq('id', materiaPrima.id!)
+              .select()
+              .single();
 
       return MateriaPrima.fromJson(response);
     } catch (e) {
@@ -118,13 +122,12 @@ class MateriaPrimaService {
       // Verificar si la materia prima está siendo utilizada
       final enUso = await _verificarEnUso(id);
       if (enUso) {
-        throw Exception('No se puede eliminar la materia prima porque está siendo utilizada en recetas o compras');
+        throw Exception(
+          'No se puede eliminar la materia prima porque está siendo utilizada en recetas o compras',
+        );
       }
 
-      await _supabase
-          .from(_tableName)
-          .delete()
-          .eq('id', id);
+      await _supabase.from(_tableName).delete().eq('id', id);
     } catch (e) {
       throw Exception('Error al eliminar materia prima: $e');
     }
@@ -137,12 +140,13 @@ class MateriaPrimaService {
         throw Exception('El stock no puede ser negativo');
       }
 
-      final response = await _supabase
-          .from(_tableName)
-          .update({'stock': nuevoStock})
-          .eq('id', id)
-          .select()
-          .single();
+      final response =
+          await _supabase
+              .from(_tableName)
+              .update({'stock': nuevoStock})
+              .eq('id', id)
+              .select()
+              .single();
 
       return MateriaPrima.fromJson(response);
     } catch (e) {
@@ -183,7 +187,9 @@ class MateriaPrimaService {
 
       final nuevoStock = materiaPrima.stock - cantidad;
       if (nuevoStock < 0) {
-        throw Exception('Stock insuficiente. Stock actual: ${materiaPrima.stock}, Cantidad solicitada: $cantidad');
+        throw Exception(
+          'Stock insuficiente. Stock actual: ${materiaPrima.stock}, Cantidad solicitada: $cantidad',
+        );
       }
 
       return await actualizarStock(id, nuevoStock);
@@ -229,7 +235,10 @@ class MateriaPrimaService {
   }
 
   // Verificar si existe una materia prima con el mismo nombre
-  Future<bool> _verificarNombreExistente(String nombre, [int? excluirId]) async {
+  Future<bool> _verificarNombreExistente(
+    String nombre, [
+    int? excluirId,
+  ]) async {
     try {
       var query = _supabase
           .from(_tableName)
@@ -251,32 +260,32 @@ class MateriaPrimaService {
   Future<bool> _verificarEnUso(int id) async {
     try {
       // Verificar en recetas
-      final recetas = await _supabase
-          .from('receta')
-          .select('id')
-          .contains('id_materias_primas', [id])
-          .maybeSingle();
+      final recetas =
+          await _supabase.from('receta').select('id').contains(
+            'id_materias_primas',
+            [id],
+          ).maybeSingle();
 
       if (recetas != null) return true;
 
       // Verificar en compras
-      final compras = await _supabase
-          .from('compras')
-          .select('id')
-          .eq('id_materia_prima', id)
-          .maybeSingle();
+      final compras =
+          await _supabase
+              .from('compras')
+              .select('id')
+              .eq('id_materia_prima', id)
+              .maybeSingle();
 
       return compras != null;
     } catch (e) {
       return false;
     }
   }
+
   // Obtener estadísticas
   Future<Map<String, dynamic>> obtenerEstadisticas() async {
     try {
-      final total = await _supabase
-          .from(_tableName)
-          .select('id');
+      final total = await _supabase.from(_tableName).select('id');
 
       final stockBajo = await _supabase
           .from(_tableName)

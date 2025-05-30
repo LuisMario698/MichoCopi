@@ -7,6 +7,10 @@ class Venta {
   final double cambio;
   final int idUsuario;
   final int? idMpSeVende;
+  final String? metodoPago; // Campo adicional del esquema
+  final double? tipoCambio; // Campo adicional del esquema
+  final String? cliente; // Campo del esquema moderno
+  final String? estado; // Campo del esquema moderno
 
   Venta({
     this.id,
@@ -17,22 +21,44 @@ class Venta {
     required this.cambio,
     required this.idUsuario,
     this.idMpSeVende,
+    this.metodoPago,
+    this.tipoCambio,
+    this.cliente,
+    this.estado,
   });
-
   // Constructor para crear desde JSON (para Supabase)
   factory Venta.fromJson(Map<String, dynamic> json) {
     return Venta(
-      id: json['id'] as int?,
-      idProductos: List<int>.from(json['id_Productos'] as List),
+      id: json['id'] != null ? (json['id'] as num).toInt() : null,
+      idProductos:
+          json['id_Productos'] != null
+              ? List<int>.from(
+                (json['id_Productos'] as List).map((e) => (e as num).toInt()),
+              )
+              : [],
       total: (json['total'] as num).toDouble(),
       fecha: DateTime.parse(json['fecha'] as String),
-      pago: (json['pago'] as num).toDouble(),
-      cambio: (json['cambio'] as num).toDouble(),
-      idUsuario: json['id_Usuario'] as int,
-      idMpSeVende: json['id_mp_seVende'] as int?,
+      pago: json['pago'] != null ? (json['pago'] as num).toDouble() : 0.0,
+      cambio: json['cambio'] != null ? (json['cambio'] as num).toDouble() : 0.0,
+      idUsuario:
+          json['id_Usuario'] != null
+              ? (json['id_Usuario'] as num).toInt()
+              : (json['usuario_id'] != null
+                  ? (json['usuario_id'] as num).toInt()
+                  : 0),
+      idMpSeVende:
+          json['id_mp_seVende'] != null
+              ? (json['id_mp_seVende'] as num).toInt()
+              : null,
+      metodoPago: json['metodo_pago'] as String?,
+      tipoCambio:
+          json['tipo_cambio'] != null
+              ? (json['tipo_cambio'] as num).toDouble()
+              : null,
+      cliente: json['cliente'] as String?,
+      estado: json['estado'] as String?,
     );
   }
-
   // Convertir a JSON (para Supabase)
   Map<String, dynamic> toJson() {
     return {
@@ -44,6 +70,27 @@ class Venta {
       'cambio': cambio,
       'id_Usuario': idUsuario,
       if (idMpSeVende != null) 'id_mp_seVende': idMpSeVende,
+      if (metodoPago != null) 'metodo_pago': metodoPago,
+      if (tipoCambio != null) 'tipo_cambio': tipoCambio,
+      if (cliente != null) 'cliente': cliente,
+      if (estado != null) 'estado': estado,
+    };
+  }
+
+  // Método especial para insertar (sin ID)
+  Map<String, dynamic> toJsonForInsert() {
+    return {
+      'id_Productos': idProductos,
+      'total': total,
+      'fecha': fecha.toIso8601String(),
+      'pago': pago,
+      'cambio': cambio,
+      'id_Usuario': idUsuario,
+      if (idMpSeVende != null) 'id_mp_seVende': idMpSeVende,
+      if (metodoPago != null) 'metodo_pago': metodoPago,
+      if (tipoCambio != null) 'tipo_cambio': tipoCambio,
+      if (cliente != null) 'cliente': cliente,
+      'estado': estado ?? 'Completada',
     };
   }
 
@@ -57,6 +104,10 @@ class Venta {
     double? cambio,
     int? idUsuario,
     int? idMpSeVende,
+    String? metodoPago,
+    double? tipoCambio,
+    String? cliente,
+    String? estado,
   }) {
     return Venta(
       id: id ?? this.id,
@@ -67,6 +118,10 @@ class Venta {
       cambio: cambio ?? this.cambio,
       idUsuario: idUsuario ?? this.idUsuario,
       idMpSeVende: idMpSeVende ?? this.idMpSeVende,
+      metodoPago: metodoPago ?? this.metodoPago,
+      tipoCambio: tipoCambio ?? this.tipoCambio,
+      cliente: cliente ?? this.cliente,
+      estado: estado ?? this.estado,
     );
   }
 
@@ -135,28 +190,28 @@ class Venta {
   // Método para validar todos los campos
   List<String> validar() {
     List<String> errores = [];
-    
+
     String? errorProductos = validarIdProductos();
     if (errorProductos != null) errores.add(errorProductos);
-    
+
     String? errorTotal = validarTotal();
     if (errorTotal != null) errores.add(errorTotal);
-    
+
     String? errorPago = validarPago();
     if (errorPago != null) errores.add(errorPago);
-    
+
     String? errorCambio = validarCambio();
     if (errorCambio != null) errores.add(errorCambio);
-    
+
     String? errorFecha = validarFecha();
     if (errorFecha != null) errores.add(errorFecha);
-    
+
     String? errorUsuario = validarIdUsuario();
     if (errorUsuario != null) errores.add(errorUsuario);
-    
+
     String? errorMpSeVende = validarIdMpSeVende();
     if (errorMpSeVende != null) errores.add(errorMpSeVende);
-    
+
     return errores;
   }
 
@@ -167,16 +222,15 @@ class Venta {
   String get totalFormateado => '\$${total.toStringAsFixed(2)}';
   String get pagoFormateado => '\$${pago.toStringAsFixed(2)}';
   String get cambioFormateado => '\$${cambio.toStringAsFixed(2)}';
-  
+
   String get fechaFormateada {
     return '${fecha.day.toString().padLeft(2, '0')}/${fecha.month.toString().padLeft(2, '0')}/${fecha.year}';
   }
 
   int get cantidadProductos => idProductos.length;
-
   @override
   String toString() {
-    return 'Venta(id: $id, idProductos: $idProductos, total: $total, fecha: $fecha, pago: $pago, cambio: $cambio, idUsuario: $idUsuario, idMpSeVende: $idMpSeVende)';
+    return 'Venta(id: $id, idProductos: $idProductos, total: $total, fecha: $fecha, pago: $pago, cambio: $cambio, idUsuario: $idUsuario, idMpSeVende: $idMpSeVende, metodoPago: $metodoPago, tipoCambio: $tipoCambio, cliente: $cliente, estado: $estado)';
   }
 
   @override
@@ -190,7 +244,11 @@ class Venta {
         other.pago == pago &&
         other.cambio == cambio &&
         other.idUsuario == idUsuario &&
-        other.idMpSeVende == idMpSeVende;
+        other.idMpSeVende == idMpSeVende &&
+        other.metodoPago == metodoPago &&
+        other.tipoCambio == tipoCambio &&
+        other.cliente == cliente &&
+        other.estado == estado;
   }
 
   @override
@@ -204,6 +262,10 @@ class Venta {
       cambio,
       idUsuario,
       idMpSeVende,
+      metodoPago,
+      tipoCambio,
+      cliente,
+      estado,
     );
   }
 

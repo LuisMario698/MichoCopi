@@ -35,14 +35,13 @@ class ComprasService {
       throw Exception('Error al obtener compra: $e');
     }
   }
-
   // Obtener compras por proveedor
   Future<List<Compras>> obtenerPorProveedor(int idProveedor) async {
     try {
       final response = await _supabase
           .from(_tableName)
           .select()
-          .eq('id_proveedor', idProveedor)
+          .eq('id_Proveedor', idProveedor)
           .order('fecha', ascending: false);
 
       return (response as List)
@@ -155,12 +154,10 @@ class ComprasService {
       // Total de compras
       final totalCompras = await _supabase
           .from(_tableName)
-          .select('id');
-
-      // Compras del mes
+          .select('id');      // Compras del mes
       final comprasMes = await _supabase
           .from(_tableName)
-          .select('cantidad, precio')
+          .select('total')
           .gte('fecha', inicioMes.toIso8601String())
           .lte('fecha', finMes.toIso8601String());
 
@@ -168,21 +165,19 @@ class ComprasService {
       int cantidadComprasMes = comprasMes.length;
 
       for (final compra in comprasMes) {
-        final cantidad = (compra['cantidad'] as num?)?.toDouble() ?? 0;
-        final precio = (compra['precio'] as num?)?.toDouble() ?? 0;
-        montoMes += cantidad * precio;
+        final total = (compra['total'] as num?)?.toDouble() ?? 0;
+        montoMes += total;
       }
 
       // Monto total histórico
       final todasCompras = await _supabase
           .from(_tableName)
-          .select('cantidad, precio');
+          .select('total');
 
       double montoTotal = 0;
       for (final compra in todasCompras) {
-        final cantidad = (compra['cantidad'] as num?)?.toDouble() ?? 0;
-        final precio = (compra['precio'] as num?)?.toDouble() ?? 0;
-        montoTotal += cantidad * precio;
+        final total = (compra['total'] as num?)?.toDouble() ?? 0;
+        montoTotal += total;
       }
 
       return {

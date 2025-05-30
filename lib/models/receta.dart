@@ -1,19 +1,24 @@
 class Receta {
   final int? id;
   final List<int> idsMps;
-  final List<int> cantidades;
+  final List<int>
+  cantidades; // Se mantiene por compatibilidad pero no se requiere
 
-  Receta({
-    this.id,
-    required this.idsMps,
-    required this.cantidades,
-  });
+  Receta({this.id, required this.idsMps, this.cantidades = const []});
 
   factory Receta.fromJson(Map<String, dynamic> json) {
+    final List<dynamic> idsMpsList = json['ids_Mps'] as List;
+    final List<int> idsMps = idsMpsList.map((e) => (e as num).toInt()).toList();
+    
+    // Generamos cantidades con valor 1 para cada materia prima
+    // Esto es para mantener compatibilidad interna del código
+    // pero no se almacena en la base de datos
+    final List<int> cantidades = List<int>.filled(idsMps.length, 1);
+    
     return Receta(
       id: json['id'] != null ? (json['id'] as num).toInt() : null,
-      idsMps: (json['ids_Mps'] as List).map((e) => (e as num).toInt()).toList(),
-      cantidades: (json['cantidades'] as List).map((e) => (e as num).toInt()).toList(),
+      idsMps: idsMps,
+      cantidades: cantidades, // Siempre usamos cantidades = 1 en memoria
     );
   }
 
@@ -21,20 +26,28 @@ class Receta {
     return {
       if (id != null) 'id': id,
       'ids_Mps': idsMps,
-      'cantidades': cantidades,
+      // Eliminamos 'cantidades' ya que no existe en el esquema de la base de datos
+      // Mantenemos la información internamente en el objeto pero no lo enviamos a DB
+    };
+  }
+
+  // Método especial para insertar (sin ID) - Compatible con esquema original
+  Map<String, dynamic> toJsonForInsert() {
+    return {
+      'ids_Mps': idsMps,
+      // Eliminamos 'cantidades' ya que no existe en el esquema de la base de datos
     };
   }
 
   // Método copyWith para crear copias con modificaciones
-  Receta copyWith({
-    int? id,
-    List<int>? idsMps,
-    List<int>? cantidades,
-  }) {
+  Receta copyWith({int? id, List<int>? idsMps, List<int>? cantidades}) {
     return Receta(
       id: id ?? this.id,
       idsMps: idsMps ?? List.from(this.idsMps),
-      cantidades: cantidades ?? List.from(this.cantidades),
+      // Las cantidades no son requeridas pero se mantiene para compatibilidad
+      cantidades:
+          cantidades ??
+          (this.cantidades.isEmpty ? [] : List.from(this.cantidades)),
     );
   }
 
@@ -61,34 +74,19 @@ class Receta {
   }
 
   String? validarCantidades() {
-    if (cantidades.isEmpty) {
-      return 'Debe especificar cantidades para las materias primas';
-    }
-    if (cantidades.length != idsMps.length) {
-      return 'El número de cantidades debe coincidir con el número de materias primas';
-    }
-    // Verificar que todas las cantidades sean válidas
-    for (int i = 0; i < cantidades.length; i++) {
-      if (cantidades[i] <= 0) {
-        return 'Todas las cantidades deben ser mayores a 0';
-      }
-      if (cantidades[i] > 999999) {
-        return 'Las cantidades no pueden exceder 999,999';
-      }
-    }
+    // Las cantidades no son requeridas para las recetas
     return null;
   }
 
   // Método para validar todos los campos
   List<String> validar() {
     List<String> errores = [];
-    
+
     String? errorIdsMps = validarIdsMps();
     if (errorIdsMps != null) errores.add(errorIdsMps);
-    
-    String? errorCantidades = validarCantidades();
-    if (errorCantidades != null) errores.add(errorCantidades);
-    
+
+    // Ya no validamos cantidades porque no son requeridas
+
     return errores;
   }
 
@@ -96,18 +94,15 @@ class Receta {
   bool get esValida => validar().isEmpty;
 
   // Agregar materia prima a la receta
-  Receta agregarMateriaPrima(int idMateriaPrima, int cantidad) {
+  Receta agregarMateriaPrima(int idMateriaPrima, {int cantidad = 1}) {
     if (idsMps.contains(idMateriaPrima)) {
       throw ArgumentError('La materia prima ya existe en la receta');
     }
-    
+
     List<int> nuevosIds = List.from(idsMps)..add(idMateriaPrima);
-    List<int> nuevasCantidades = List.from(cantidades)..add(cantidad);
-    
-    return copyWith(
-      idsMps: nuevosIds,
-      cantidades: nuevasCantidades,
-    );
+    // Ya no utilizamos cantidades
+
+    return copyWith(idsMps: nuevosIds);
   }
 
   // Remover materia prima de la receta
@@ -116,33 +111,24 @@ class Receta {
     if (index == -1) {
       throw ArgumentError('La materia prima no existe en la receta');
     }
-    
+
     List<int> nuevosIds = List.from(idsMps)..removeAt(index);
-    List<int> nuevasCantidades = List.from(cantidades)..removeAt(index);
-    
-    return copyWith(
-      idsMps: nuevosIds,
-      cantidades: nuevasCantidades,
-    );
+    // Ya no utilizamos cantidades
+
+    return copyWith(idsMps: nuevosIds);
   }
 
-  // Actualizar cantidad de materia prima
+  // Actualizar cantidad de materia prima - Método mantenido para compatibilidad
   Receta actualizarCantidad(int idMateriaPrima, int nuevaCantidad) {
-    int index = idsMps.indexOf(idMateriaPrima);
-    if (index == -1) {
-      throw ArgumentError('La materia prima no existe en la receta');
-    }
-    
-    List<int> nuevasCantidades = List.from(cantidades);
-    nuevasCantidades[index] = nuevaCantidad;
-    
-    return copyWith(cantidades: nuevasCantidades);
+    // Las cantidades no son requeridas para las recetas,
+    // pero mantenemos el método por compatibilidad
+    return this;
   }
 
-  // Obtener cantidad de una materia prima específica
+  // Obtener cantidad de una materia prima específica - Método mantenido para compatibilidad
   int? obtenerCantidad(int idMateriaPrima) {
-    int index = idsMps.indexOf(idMateriaPrima);
-    return index != -1 ? cantidades[index] : null;
+    // Las cantidades no son requeridas para las recetas
+    return 1; // Valor por defecto
   }
 
   // Número total de ingredientes
@@ -168,11 +154,7 @@ class Receta {
 
   @override
   int get hashCode {
-    return Object.hash(
-      id,
-      Object.hashAll(idsMps),
-      Object.hashAll(cantidades),
-    );
+    return Object.hash(id, Object.hashAll(idsMps), Object.hashAll(cantidades));
   }
 
   @override

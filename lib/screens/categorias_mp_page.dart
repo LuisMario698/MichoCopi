@@ -137,8 +137,6 @@ class _CategoriasMpPageState extends State<CategoriasMpPage> {
                               return DataRow(
                                 cells: [
                                   DataCell(Text(categoria.nombre)),
-                                  DataCell(Text(categoria.unidad)),
-                                  DataCell(Text(categoria.fc.toString())),
                                   DataCell(
                                     Row(
                                       mainAxisSize: MainAxisSize.min,

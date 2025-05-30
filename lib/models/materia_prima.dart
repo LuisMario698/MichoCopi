@@ -3,41 +3,70 @@ class MateriaPrima {
   final String nombre;
   final int idCategoriaMp;
   final int stock;
-  final DateTime fechaCreacion;
+  final DateTime? fechaCreacion;
   final bool seVende;
   final double? siVendePrecio;
+  final DateTime? caducidad;
 
   MateriaPrima({
     this.id,
     required this.nombre,
     required this.idCategoriaMp,
     required this.stock,
-    required this.fechaCreacion,
+    this.fechaCreacion,
     this.seVende = false,
     this.siVendePrecio,
+    this.caducidad,
   });
+
   factory MateriaPrima.fromJson(Map<String, dynamic> json) {
     return MateriaPrima(
       id: json['id'] != null ? (json['id'] as num).toInt() : null,
       nombre: json['nombre'] as String,
       idCategoriaMp: (json['id_Categoria_mp'] as num).toInt(),
       stock: (json['stock'] as num).toInt(),
-      fechaCreacion: DateTime.parse(json['fecha_creacion'] as String),
+      fechaCreacion:
+          json['fecha_creacion'] != null
+              ? DateTime.parse(json['fecha_creacion'] as String)
+              : null,
       seVende: json['seVende'] as bool? ?? false,
-      siVendePrecio: json['siVendePrecio'] != null 
-          ? (json['siVendePrecio'] as num).toDouble() 
-          : null,
+      siVendePrecio:
+          json['siVendePrecio'] != null
+              ? (json['siVendePrecio'] as num).toDouble()
+              : null,
+      caducidad:
+          json['caducidad'] != null
+              ? DateTime.parse(json['caducidad'] as String)
+              : null,
     );
   }
+
   Map<String, dynamic> toJson() {
     return {
       if (id != null) 'id': id,
       'nombre': nombre,
       'id_Categoria_mp': idCategoriaMp,
       'stock': stock,
-      'fecha_creacion': fechaCreacion.toIso8601String().split('T')[0],
+      if (fechaCreacion != null)
+        'fecha_creacion': fechaCreacion!.toIso8601String().split('T')[0],
       'seVende': seVende,
       if (siVendePrecio != null) 'siVendePrecio': siVendePrecio,
+      if (caducidad != null)
+        'caducidad': caducidad!.toIso8601String().split('T')[0],
+    };
+  }
+
+  Map<String, dynamic> toJsonForInsert() {
+    return {
+      'nombre': nombre,
+      'id_Categoria_mp': idCategoriaMp,
+      'stock': stock,
+      if (fechaCreacion != null)
+        'fecha_creacion': fechaCreacion!.toIso8601String().split('T')[0],
+      'seVende': seVende,
+      if (siVendePrecio != null) 'siVendePrecio': siVendePrecio,
+      if (caducidad != null)
+        'caducidad': caducidad!.toIso8601String().split('T')[0],
     };
   }
 
@@ -49,6 +78,7 @@ class MateriaPrima {
     DateTime? fechaCreacion,
     bool? seVende,
     double? siVendePrecio,
+    DateTime? caducidad,
   }) {
     return MateriaPrima(
       id: id ?? this.id,
@@ -58,6 +88,7 @@ class MateriaPrima {
       fechaCreacion: fechaCreacion ?? this.fechaCreacion,
       seVende: seVende ?? this.seVende,
       siVendePrecio: siVendePrecio ?? this.siVendePrecio,
+      caducidad: caducidad ?? this.caducidad,
     );
   }
 
@@ -96,19 +127,19 @@ class MateriaPrima {
   // Método para validar todos los campos
   List<String> validar() {
     List<String> errores = [];
-    
+
     String? errorNombre = validarNombre();
     if (errorNombre != null) errores.add(errorNombre);
-    
+
     String? errorStock = validarStock();
     if (errorStock != null) errores.add(errorStock);
-    
+
     String? errorCategoria = validarIdCategoriaMp();
     if (errorCategoria != null) errores.add(errorCategoria);
-    
+
     String? errorPrecio = validarPrecioVenta();
     if (errorPrecio != null) errores.add(errorPrecio);
-    
+
     return errores;
   }
 
@@ -117,7 +148,7 @@ class MateriaPrima {
 
   // Métodos de utilidad
   String get stockFormateado => '$stock unidades';
-  
+
   String get precioFormateado {
     if (seVende && siVendePrecio != null) {
       return '\$${siVendePrecio!.toStringAsFixed(2)}';
@@ -126,12 +157,15 @@ class MateriaPrima {
   }
 
   String get fechaFormateada {
-    return '${fechaCreacion.day.toString().padLeft(2, '0')}/${fechaCreacion.month.toString().padLeft(2, '0')}/${fechaCreacion.year}';
+    if (fechaCreacion != null) {
+      return '${fechaCreacion!.day.toString().padLeft(2, '0')}/${fechaCreacion!.month.toString().padLeft(2, '0')}/${fechaCreacion!.year}';
+    }
+    return 'Sin fecha';
   }
 
   @override
   String toString() {
-    return 'MateriaPrima(id: $id, nombre: $nombre, idCategoriaMp: $idCategoriaMp, stock: $stock, fechaCreacion: $fechaCreacion, seVende: $seVende, siVendePrecio: $siVendePrecio)';
+    return 'MateriaPrima(id: $id, nombre: $nombre, idCategoriaMp: $idCategoriaMp, stock: $stock, fechaCreacion: $fechaCreacion, seVende: $seVende, siVendePrecio: $siVendePrecio, caducidad: $caducidad)';
   }
 
   @override
@@ -144,7 +178,8 @@ class MateriaPrima {
         other.stock == stock &&
         other.fechaCreacion == fechaCreacion &&
         other.seVende == seVende &&
-        other.siVendePrecio == siVendePrecio;
+        other.siVendePrecio == siVendePrecio &&
+        other.caducidad == caducidad;
   }
 
   @override
@@ -157,6 +192,7 @@ class MateriaPrima {
       fechaCreacion,
       seVende,
       siVendePrecio,
+      caducidad,
     );
   }
 }

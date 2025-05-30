@@ -22,12 +22,16 @@ class Usuario {
       nombre: json['nombre'] as String,
       password: json['password'] as String,
       tipo: json['tipo'] as int,
-      fechaCreacion: json['fecha_creacion'] != null
-          ? DateTime.parse(json['fecha_creacion'] as String)
-          : null,
-      tipoUsuario: json['tipo_usuario'] != null
-          ? TipoUsuario.fromJson(json['tipo_usuario'] as Map<String, dynamic>)
-          : null,
+      fechaCreacion:
+          json['fecha_creacion'] != null
+              ? DateTime.parse(json['fecha_creacion'] as String)
+              : null,
+      tipoUsuario:
+          json['tipo_usuario'] != null
+              ? TipoUsuario.fromJson(
+                json['tipo_usuario'] as Map<String, dynamic>,
+              )
+              : null,
     );
   }
 
@@ -37,16 +41,26 @@ class Usuario {
       'password': password,
       'tipo': tipo,
     };
-    
+
     if (id != null) {
       data['id'] = id;
     }
-    
+
     if (fechaCreacion != null) {
       data['fecha_creacion'] = fechaCreacion!.toIso8601String();
     }
-    
+
     return data;
+  }
+
+  Map<String, dynamic> toJsonForInsert() {
+    return {
+      'nombre': nombre,
+      'password': password,
+      'tipo': tipo,
+      if (fechaCreacion != null)
+        'fecha_creacion': fechaCreacion!.toIso8601String().split('T')[0],
+    };
   }
 
   Usuario copyWith({
@@ -96,16 +110,16 @@ class Usuario {
 
   List<String> validar() {
     List<String> errores = [];
-    
+
     String? errorNombre = validarNombre();
     if (errorNombre != null) errores.add(errorNombre);
-    
+
     String? errorPassword = validarPassword();
     if (errorPassword != null) errores.add(errorPassword);
-    
+
     String? errorTipo = validarTipo();
     if (errorTipo != null) errores.add(errorTipo);
-    
+
     return errores;
   }
 

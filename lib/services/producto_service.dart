@@ -17,10 +17,7 @@ class ProductoService {
       }
 
       if (producto.precio <= 0) {
-        return {
-          'success': false,
-          'message': 'El precio debe ser mayor a 0',
-        };
+        return {'success': false, 'message': 'El precio debe ser mayor a 0'};
       }
 
       print('📝 Creando producto: ${producto.nombre}');
@@ -29,11 +26,12 @@ class ProductoService {
       final productoData = producto.toJson();
 
       // Crear el producto
-      final response = await _client
-          .from('Productos')
-          .insert(productoData)
-          .select()
-          .single();
+      final response =
+          await _client
+              .from('Productos')
+              .insert(productoData)
+              .select()
+              .single();
 
       final productoCreado = Producto.fromJson(response);
 
@@ -75,11 +73,7 @@ class ProductoService {
         }
       }
 
-      return {
-        'success': false,
-        'message': errorMessage,
-        'error': e.toString(),
-      };
+      return {'success': false, 'message': errorMessage, 'error': e.toString()};
     }
   }
 
@@ -138,12 +132,13 @@ class ProductoService {
       // Asegurar que usamos el ID correcto
       productoData['id'] = id;
 
-      final response = await _client
-          .from('Productos')
-          .update(productoData)
-          .eq('id', id)
-          .select()
-          .single();
+      final response =
+          await _client
+              .from('Productos')
+              .update(productoData)
+              .eq('id', id)
+              .select()
+              .single();
 
       return {
         'success': true,
@@ -175,7 +170,9 @@ class ProductoService {
   }
 
   // Verificar si existe un producto con el mismo nombre
-  static Future<Map<String, dynamic>> verificarNombreProducto(String nombre) async {
+  static Future<Map<String, dynamic>> verificarNombreProducto(
+    String nombre,
+  ) async {
     try {
       if (nombre.trim().isEmpty) {
         return {
@@ -193,13 +190,16 @@ class ProductoService {
           .limit(1);
 
       final existe = (response as List).isNotEmpty;
-      
+
       print('✅ Resultado verificación: ${existe ? "Existe" : "No existe"}');
-      
+
       return {
         'success': true,
         'existe': existe,
-        'message': existe ? 'Ya existe un producto con este nombre' : 'Nombre disponible',
+        'message':
+            existe
+                ? 'Ya existe un producto con este nombre'
+                : 'Nombre disponible',
       };
     } catch (e) {
       print('❌ Error en verificarNombreProducto: $e');
@@ -230,24 +230,27 @@ class ProductoService {
   }
 
   // Crear una nueva categoría
-  static Future<Map<String, dynamic>> crearCategoria(Categoria categoria) async {
+  static Future<Map<String, dynamic>> crearCategoria(
+    CategoriaProducto categoria,
+  ) async {
     try {
       print('📝 Creando categoría: ${categoria.nombre}');
-      
-      final response = await _client
-          .from('Categoria_producto')
-          .insert({
-            'nombre': categoria.nombre.trim(),
-            'conCaducidad': categoria.conCaducidad,
-          })
-          .select()
-          .single();
+
+      final response =
+          await _client
+              .from('Categoria_producto')
+              .insert({
+                'nombre': categoria.nombre.trim(),
+                'conCaducidad': categoria.conCaducidad,
+              })
+              .select()
+              .single();
 
       print('✅ Categoría creada en Supabase: $response');
 
       return {
         'success': true,
-        'data': Categoria.fromJson(response),
+        'data': CategoriaProducto.fromJson(response),
         'message': 'Categoría creada exitosamente',
       };
     } catch (e) {
@@ -270,7 +273,7 @@ class ProductoService {
           .timeout(const Duration(seconds: 5));
 
       final categorias =
-          (response as List).map((item) => Categoria.fromJson(item)).toList();
+          (response as List).map((item) => CategoriaProducto.fromJson(item)).toList();
 
       return {
         'success': true,
@@ -279,25 +282,26 @@ class ProductoService {
       };
     } catch (e) {
       print('⚠️ Error en obtenerCategorias: $e');
-      
+
       // Determinar el tipo de error y mostrar mensaje apropiado
       String errorMessage = 'Error de conexión';
-      if (e.toString().contains('SocketException') || 
+      if (e.toString().contains('SocketException') ||
           e.toString().contains('Operation not permitted')) {
-        errorMessage = 'Sin conexión a la base de datos. Usando datos de prueba.';
+        errorMessage =
+            'Sin conexión a la base de datos. Usando datos de prueba.';
       } else if (e.toString().contains('TimeoutException')) {
         errorMessage = 'Tiempo de espera agotado. Usando datos de prueba.';
       }
-      
+
       // Retornar datos de prueba en caso de error de conexión
       final categoriasPrueba = [
-        Categoria(id: 1, nombre: 'Electrónicos', conCaducidad: false),
-        Categoria(id: 2, nombre: 'Alimentos', conCaducidad: true),
-        Categoria(id: 3, nombre: 'Medicamentos', conCaducidad: true),
-        Categoria(id: 4, nombre: 'Ropa', conCaducidad: false),
-        Categoria(id: 5, nombre: 'Bebidas', conCaducidad: true),
-        Categoria(id: 6, nombre: 'Limpieza', conCaducidad: false),
-        Categoria(id: 7, nombre: 'Cosméticos', conCaducidad: true),
+        CategoriaProducto(id: 1, nombre: 'Electrónicos', conCaducidad: false),
+        CategoriaProducto(id: 2, nombre: 'Alimentos', conCaducidad: true),
+        CategoriaProducto(id: 3, nombre: 'Medicamentos', conCaducidad: true),
+        CategoriaProducto(id: 4, nombre: 'Ropa', conCaducidad: false),
+        CategoriaProducto(id: 5, nombre: 'Bebidas', conCaducidad: true),
+        CategoriaProducto(id: 6, nombre: 'Limpieza', conCaducidad: false),
+        CategoriaProducto(id: 7, nombre: 'Cosméticos', conCaducidad: true),
       ];
 
       return {
@@ -307,7 +311,7 @@ class ProductoService {
         'isOffline': true,
       };
     }
-  }  // El método obtenerProveedores se ha movido a ProveedorService
+  } // El método obtenerProveedores se ha movido a ProveedorService
 
   // Buscar productos por nombre
   static Future<Map<String, dynamic>> buscarProductos(String termino) async {
@@ -369,12 +373,13 @@ class ProductoService {
     int nuevoStock,
   ) async {
     try {
-      final response = await _client
-          .from('Productos')
-          .update({'stock': nuevoStock})
-          .eq('id', id)
-          .select()
-          .single();
+      final response =
+          await _client
+              .from('Productos')
+              .update({'stock': nuevoStock})
+              .eq('id', id)
+              .select()
+              .single();
 
       return {
         'success': true,
@@ -394,7 +399,7 @@ class ProductoService {
   static Future<Map<String, dynamic>> verificarEstructuraDB() async {
     try {
       print('🔍 Verificando estructura de la base de datos...');
-      
+
       // Verificar tabla Categoria_producto
       final categoriasResponse = await _client
           .from('Categoria_producto')

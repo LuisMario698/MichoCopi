@@ -3,11 +3,7 @@ class TipoUsuario {
   final String nombre;
   final String descripcion;
 
-  TipoUsuario({
-    this.id,
-    required this.nombre,
-    required this.descripcion,
-  });
+  TipoUsuario({this.id, required this.nombre, required this.descripcion});
 
   // Constructor para crear desde JSON (para Supabase)
   factory TipoUsuario.fromJson(Map<String, dynamic> json) {
@@ -28,11 +24,7 @@ class TipoUsuario {
   }
 
   // Método copyWith para crear copias con modificaciones
-  TipoUsuario copyWith({
-    int? id,
-    String? nombre,
-    String? descripcion,
-  }) {
+  TipoUsuario copyWith({int? id, String? nombre, String? descripcion}) {
     return TipoUsuario(
       id: id ?? this.id,
       nombre: nombre ?? this.nombre,
@@ -64,13 +56,13 @@ class TipoUsuario {
   // Validar todo el objeto
   List<String> validar() {
     List<String> errores = [];
-    
+
     String? errorNombre = validarNombre();
     if (errorNombre != null) errores.add(errorNombre);
-    
+
     String? errorDescripcion = validarDescripcion();
     if (errorDescripcion != null) errores.add(errorDescripcion);
-    
+
     return errores;
   }
 

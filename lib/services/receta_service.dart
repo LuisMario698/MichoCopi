@@ -8,13 +8,9 @@ class RecetaService {
   // Obtener todas las recetas
   Future<List<Receta>> obtenerTodas() async {
     try {
-      final response = await _supabase
-          .from(_tableName)
-          .select();
+      final response = await _supabase.from(_tableName).select();
 
-      return (response as List)
-          .map((json) => Receta.fromJson(json))
-          .toList();
+      return (response as List).map((json) => Receta.fromJson(json)).toList();
     } catch (e) {
       throw Exception('Error al obtener recetas: $e');
     }
@@ -23,11 +19,8 @@ class RecetaService {
   // Obtener receta por ID
   Future<Receta?> obtenerPorId(int id) async {
     try {
-      final response = await _supabase
-          .from(_tableName)
-          .select()
-          .eq('id', id)
-          .maybeSingle();
+      final response =
+          await _supabase.from(_tableName).select().eq('id', id).maybeSingle();
 
       return response != null ? Receta.fromJson(response) : null;
     } catch (e) {
@@ -47,11 +40,12 @@ class RecetaService {
       // Verificar que todas las materias primas existan
       await _verificarMateriasPrimasExisten(receta.idsMps);
 
-      final response = await _supabase
-          .from(_tableName)
-          .insert(receta.toJson())
-          .select()
-          .single();
+      final response =
+          await _supabase
+              .from(_tableName)
+              .insert(receta.toJsonForInsert())
+              .select()
+              .single();
 
       return Receta.fromJson(response);
     } catch (e) {
@@ -75,12 +69,13 @@ class RecetaService {
       // Verificar que todas las materias primas existan
       await _verificarMateriasPrimasExisten(receta.idsMps);
 
-      final response = await _supabase
-          .from(_tableName)
-          .update(receta.toJson())
-          .eq('id', receta.id!)
-          .select()
-          .single();
+      final response =
+          await _supabase
+              .from(_tableName)
+              .update(receta.toJson())
+              .eq('id', receta.id!)
+              .select()
+              .single();
 
       return Receta.fromJson(response);
     } catch (e) {
@@ -100,13 +95,17 @@ class RecetaService {
 
       for (int i = 0; i < receta.idsMps.length; i++) {
         final idMateria = receta.idsMps[i];
-        final cantidad = receta.cantidades[i];
+        // Usar un valor predeterminado de 1 si no hay cantidades o el índice está fuera de rango
+        final cantidad = (receta.cantidades.isNotEmpty && i < receta.cantidades.length) 
+          ? receta.cantidades[i] 
+          : 1;
 
-        final materiaPrima = await _supabase
-            .from('Materia_prima')
-            .select()
-            .eq('id', idMateria)
-            .single();
+        final materiaPrima =
+            await _supabase
+                .from('Materia_prima')
+                .select()
+                .eq('id', idMateria)
+                .single();
 
         materiasPrimas.add({
           'id': idMateria,
@@ -115,10 +114,7 @@ class RecetaService {
         });
       }
 
-      return {
-        'receta': receta,
-        'materiasPrimas': materiasPrimas,
-      };
+      return {'receta': receta, 'materiasPrimas': materiasPrimas};
     } catch (e) {
       throw Exception('Error al obtener detalles de la receta: $e');
     }
@@ -127,12 +123,17 @@ class RecetaService {
   // Verificar que todas las materias primas existan
   Future<void> _verificarMateriasPrimasExisten(List<int> idsMps) async {
     try {
+      if (idsMps.isEmpty) {
+        return; // Si no hay materias primas, no hay nada que verificar
+      }
+      
       for (final id in idsMps) {
-        final materiaPrima = await _supabase
-            .from('Materia_prima')
-            .select('id')
-            .eq('id', id)
-            .maybeSingle();
+        final materiaPrima =
+            await _supabase
+                .from('Materia_prima')
+                .select('id')
+                .eq('id', id)
+                .maybeSingle();
 
         if (materiaPrima == null) {
           throw Exception('La materia prima con ID $id no existe');
@@ -146,11 +147,12 @@ class RecetaService {
   // Verificar si la receta está siendo utilizada en productos
   Future<bool> _verificarEnUso(int id) async {
     try {
-      final response = await _supabase
-          .from('Productos')
-          .select('id')
-          .eq('id_Receta', id)
-          .maybeSingle();
+      final response =
+          await _supabase
+              .from('Productos')
+              .select('id')
+              .eq('id_Receta', id)
+              .maybeSingle();
 
       return response != null;
     } catch (e) {
@@ -164,13 +166,12 @@ class RecetaService {
       // Verificar si la receta está siendo utilizada
       final enUso = await _verificarEnUso(id);
       if (enUso) {
-        throw Exception('No se puede eliminar la receta porque está siendo utilizada por productos');
+        throw Exception(
+          'No se puede eliminar la receta porque está siendo utilizada por productos',
+        );
       }
 
-      await _supabase
-          .from(_tableName)
-          .delete()
-          .eq('id', id);
+      await _supabase.from(_tableName).delete().eq('id', id);
     } catch (e) {
       throw Exception('Error al eliminar receta: $e');
     }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/categoria_producto.dart';
 import '../services/producto_service.dart';
+// Asegúrate de que la clase 'Categoria' esté definida en 'categoria_producto.dart'.
+// Si la clase tiene otro nombre, reemplaza 'Categoria' por el nombre correcto en el código.
 
 class AgregarCategoriaPage extends StatefulWidget {
   const AgregarCategoriaPage({super.key});
@@ -38,7 +40,7 @@ class _AgregarCategoriaPageState extends State<AgregarCategoriaPage> {
     });
 
     try {
-      final categoria = Categoria(
+      final categoria = CategoriaProducto(
         // No especificamos ID, se auto-generará en la BD
         nombre: _nombreController.text.trim(),
         conCaducidad: _conCaducidad,
@@ -77,7 +79,8 @@ class _AgregarCategoriaPageState extends State<AgregarCategoriaPage> {
         backgroundColor: isError ? Colors.red : Colors.green,
         duration: const Duration(seconds: 3),
       ),
-    );  }
+    );
+  }
 
   @override
   void dispose() {
@@ -134,7 +137,8 @@ class _AgregarCategoriaPageState extends State<AgregarCategoriaPage> {
                       }
                       if (_nombreExiste) {
                         return 'Ya existe una categoría con este nombre';
-                      }                      return null;
+                      }
+                      return null;
                     },
                   ),
                   const SizedBox(height: 24),

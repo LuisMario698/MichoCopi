@@ -39,6 +39,17 @@ class Compras {
     };
   }
 
+  // Método especial para insertar (sin ID)
+  Map<String, dynamic> toJsonForInsert() {
+    return {
+      if (idProveedor != null) 'id_Proveedor': idProveedor,
+      if (idMp != null) 'id_mp': idMp,
+      'total': total,
+      'fecha': fecha.toIso8601String(),
+      if (idUsuario != null) 'id_Usuario': idUsuario,
+    };
+  }
+
   // Método copyWith para crear copias con modificaciones
   Compras copyWith({
     int? id,

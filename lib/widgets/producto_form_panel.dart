@@ -10,7 +10,6 @@ import '../services/proveedor_service.dart';
 import '../services/materia_prima_service.dart';
 import 'categoria_form_panel.dart';
 import '../models/proveedor.dart';
-import '../models/categoria_mp.dart';
 
 class ProductoFormPanel extends StatefulWidget {
   final VoidCallback onClose;
@@ -35,42 +34,23 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
   final _nombreController = TextEditingController();
   final _precioController = TextEditingController();
   final _searchController = TextEditingController();
-
-  List<Categoria> _categorias = [];
+  List<CategoriaProducto> _categorias = [];
   List<Proveedor> _proveedores = [];
   List<MateriaPrima> _materiasPrimas = [];
   List<MateriaPrima> _selectedMateriasPrimas = [];
-
   bool _isLoading = false;
   bool _isLoadingData = true;
   bool _nombreExiste = false;
   bool _validandoNombre = false;
   bool _isRecipe = false;
   String _searchQuery = '';
-
   int? _categoriaSeleccionada;
   int? _proveedorSeleccionado;
-  DateTime? _fechaCaducidad;
 
   List<MateriaPrima> get _filteredMateriasPrimas => _materiasPrimas
       .where((material) =>
           material.nombre.toLowerCase().contains(_searchQuery.toLowerCase()))
       .toList();
-
-  // Función para verificar si la categoría seleccionada permite caducidad
-  bool get _categoriaPermiteCaducidad {
-    if (_categoriaSeleccionada == null) return false;
-
-    try {
-      final categoriaSeleccionada = _categorias.firstWhere(
-        (categoria) => categoria.id == _categoriaSeleccionada,
-      );
-      return categoriaSeleccionada.conCaducidad;
-    } catch (e) {
-      print('⚠️ Error al buscar categoría con ID $_categoriaSeleccionada: $e');
-      return false;
-    }
-  }
 
   @override
   void initState() {
@@ -111,9 +91,8 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
 
       // Obtener categorías
       final categoriasResult = await ProductoService.obtenerCategorias();
-      if (categoriasResult['success'] == true) {
-        setState(() {
-          _categorias = List<Categoria>.from(categoriasResult['data']);
+      if (categoriasResult['success'] == true) {        setState(() {
+          _categorias = List<CategoriaProducto>.from(categoriasResult['data']);
         });
       }      // Obtener proveedores
       final proveedoresResult = await ProveedorService.obtenerTodos();
@@ -159,16 +138,14 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
             ),
           ];
         });
-      }
-
-      // Agregar datos de prueba si no hay datos
+      }      // Agregar datos de prueba si no hay datos
       if (_categorias.isEmpty) {
         setState(() {
           _categorias = [
-            Categoria(id: 1, nombre: 'Electrónicos', conCaducidad: false),
-            Categoria(id: 2, nombre: 'Alimentos', conCaducidad: true),
-            Categoria(id: 3, nombre: 'Medicamentos', conCaducidad: true),
-            Categoria(id: 4, nombre: 'Ropa', conCaducidad: false),
+            CategoriaProducto(id: 1, nombre: 'Electrónicos', conCaducidad: false),
+            CategoriaProducto(id: 2, nombre: 'Alimentos', conCaducidad: true),
+            CategoriaProducto(id: 3, nombre: 'Medicamentos', conCaducidad: true),
+            CategoriaProducto(id: 4, nombre: 'Ropa', conCaducidad: false),
           ];
         });
       }
@@ -184,24 +161,7 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
       }
     }
   }
-
-  Future<void> _seleccionarFecha() async {
-    final DateTime? fechaSeleccionada = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now().add(const Duration(days: 30)),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-      helpText: 'Seleccionar fecha de caducidad',
-      cancelText: 'Cancelar',
-      confirmText: 'Seleccionar',
-    );
-
-    if (fechaSeleccionada != null) {
-      setState(() {
-        _fechaCaducidad = fechaSeleccionada;
-      });
-    }
-  }
+  // La función _seleccionarFecha ha sido eliminada
   Future<void> _guardarProducto() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -223,16 +183,13 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
     try {
       // Create recipe first if necessary
       int? idReceta;
-      
-      if (_isRecipe && _selectedMateriasPrimas.isNotEmpty) {
+        if (_isRecipe && _selectedMateriasPrimas.isNotEmpty) {
         final recetaService = RecetaService();
-        final List<int> cantidades = List<int>.filled(_selectedMateriasPrimas.length, 1);
-        final List<int> materiaPrimaIds = _selectedMateriasPrimas.map((m) => m.id!).toList();
-        
-        try {
+        final List<int> materiaPrimaIds = _selectedMateriasPrimas.map((m) => m.id!).toList();        try {
+          // Ya no necesitamos las cantidades porque no se guardan en la base de datos
           final receta = Receta(
             idsMps: materiaPrimaIds,
-            cantidades: cantidades,
+            // Las cantidades se generarán automáticamente con valor 1
           );
           
           final recetaCreada = await recetaService.crear(receta);
@@ -246,14 +203,11 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
           });
           return;
         }
-      }
-
-      // Create product with recipe if one was created
+      }      // Create product with recipe if one was created
       final producto = Producto(
         nombre: _nombreController.text.trim(),
         precio: double.parse(_precioController.text),
         idCategoriaProducto: _categoriaSeleccionada!,
-        caducidad: _fechaCaducidad,
         idReceta: idReceta,
       );
 
@@ -288,14 +242,12 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
       ),
     );
   }
-
   void _limpiarFormulario() {
     _nombreController.clear();
     _precioController.clear();
     setState(() {
       _categoriaSeleccionada = null;
       _proveedorSeleccionado = null;
-      _fechaCaducidad = null;
       _nombreExiste = false;
       _validandoNombre = false;
       _isRecipe = false;
@@ -643,33 +595,14 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
                                                                 Text(
                                                                   categoria
                                                                       .nombre,
-                                                                ),
-                                                                if (categoria
-                                                                    .conCaducidad) ...[
-                                                                  const SizedBox(
-                                                                    width: 8,
-                                                                  ),
-                                                                  const Icon(
-                                                                    Icons
-                                                                        .schedule,
-                                                                    size: 16,
-                                                                    color:
-                                                                        Colors
-                                                                            .orange,
-                                                                  ),
-                                                                ],
+                                                                ),                                                // Se ha eliminado la visualización del icono de caducidad
                                                               ],
                                                             ),
                                                           );
                                                         })
-                                                        .toList(),
-                                                onChanged: (value) {
+                                                        .toList(),                                                onChanged: (value) {
                                                   setState(() {
-                                                    _categoriaSeleccionada =
-                                                        value;
-                                                    if (!_categoriaPermiteCaducidad) {
-                                                      _fechaCaducidad = null;
-                                                    }
+                                                    _categoriaSeleccionada = value;
                                                   });
                                                 },
                                                 validator: (value) {
@@ -808,91 +741,11 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
                                       ],
                                     ),
                                   ),
-                                ),
+                                ),                                const SizedBox(height: 16),
+                                
+                                // La sección de caducidad ha sido eliminada
 
-                                const SizedBox(height: 16),
-
-                                // Caducidad (condicional)
-                                if (_categoriaPermiteCaducidad)
-                                  Card(
-                                    elevation: 0,
-                                    color: Colors.grey[50],
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(16),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          const Row(
-                                            children: [
-                                              Icon(
-                                                Icons.schedule_outlined,
-                                                color: Colors.orange,
-                                                size: 20,
-                                              ),
-                                              SizedBox(width: 8),
-                                              Text(
-                                                'Fecha de Caducidad',
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 16),
-                                          InkWell(
-                                            onTap: _seleccionarFecha,
-                                            child: InputDecorator(
-                                              decoration: const InputDecoration(
-                                                labelText:
-                                                    'Fecha de caducidad (opcional)',
-                                                prefixIcon: Icon(
-                                                  Icons.calendar_today,
-                                                ),
-                                                border: OutlineInputBorder(),
-                                              ),
-                                              child: Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  Text(
-                                                    _fechaCaducidad != null
-                                                        ? '${_fechaCaducidad!.day}/${_fechaCaducidad!.month}/${_fechaCaducidad!.year}'
-                                                        : 'Seleccionar fecha',
-                                                    style: TextStyle(
-                                                      color:
-                                                          _fechaCaducidad !=
-                                                                  null
-                                                              ? Colors.black87
-                                                              : Colors
-                                                                  .grey[600],
-                                                    ),
-                                                  ),
-                                                  if (_fechaCaducidad != null)
-                                                    IconButton(
-                                                      icon: const Icon(
-                                                        Icons.clear,
-                                                      ),
-                                                      onPressed: () {
-                                                        setState(() {
-                                                          _fechaCaducidad =
-                                                              null;
-                                                        });
-                                                      },
-                                                      tooltip: 'Limpiar fecha',
-                                                    ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-
-                                const SizedBox(height: 16),
+                                
 
                                 // Modo receta y selección de materias primas
                                 Card(

@@ -17,10 +17,7 @@ class VentaService {
       }
 
       if (venta.total <= 0) {
-        return {
-          'success': false,
-          'message': 'El total debe ser mayor a 0',
-        };
+        return {'success': false, 'message': 'El total debe ser mayor a 0'};
       }
 
       if (venta.pago < venta.total) {
@@ -28,13 +25,14 @@ class VentaService {
           'success': false,
           'message': 'El pago no puede ser menor al total',
         };
-      }      // Verificar que todos los productos existen
+      } // Verificar que todos los productos existen
       for (int idProducto in venta.idProductos) {
-        final productoResponse = await _client
-            .from('Productos')
-            .select('id')
-            .eq('id', idProducto)
-            .maybeSingle();
+        final productoResponse =
+            await _client
+                .from('Productos')
+                .select('id')
+                .eq('id', idProducto)
+                .maybeSingle();
 
         if (productoResponse == null) {
           return {
@@ -46,13 +44,14 @@ class VentaService {
 
       // Preparar datos para insertar
       final ventaData = venta.toJson();
-      
+
       // Insertar la venta
-      final response = await _client
-          .from('Ventas')
-          .insert(ventaData)
-          .select()
-          .single();      // Ya no actualizamos el stock de productos vendidos
+      final response =
+          await _client
+              .from('Ventas')
+              .insert(ventaData)
+              .select()
+              .single(); // Ya no actualizamos el stock de productos vendidos
       for (int idProducto in venta.idProductos) {
         // Verificar que el producto aún existe
         await _client
@@ -70,22 +69,17 @@ class VentaService {
         'message': 'Venta registrada exitosamente',
         'data': ventaCreada,
       };
-
     } on PostgrestException catch (e) {
       print('❌ Error PostgreSQL: ${e.message}');
       String userMessage = 'Error al registrar la venta';
-      
+
       if (e.code == '23505') {
         userMessage = 'Ya existe una venta con estos datos';
       } else if (e.code == '23503') {
         userMessage = 'Referencia de datos inválida';
       }
 
-      return {
-        'success': false,
-        'message': userMessage,
-        'details': e.message,
-      };
+      return {'success': false, 'message': userMessage, 'details': e.message};
     } catch (e) {
       print('❌ Error general: $e');
       return {
@@ -104,16 +98,14 @@ class VentaService {
           .select()
           .order('fecha', ascending: false);
 
-      final ventas = (response as List)
-          .map((json) => Venta.fromJson(json))
-          .toList();
+      final ventas =
+          (response as List).map((json) => Venta.fromJson(json)).toList();
 
       return {
         'success': true,
         'data': ventas,
         'message': 'Ventas obtenidas exitosamente',
       };
-
     } catch (e) {
       print('❌ Error al obtener ventas: $e');
       return {
@@ -127,27 +119,16 @@ class VentaService {
   // Obtener venta por ID
   static Future<Map<String, dynamic>> obtenerVentaPorId(int id) async {
     try {
-      final response = await _client
-          .from('Ventas')
-          .select()
-          .eq('id', id)
-          .maybeSingle();
+      final response =
+          await _client.from('Ventas').select().eq('id', id).maybeSingle();
 
       if (response == null) {
-        return {
-          'success': false,
-          'message': 'Venta no encontrada',
-        };
+        return {'success': false, 'message': 'Venta no encontrada'};
       }
 
       final venta = Venta.fromJson(response);
 
-      return {
-        'success': true,
-        'data': venta,
-        'message': 'Venta encontrada',
-      };
-
+      return {'success': true, 'data': venta, 'message': 'Venta encontrada'};
     } catch (e) {
       print('❌ Error al obtener venta: $e');
       return {
@@ -159,7 +140,9 @@ class VentaService {
   }
 
   // Obtener ventas por usuario
-  static Future<Map<String, dynamic>> obtenerVentasPorUsuario(int idUsuario) async {
+  static Future<Map<String, dynamic>> obtenerVentasPorUsuario(
+    int idUsuario,
+  ) async {
     try {
       final response = await _client
           .from('Ventas')
@@ -167,16 +150,14 @@ class VentaService {
           .eq('id_Usuario', idUsuario)
           .order('fecha', ascending: false);
 
-      final ventas = (response as List)
-          .map((json) => Venta.fromJson(json))
-          .toList();
+      final ventas =
+          (response as List).map((json) => Venta.fromJson(json)).toList();
 
       return {
         'success': true,
         'data': ventas,
         'message': 'Ventas del usuario obtenidas exitosamente',
       };
-
     } catch (e) {
       print('❌ Error al obtener ventas por usuario: $e');
       return {
@@ -188,10 +169,13 @@ class VentaService {
   }
 
   // Obtener ventas por fecha
-  static Future<Map<String, dynamic>> obtenerVentasPorFecha(DateTime fecha) async {
+  static Future<Map<String, dynamic>> obtenerVentasPorFecha(
+    DateTime fecha,
+  ) async {
     try {
-      final fechaStr = fecha.toIso8601String().split('T')[0]; // Solo la fecha, sin hora
-      
+      final fechaStr =
+          fecha.toIso8601String().split('T')[0]; // Solo la fecha, sin hora
+
       final response = await _client
           .from('Ventas')
           .select()
@@ -199,16 +183,14 @@ class VentaService {
           .lt('fecha', '${fechaStr}T23:59:59.999Z')
           .order('fecha', ascending: false);
 
-      final ventas = (response as List)
-          .map((json) => Venta.fromJson(json))
-          .toList();
+      final ventas =
+          (response as List).map((json) => Venta.fromJson(json)).toList();
 
       return {
         'success': true,
         'data': ventas,
         'message': 'Ventas del día obtenidas exitosamente',
       };
-
     } catch (e) {
       print('❌ Error al obtener ventas por fecha: $e');
       return {
@@ -224,7 +206,7 @@ class VentaService {
     try {
       final hoy = DateTime.now();
       final fechaStr = hoy.toIso8601String().split('T')[0];
-      
+
       final response = await _client
           .from('Ventas')
           .select('total')
@@ -248,7 +230,6 @@ class VentaService {
         },
         'message': 'Total de ventas calculado exitosamente',
       };
-
     } catch (e) {
       print('❌ Error al calcular total de ventas: $e');
       return {
@@ -262,13 +243,11 @@ class VentaService {
   // Obtener estadísticas de ventas
   static Future<Map<String, dynamic>> obtenerEstadisticasVentas() async {
     try {
-      final todasVentas = await _client
-          .from('Ventas')
-          .select('total, fecha');
+      final todasVentas = await _client.from('Ventas').select('total, fecha');
 
       double totalGeneral = 0.0;
       int cantidadTotal = todasVentas.length;
-      
+
       for (var venta in todasVentas) {
         totalGeneral += (venta['total'] as num).toDouble();
       }
@@ -284,7 +263,6 @@ class VentaService {
         },
         'message': 'Estadísticas obtenidas exitosamente',
       };
-
     } catch (e) {
       print('❌ Error al obtener estadísticas: $e');
       return {
@@ -294,6 +272,7 @@ class VentaService {
       };
     }
   }
+
   // Verificar si un producto tiene ventas registradas
   static Future<bool> productoTieneVentas(int idProducto) async {
     try {
@@ -312,24 +291,22 @@ class VentaService {
 
   // Procesar venta desde carritoItems
   static Future<Map<String, dynamic>> procesarVenta({
-    required List<CarritoItem> carrito, 
-    String? cliente
+    required List<CarritoItem> carrito,
+    String? cliente,
   }) async {
     try {
       if (carrito.isEmpty) {
-        return {
-          'success': false,
-          'message': 'El carrito está vacío',
-        };
+        return {'success': false, 'message': 'El carrito está vacío'};
       }
 
       // Verificar que los productos existan
       for (var item in carrito) {
-        final productoResponse = await _client
-            .from('Productos')
-            .select('id')
-            .eq('id', item.productoId)
-            .maybeSingle();
+        final productoResponse =
+            await _client
+                .from('Productos')
+                .select('id')
+                .eq('id', item.productoId)
+                .maybeSingle();
 
         if (productoResponse == null) {
           return {
@@ -371,11 +348,12 @@ class VentaService {
       );
 
       // Insertar la venta
-      final response = await _client
-          .from('Ventas')
-          .insert(nuevaVenta.toJson())
-          .select()
-          .single();
+      final response =
+          await _client
+              .from('Ventas')
+              .insert(nuevaVenta.toJson())
+              .select()
+              .single();
 
       final ventaCreada = Venta.fromJson(response);
 
@@ -385,7 +363,6 @@ class VentaService {
         'venta_id': ventaCreada.id,
         'data': ventaCreada,
       };
-
     } on PostgrestException catch (e) {
       print('❌ Error PostgreSQL al procesar venta: ${e.message}');
       return {

@@ -90,11 +90,8 @@ class ProveedorService {
   // Obtener proveedor por ID
   static Future<Proveedor?> obtenerPorId(int id) async {
     try {
-      final response = await _client
-          .from(_tableName)
-          .select()
-          .eq('id', id)
-          .maybeSingle();
+      final response =
+          await _client.from(_tableName).select().eq('id', id).maybeSingle();
 
       return response != null ? Proveedor.fromJson(response) : null;
     } catch (e) {
@@ -133,11 +130,12 @@ class ProveedorService {
         throw Exception('Ya existe un proveedor con ese nombre');
       }
 
-      final response = await _client
-          .from(_tableName)
-          .insert(proveedor.toJson())
-          .select()
-          .single();
+      final response =
+          await _client
+              .from(_tableName)
+              .insert(proveedor.toJson())
+              .select()
+              .single();
 
       return Proveedor.fromJson(response);
     } catch (e) {
@@ -160,18 +158,19 @@ class ProveedorService {
       // Verificar si ya existe otro proveedor con el mismo nombre
       final existente = await _verificarProveedorExistente(
         proveedor.nombre,
-        proveedor.id
+        proveedor.id,
       );
       if (existente) {
         throw Exception('Ya existe otro proveedor con ese nombre');
       }
 
-      final response = await _client
-          .from(_tableName)
-          .update(proveedor.toJson())
-          .eq('id', proveedor.id!)
-          .select()
-          .single();
+      final response =
+          await _client
+              .from(_tableName)
+              .update(proveedor.toJson())
+              .eq('id', proveedor.id!)
+              .select()
+              .single();
 
       return Proveedor.fromJson(response);
     } catch (e) {
@@ -185,13 +184,12 @@ class ProveedorService {
       // Verificar si el proveedor está siendo utilizado
       final enUso = await _verificarEnUso(id);
       if (enUso) {
-        throw Exception('No se puede eliminar el proveedor porque tiene compras registradas');
+        throw Exception(
+          'No se puede eliminar el proveedor porque tiene compras registradas',
+        );
       }
 
-      await _client
-          .from(_tableName)
-          .delete()
-          .eq('id', id);
+      await _client.from(_tableName).delete().eq('id', id);
     } catch (e) {
       throw Exception('Error al eliminar proveedor: $e');
     }
@@ -215,12 +213,12 @@ class ProveedorService {
   }
 
   // Verificar si existe un proveedor con el mismo nombre
-  static Future<bool> _verificarProveedorExistente(String nombre, [int? excluirId]) async {
+  static Future<bool> _verificarProveedorExistente(
+    String nombre, [
+    int? excluirId,
+  ]) async {
     try {
-      var query = _client
-          .from(_tableName)
-          .select('id')
-          .ilike('nombre', nombre);
+      var query = _client.from(_tableName).select('id').ilike('nombre', nombre);
 
       if (excluirId != null) {
         query = query.neq('id', excluirId);
@@ -236,11 +234,12 @@ class ProveedorService {
   // Verificar si el proveedor está siendo utilizado
   static Future<bool> _verificarEnUso(int id) async {
     try {
-      final response = await _client
-          .from('compras')
-          .select('id')
-          .eq('id_proveedor', id)
-          .maybeSingle();
+      final response =
+          await _client
+              .from('compras')
+              .select('id')
+              .eq('id_proveedor', id)
+              .maybeSingle();
 
       return response != null;
     } catch (e) {
@@ -266,20 +265,21 @@ class ProveedorService {
         montoTotal += cantidad * precio;
       }
 
-      return {
-        'totalCompras': totalCompras,
-        'montoTotal': montoTotal,
-      };
+      return {'totalCompras': totalCompras, 'montoTotal': montoTotal};
     } catch (e) {
       throw Exception('Error al obtener estadísticas del proveedor: $e');
     }
   }
 
   // Obtener proveedores más activos
-  static Future<List<Map<String, dynamic>>> obtenerProveedoresMasActivos([int limite = 10]) async {
+  static Future<List<Map<String, dynamic>>> obtenerProveedoresMasActivos([
+    int limite = 10,
+  ]) async {
     try {
-      final response = await _client.rpc('obtener_proveedores_mas_activos', 
-          params: {'limite_param': limite});
+      final response = await _client.rpc(
+        'obtener_proveedores_mas_activos',
+        params: {'limite_param': limite},
+      );
 
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
@@ -299,8 +299,10 @@ class ProveedorService {
         }
 
         // Ordenar por total de compras
-        proveedoresConEstadisticas.sort((a, b) => 
-            (b['totalCompras'] as int).compareTo(a['totalCompras'] as int));
+        proveedoresConEstadisticas.sort(
+          (a, b) =>
+              (b['totalCompras'] as int).compareTo(a['totalCompras'] as int),
+        );
 
         return proveedoresConEstadisticas.take(limite).toList();
       }
