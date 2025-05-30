@@ -3,21 +3,31 @@ import '../models/categoria_proveedor.dart';
 
 class CategoriaProveedorService {
   static final SupabaseClient _supabase = Supabase.instance.client;
-  static const String _tableName = 'categoria_proveedor';
+  static const String _tableName = 'Categoria_producto';
 
   // Obtener todas las categorías
-  static Future<List<CategoriaProveedor>> obtenerTodas() async {
+  static Future<Map<String, dynamic>> obtenerTodas() async {
     try {
       final response = await _supabase
           .from(_tableName)
           .select()
           .order('nombre');
 
-      return (response as List)
+      final categorias = (response as List)
           .map((json) => CategoriaProveedor.fromJson(json))
           .toList();
+
+      return {
+        'success': true,
+        'data': categorias,
+        'message': 'Categorías obtenidas exitosamente',
+      };
     } catch (e) {
-      throw Exception('Error al obtener categorías de proveedor: $e');
+      return {
+        'success': false,
+        'error': e.toString(),
+        'message': 'Error al obtener categorías de proveedor: $e',
+      };
     }
   }
 
@@ -207,7 +217,12 @@ class CategoriaProveedorService {
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       // Fallback si no existe el stored procedure
-      final categorias = await obtenerTodas();
+      final response = await obtenerTodas();
+      if (!response['success']) {
+        throw Exception(response['message']);
+      }
+      
+      final categorias = response['data'] as List<CategoriaProveedor>;
       List<Map<String, dynamic>> categoriasConEstadisticas = [];
 
       for (final categoria in categorias) {

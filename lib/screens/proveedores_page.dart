@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/proveedor_form_panel.dart';
 import '../models/proveedor.dart';
+import '../models/categoria_proveedor.dart';
 import '../services/proveedor_service.dart';
 import '../services/categoria_proveedor_service.dart';
 
@@ -410,9 +411,24 @@ class _ProveedoresPageState extends State<ProveedoresPage> {
                                                 FutureBuilder<Map<String, dynamic>>(
                                                   future: CategoriaProveedorService.obtenerCategoriaPorId(proveedor.idCategoriaP),
                                                   builder: (context, snapshot) {
-                                                    String nombreCategoria = snapshot.hasData && snapshot.data!['success']
-                                                        ? snapshot.data!['data']['nombre']
-                                                        : 'Categoría ${proveedor.idCategoriaP}';
+                                                    if (snapshot.connectionState == ConnectionState.waiting) {
+                                                      return Text(
+                                                        'Cargando...',
+                                                        style: TextStyle(
+                                                          color: Colors.grey[600],
+                                                          fontSize: 12,
+                                                        ),
+                                                      );
+                                                    }
+                                                    
+                                                    String nombreCategoria;
+                                                    if (snapshot.hasData && snapshot.data!['success']) {
+                                                      final categoria = snapshot.data!['data'] as CategoriaProveedor;
+                                                      nombreCategoria = categoria.nombre;
+                                                    } else {
+                                                      nombreCategoria = 'Categoría ${proveedor.idCategoriaP}';
+                                                    }
+                                                    
                                                     return Text(
                                                       nombreCategoria,
                                                       style: TextStyle(
