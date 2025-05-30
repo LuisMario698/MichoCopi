@@ -8,12 +8,11 @@ class CategoriaProducto {
     required this.nombre,
     required this.conCaducidad,
   });
-
   factory CategoriaProducto.fromJson(Map<String, dynamic> json) {
     return CategoriaProducto(
-      id: json['id'] as int?,
+      id: json['id'] != null ? (json['id'] as num).toInt() : null,
       nombre: json['nombre'] as String,
-      conCaducidad: json['conCaducidad'] as bool,
+      conCaducidad: json['conCaducidad'] == true || json['conCaducidad'] == 'true',
     );
   }
 

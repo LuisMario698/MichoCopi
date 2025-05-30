@@ -40,10 +40,8 @@ class VentaService {
             'message': 'El producto con ID $idProducto no existe',
           };
         }
-      }
-
-      // Preparar datos para insertar
-      final ventaData = venta.toJson();
+      }      // Preparar datos para insertar usando el método específico
+      final ventaData = venta.toJsonForInsert();
 
       // Insertar la venta
       final response =
@@ -51,7 +49,7 @@ class VentaService {
               .from('Ventas')
               .insert(ventaData)
               .select()
-              .single(); // Ya no actualizamos el stock de productos vendidos
+              .single();// Ya no actualizamos el stock de productos vendidos
       for (int idProducto in venta.idProductos) {
         // Verificar que el producto aún existe
         await _client
@@ -287,12 +285,13 @@ class VentaService {
       print('❌ Error al verificar ventas del producto: $e');
       return false;
     }
-  }
-
-  // Procesar venta desde carritoItems
+  }  // Procesar venta desde carritoItems
   static Future<Map<String, dynamic>> procesarVenta({
     required List<CarritoItem> carrito,
-    String? cliente,
+    required double pago,
+    required double cambio,
+    bool pagoEnDolares = false,
+    double? tipoCambio,
   }) async {
     try {
       if (carrito.isEmpty) {
@@ -328,16 +327,15 @@ class VentaService {
         for (int i = 0; i < item.cantidad; i++) {
           idProductos.add(item.productoId);
         }
-      }
-
-      // En un entorno real, aquí se haría el cobro y se registraría el pago
-      double pago = total; // Asumimos que el pago es exacto por simplicidad
-      double cambio = 0.0;
-
+      }      // En un entorno real, aquí se haría el cobro y se registraría el pago
+      // Usar los valores proporcionados en lugar de calcular automáticamente
+      
       // Obtener ID del usuario (asumimos un usuario fijo para simplificar)
       int idUsuario = 1; // Usuario predeterminado, ajustar según tu sistema
 
-      // Crear objeto Venta
+      // Determinar el método de pago y tipo de cambio
+      String metodoPago = pagoEnDolares ? 'USD' : 'MXN';
+      double? tipoCambioVenta = pagoEnDolares ? tipoCambio : null;      // Crear objeto Venta con la información completa
       final nuevaVenta = Venta(
         idProductos: idProductos,
         total: total,
@@ -345,13 +343,13 @@ class VentaService {
         pago: pago,
         cambio: cambio,
         idUsuario: idUsuario,
-      );
-
-      // Insertar la venta
+        metodoPago: metodoPago,
+        tipoCambio: tipoCambioVenta,
+      );// Insertar la venta usando el método específico para insertar
       final response =
           await _client
               .from('Ventas')
-              .insert(nuevaVenta.toJson())
+              .insert(nuevaVenta.toJsonForInsert())
               .select()
               .single();
 

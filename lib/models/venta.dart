@@ -76,7 +76,6 @@ class Venta {
       if (estado != null) 'estado': estado,
     };
   }
-
   // Método especial para insertar (sin ID)
   Map<String, dynamic> toJsonForInsert() {
     return {
@@ -89,8 +88,6 @@ class Venta {
       if (idMpSeVende != null) 'id_mp_seVende': idMpSeVende,
       if (metodoPago != null) 'metodo_pago': metodoPago,
       if (tipoCambio != null) 'tipo_cambio': tipoCambio,
-      if (cliente != null) 'cliente': cliente,
-      'estado': estado ?? 'Completada',
     };
   }
 

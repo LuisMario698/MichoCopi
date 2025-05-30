@@ -17,6 +17,25 @@ class SideMenuWidget extends StatefulWidget {
 
 class _SideMenuWidgetState extends State<SideMenuWidget> {
   final Color primaryColor = const Color(0xFFC2185B);
+  bool _isNavigating = false;
+
+  void _handleNavigation(String page) {
+    if (_isNavigating) return;
+
+    setState(() {
+      _isNavigating = true;
+    });
+
+    widget.onMenuItemSelected(page);
+
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() {
+          _isNavigating = false;
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -164,7 +183,7 @@ class _SideMenuWidgetState extends State<SideMenuWidget> {
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
-          onTap: () => widget.onMenuItemSelected(page),
+          onTap: _isNavigating ? null : () => _handleNavigation(page),
           child: Container(
             padding: EdgeInsets.symmetric(
               horizontal: isWideScreen ? 16 : 12,
@@ -172,10 +191,9 @@ class _SideMenuWidgetState extends State<SideMenuWidget> {
             ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
-              border:
-                  isSelected
-                      ? Border(right: BorderSide(color: primaryColor, width: 3))
-                      : null,
+              border: isSelected
+                  ? Border(right: BorderSide(color: primaryColor, width: 3))
+                  : null,
             ),
             child: Row(
               children: [
@@ -191,10 +209,10 @@ class _SideMenuWidgetState extends State<SideMenuWidget> {
                       title,
                       style: TextStyle(
                         fontSize: 14,
-                        fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.w400,
-                        color: isSelected ? primaryColor : Colors.grey[700],
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                        color: isSelected ? primaryColor : Colors.grey[600],
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ] else ...[
@@ -204,8 +222,7 @@ class _SideMenuWidgetState extends State<SideMenuWidget> {
                       title,
                       style: TextStyle(
                         fontSize: 12,
-                        fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.w400,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                         color: isSelected ? primaryColor : Colors.grey[700],
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -228,9 +245,7 @@ class _SideMenuWidgetState extends State<SideMenuWidget> {
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
-          onTap: () {
-            _showLogoutDialog();
-          },
+          onTap: _isNavigating ? null : () => _showLogoutDialog(),
           child: Container(
             padding: EdgeInsets.symmetric(
               horizontal: isWideScreen ? 16 : 12,
@@ -274,6 +289,8 @@ class _SideMenuWidgetState extends State<SideMenuWidget> {
   }
 
   void _showLogoutDialog() {
+    if (_isNavigating) return;
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -290,12 +307,11 @@ class _SideMenuWidgetState extends State<SideMenuWidget> {
                 'Cancelar',
                 style: TextStyle(color: Colors.grey[600]),
               ),
-            ),            ElevatedButton(
+            ),
+            ElevatedButton(
               onPressed: () async {
                 Navigator.of(context).pop();
-                // Cerrar sesión usando AuthService
                 await AuthService.cerrarSesion();
-                // Navegar a login y limpiar el stack de navegación
                 if (context.mounted) {
                   Navigator.of(context).pushNamedAndRemoveUntil(
                     '/login',

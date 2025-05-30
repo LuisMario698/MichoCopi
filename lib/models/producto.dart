@@ -35,9 +35,10 @@ class Producto {
           json['id_Receta'] != null ? (json['id_Receta'] as num).toInt() : null,
       tamano: json['tamaño'] as String?,
       stock: json['stock'] != null ? (json['stock'] as num).toInt() : null,
-      fechaCaducidad: json['fecha_caducidad'] != null 
-          ? DateTime.parse(json['fecha_caducidad'] as String)
-          : null,
+      fechaCaducidad:
+          json['fecha_caducidad'] != null
+              ? DateTime.parse(json['fecha_caducidad'] as String)
+              : null,
     );
   }
 
@@ -51,7 +52,8 @@ class Producto {
       if (idReceta != null) 'id_Receta': idReceta,
       if (tamano != null) 'tamaño': tamano,
       if (stock != null) 'stock': stock,
-      if (fechaCaducidad != null) 'fecha_caducidad': fechaCaducidad!.toIso8601String().split('T')[0],
+      if (fechaCaducidad != null)
+        'fecha_caducidad': fechaCaducidad!.toIso8601String().split('T')[0],
     };
   }
 
@@ -64,7 +66,8 @@ class Producto {
       if (idReceta != null) 'id_Receta': idReceta,
       if (tamano != null) 'tamaño': tamano,
       if (stock != null) 'stock': stock,
-      if (fechaCaducidad != null) 'fecha_caducidad': fechaCaducidad!.toIso8601String().split('T')[0],
+      if (fechaCaducidad != null)
+        'fecha_caducidad': fechaCaducidad!.toIso8601String().split('T')[0],
     };
   }
 

@@ -96,9 +96,10 @@ class RecetaService {
       for (int i = 0; i < receta.idsMps.length; i++) {
         final idMateria = receta.idsMps[i];
         // Usar un valor predeterminado de 1 si no hay cantidades o el índice está fuera de rango
-        final cantidad = (receta.cantidades.isNotEmpty && i < receta.cantidades.length) 
-          ? receta.cantidades[i] 
-          : 1;
+        final cantidad =
+            (receta.cantidades.isNotEmpty && i < receta.cantidades.length)
+                ? receta.cantidades[i]
+                : 1;
 
         final materiaPrima =
             await _supabase
@@ -126,7 +127,7 @@ class RecetaService {
       if (idsMps.isEmpty) {
         return; // Si no hay materias primas, no hay nada que verificar
       }
-      
+
       for (final id in idsMps) {
         final materiaPrima =
             await _supabase

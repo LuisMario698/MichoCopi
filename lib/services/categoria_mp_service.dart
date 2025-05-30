@@ -13,10 +13,24 @@ class CategoriaMpService {
           .select()
           .order('nombre');
 
-      return (response as List)
-          .map((json) => CategoriaMp.fromJson(json))
-          .toList();
+      print('📝 Raw response from Supabase: $response'); // Debug print
+
+      return (response as List).map((json) {
+        print('📝 Processing JSON item: $json'); // Debug print for each item
+        try {
+          final categoria = CategoriaMp.fromJson(json);
+          print(
+            '✅ Successfully parsed category: ${categoria.nombre}',
+          ); // Success debug print
+          return categoria;
+        } catch (e, stackTrace) {
+          print('❌ Error parsing category JSON: $e'); // Error debug print
+          print('Stack trace: $stackTrace');
+          throw Exception('Error al procesar categoría: $e\nDatos: $json');
+        }
+      }).toList();
     } catch (e) {
+      print('❌ Error in obtenerTodas: $e'); // Error debug print
       throw Exception('Error al obtener categorías de materia prima: $e');
     }
   }
@@ -180,6 +194,16 @@ class CategoriaMpService {
       return {'totalMateriasPrimas': (materiaPrimaCount as List).length};
     } catch (e) {
       throw Exception('Error al obtener estadísticas: $e');
+    }
+  }
+
+  // Obtener nombre de categoría por ID
+  Future<String> obtenerNombreCategoria(int id) async {
+    try {
+      final categoria = await obtenerPorId(id);
+      return categoria?.nombre ?? 'Categoría no encontrada';
+    } catch (e) {
+      return 'Error: $e';
     }
   }
 }

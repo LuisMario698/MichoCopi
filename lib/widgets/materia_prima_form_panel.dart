@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:ui';
 import '../models/materia_prima.dart';
 import '../models/categoria_mp.dart';
 import '../services/categoria_mp_service.dart';
@@ -29,15 +30,14 @@ class _MateriaPrimaFormPanelState extends State<MateriaPrimaFormPanel>
   final _formKey = GlobalKey<FormState>();
   final _nombreController = TextEditingController();
   final _stockController = TextEditingController();
-  final _precioController = TextEditingController();
 
   List<CategoriaMp> _categorias = [];
   int? _categoriaSeleccionada;
-  bool _seVende = false;
   bool _isLoading = false;
   bool _isLoadingData = true;
-  bool _nombreExiste = false;
-  bool _validandoNombre = false;
+  bool _nombreTouched = false;
+  bool _stockTouched = false;
+  bool _categoriaTouched = false;
 
   @override
   void initState() {
@@ -51,6 +51,19 @@ class _MateriaPrimaFormPanelState extends State<MateriaPrimaFormPanel>
       curve: Curves.easeInOut,
     );
     _animationController.forward();
+
+    _nombreController.addListener(() {
+      if (_nombreController.text.isNotEmpty) {
+        setState(() => _nombreTouched = true);
+      }
+    });
+
+    _stockController.addListener(() {
+      if (_stockController.text.isNotEmpty) {
+        setState(() => _stockTouched = true);
+      }
+    });
+
     _cargarDatos();
     _inicializarFormulario();
   }
@@ -60,7 +73,6 @@ class _MateriaPrimaFormPanelState extends State<MateriaPrimaFormPanel>
     _animationController.dispose();
     _nombreController.dispose();
     _stockController.dispose();
-    _precioController.dispose();
     super.dispose();
   }
 
@@ -69,16 +81,7 @@ class _MateriaPrimaFormPanelState extends State<MateriaPrimaFormPanel>
       _nombreController.text = widget.materiaPrima!.nombre;
       _stockController.text = widget.materiaPrima!.stock.toString();
       _categoriaSeleccionada = widget.materiaPrima!.idCategoriaMp;
-      _seVende = widget.materiaPrima!.seVende;
-      if (widget.materiaPrima!.siVendePrecio != null) {
-        _precioController.text = widget.materiaPrima!.siVendePrecio.toString();
-      }
     }
-  }
-
-  Future<void> _cerrarPanel() async {
-    await _animationController.reverse();
-    widget.onClose();
   }
 
   Future<void> _cargarDatos() async {
@@ -101,41 +104,6 @@ class _MateriaPrimaFormPanelState extends State<MateriaPrimaFormPanel>
     }
   }
 
-  Future<void> _validarNombreMateria(String nombre) async {
-    if (nombre.trim().isEmpty) {
-      setState(() {
-        _nombreExiste = false;
-        _validandoNombre = false;
-      });
-      return;
-    }
-
-    setState(() {
-      _validandoNombre = true;
-    });
-
-    try {
-      // Aquí puedes implementar la validación de nombre si el servicio lo permite
-      // Por ahora solo simularemos la validación
-      await Future.delayed(const Duration(milliseconds: 500));
-      
-      if (mounted) {
-        setState(() {
-          _nombreExiste = false; // Cambiar según la lógica de validación real
-          _validandoNombre = false;
-        });
-      }
-    } catch (e) {
-      print('Error validando nombre: $e');
-      if (mounted) {
-        setState(() {
-          _nombreExiste = false;
-          _validandoNombre = false;
-        });
-      }
-    }
-  }
-
   Future<void> _guardarMateriaPrima() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -150,8 +118,8 @@ class _MateriaPrimaFormPanelState extends State<MateriaPrimaFormPanel>
         idCategoriaMp: _categoriaSeleccionada!,
         stock: int.parse(_stockController.text),
         fechaCreacion: widget.materiaPrima?.fechaCreacion ?? DateTime.now(),
-        seVende: _seVende,
-        siVendePrecio: _seVende ? double.parse(_precioController.text) : null,
+        seVende: false,
+        siVendePrecio: null,
       );
 
       if (widget.materiaPrima == null) {
@@ -186,394 +154,615 @@ class _MateriaPrimaFormPanelState extends State<MateriaPrimaFormPanel>
     );
   }
 
-  void _limpiarFormulario() {
-    _nombreController.clear();
-    _stockController.clear();
-    _precioController.clear();
-    setState(() {
-      _categoriaSeleccionada = null;
-      _seVende = false;
-      _nombreExiste = false;
-      _validandoNombre = false;
-    });
+  Future<void> _cerrarPanel() async {
+    await _animationController.reverse();
+    if (mounted) {
+      widget.onClose();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: _animation.value,
-          child: Dialog(
-            backgroundColor: Colors.transparent,
-            child: Container(
-              width: MediaQuery.of(context).size.width * 0.5,
-              height: MediaQuery.of(context).size.height * 0.8,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    spreadRadius: 0,
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
+    return Material(
+      type: MaterialType.transparency,
+      child: AnimatedBuilder(
+        animation: _animation,
+        builder: (context, child) {
+          return Stack(
+            children: [
+              // Fondo con blur
+              Positioned.fill(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                  child: Container(color: Colors.black.withOpacity(0.3)),
+                ),
               ),
-              child: Column(
-                children: [
-                  // Header
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFC2185B),
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(16),
-                        topRight: Radius.circular(16),
+              // Dialog
+              Center(
+                child: Transform.scale(
+                  scale: _animation.value,
+                  child: Container(
+                    width: MediaQuery.of(context).size.width * 0.35,
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(context).size.height * 0.7,
+                    ),
+                    child: Card(
+                      elevation: 12,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28),
                       ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.inventory_2,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            widget.materiaPrima == null
-                                ? 'Nueva Materia Prima'
-                                : 'Editar Materia Prima',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Header
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 28,
+                              vertical: 24,
                             ),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: _cerrarPanel,
-                          icon: const Icon(
-                            Icons.close,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Content
-                  Expanded(
-                    child: _isLoadingData
-                        ? const Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  const Color(0xFFC2185B),
+                                  const Color(0xFFC2185B).withOpacity(0.8),
+                                ],
+                              ),
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(28),
+                                topRight: Radius.circular(28),
+                              ),
+                            ),
+                            child: Row(
                               children: [
-                                CircularProgressIndicator(
-                                  color: Color(0xFFC2185B),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: const Icon(
+                                    Icons.inventory_2,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
                                 ),
-                                SizedBox(height: 16),
-                                Text('Cargando datos...'),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        widget.materiaPrima == null
+                                            ? 'Nueva Materia Prima'
+                                            : 'Editar Materia Prima',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Ingrese los datos de la materia prima',
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.8),
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed: _cerrarPanel,
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: Colors.white.withOpacity(
+                                      0.2,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  icon: const Icon(
+                                    Icons.close,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
                               ],
                             ),
-                          )
-                        : SingleChildScrollView(
-                            padding: const EdgeInsets.all(16),
-                            child: Form(
-                              key: _formKey,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  // Información básica
-                                  Card(
-                                    elevation: 0,
-                                    color: Colors.grey[50],
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(16),
+                          ),
+                          // Content
+                          Expanded(
+                            child:
+                                _isLoadingData
+                                    ? Center(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          const Row(
-                                            children: [
-                                              Icon(
-                                                Icons.info_outline,
-                                                color: Color(0xFFC2185B),
-                                                size: 20,
-                                              ),
-                                              SizedBox(width: 8),
-                                              Text(
-                                                'Información Básica',
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
+                                          Container(
+                                            padding: const EdgeInsets.all(16),
+                                            decoration: BoxDecoration(
+                                              color: const Color(
+                                                0xFFC2185B,
+                                              ).withOpacity(0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                            ),
+                                            child:
+                                                const CircularProgressIndicator(
+                                                  color: Color(0xFFC2185B),
+                                                  strokeWidth: 3,
                                                 ),
-                                              ),
-                                            ],
                                           ),
-                                          const SizedBox(height: 16),
-                                          TextFormField(
-                                            controller: _nombreController,
-                                            decoration: InputDecoration(
-                                              labelText: 'Nombre de la materia prima *',
-                                              prefixIcon: const Icon(
-                                                Icons.inventory_2,
-                                                color: Color(0xFFC2185B),
-                                              ),
-                                              border: OutlineInputBorder(
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
-                                              helperText: 'El nombre debe ser único',
-                                              suffixIcon: _validandoNombre
-                                                  ? const SizedBox(
-                                                      width: 20,
-                                                      height: 20,
-                                                      child: Padding(
-                                                        padding: EdgeInsets.all(8.0),
-                                                        child: CircularProgressIndicator(
-                                                          strokeWidth: 2,
-                                                        ),
-                                                      ),
-                                                    )
-                                                  : _nombreExiste
-                                                      ? const Icon(
-                                                          Icons.error,
-                                                          color: Colors.red,
-                                                        )
-                                                      : _nombreController.text.isNotEmpty
-                                                          ? const Icon(
-                                                              Icons.check_circle,
-                                                              color: Colors.green,
-                                                            )
-                                                          : null,
+                                          const SizedBox(height: 24),
+                                          Text(
+                                            'Cargando datos...',
+                                            style: TextStyle(
+                                              color: Colors.grey[700],
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w500,
                                             ),
-                                            validator: (value) {
-                                              if (value == null || value.trim().isEmpty) {
-                                                return 'El nombre es obligatorio';
-                                              }
-                                              if (value.trim().length < 2) {
-                                                return 'El nombre debe tener al menos 2 caracteres';
-                                              }
-                                              if (_nombreExiste) {
-                                                return 'Ya existe una materia prima con este nombre';
-                                              }
-                                              return null;
-                                            },
-                                            onChanged: (value) {
-                                              if (value.trim().length >= 2) {
-                                                _validarNombreMateria(value.trim());
-                                              }
-                                            },
                                           ),
-                                          const SizedBox(height: 16),
-                                          DropdownButtonFormField<int>(
-                                            value: _categoriaSeleccionada,
-                                            decoration: InputDecoration(
-                                              labelText: 'Categoría *',
-                                              prefixIcon: const Icon(
-                                                Icons.category,
-                                                color: Color(0xFFC2185B),
-                                              ),
-                                              border: OutlineInputBorder(
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            'Espere un momento por favor',
+                                            style: TextStyle(
+                                              color: Colors.grey[600],
+                                              fontSize: 14,
                                             ),
-                                            items: _categorias
-                                                .where((categoria) => categoria.id != null)
-                                                .map((categoria) {
-                                              return DropdownMenuItem<int>(
-                                                value: categoria.id!,
-                                                child: Text(categoria.nombre),
-                                              );
-                                            }).toList(),
-                                            onChanged: (value) {
-                                              setState(() {
-                                                _categoriaSeleccionada = value;
-                                              });
-                                            },
-                                            validator: (value) {
-                                              if (value == null) {
-                                                return 'Selecciona una categoría';
-                                              }
-                                              return null;
-                                            },
-                                          ),
-                                          const SizedBox(height: 16),
-                                          TextFormField(
-                                            controller: _stockController,
-                                            decoration: InputDecoration(
-                                              labelText: 'Stock inicial *',
-                                              prefixIcon: const Icon(
-                                                Icons.inventory,
-                                                color: Color(0xFFC2185B),
-                                              ),
-                                              border: OutlineInputBorder(
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
-                                              helperText: 'Cantidad disponible en inventario',
-                                            ),
-                                            keyboardType: TextInputType.number,
-                                            inputFormatters: [
-                                              FilteringTextInputFormatter.digitsOnly
-                                            ],
-                                            validator: (value) {
-                                              if (value == null || value.isEmpty) {
-                                                return 'El stock es requerido';
-                                              }
-                                              final stock = int.tryParse(value);
-                                              if (stock == null || stock < 0) {
-                                                return 'El stock debe ser un número válido mayor o igual a 0';
-                                              }
-                                              return null;
-                                            },
                                           ),
                                         ],
                                       ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  // Información de venta
-                                  Card(
-                                    elevation: 0,
-                                    color: Colors.grey[50],
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(16),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          const Row(
-                                            children: [
-                                              Icon(
-                                                Icons.sell,
-                                                color: Color(0xFFC2185B),
-                                                size: 20,
-                                              ),
-                                              SizedBox(width: 8),
-                                              Text(
-                                                'Información de Venta',
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 16),
-                                          SwitchListTile(
-                                            title: const Text('¿Se vende al público?'),
-                                            subtitle: const Text(
-                                              'Indica si esta materia prima también se vende como producto',
-                                            ),
-                                            value: _seVende,
-                                            activeColor: const Color(0xFFC2185B),
-                                            onChanged: (value) {
-                                              setState(() {
-                                                _seVende = value;
-                                                if (!value) {
-                                                  _precioController.clear();
-                                                }
-                                              });
-                                            },
-                                          ),
-                                          if (_seVende) ...[
-                                            const SizedBox(height: 16),
+                                    )
+                                    : SingleChildScrollView(
+                                      padding: const EdgeInsets.all(28),
+                                      child: Form(
+                                        key: _formKey,
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            // Nombre
                                             TextFormField(
-                                              controller: _precioController,
+                                              controller: _nombreController,
+                                              onTap:
+                                                  () => setState(
+                                                    () => _nombreTouched = true,
+                                                  ),
                                               decoration: InputDecoration(
-                                                labelText: 'Precio de venta *',
-                                                prefixIcon: const Icon(
-                                                  Icons.attach_money,
-                                                  color: Color(0xFFC2185B),
+                                                labelText: 'Nombre *',
+                                                hintText: 'Ej: Harina de trigo',
+                                                prefixIcon: AnimatedContainer(
+                                                  duration: const Duration(
+                                                    milliseconds: 200,
+                                                  ),
+                                                  padding: const EdgeInsets.all(
+                                                    12,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color:
+                                                        _nombreTouched
+                                                            ? const Color(
+                                                              0xFFC2185B,
+                                                            ).withOpacity(0.1)
+                                                            : Colors
+                                                                .transparent,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          8,
+                                                        ),
+                                                  ),
+                                                  child: Icon(
+                                                    Icons.inventory_2_outlined,
+                                                    color: const Color(
+                                                      0xFFC2185B,
+                                                    ),
+                                                  ),
                                                 ),
                                                 border: OutlineInputBorder(
-                                                  borderRadius: BorderRadius.circular(8),
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
+                                                  borderSide: BorderSide(
+                                                    color: Colors.grey[300]!,
+                                                  ),
                                                 ),
-                                                helperText: 'Precio por unidad de venta',
+                                                enabledBorder:
+                                                    OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            16,
+                                                          ),
+                                                      borderSide: BorderSide(
+                                                        color:
+                                                            Colors.grey[300]!,
+                                                      ),
+                                                    ),
+                                                focusedBorder:
+                                                    OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            16,
+                                                          ),
+                                                      borderSide:
+                                                          const BorderSide(
+                                                            color: Color(
+                                                              0xFFC2185B,
+                                                            ),
+                                                            width: 2,
+                                                          ),
+                                                    ),
+                                                floatingLabelStyle:
+                                                    const TextStyle(
+                                                      color: Color(0xFFC2185B),
+                                                    ),
+                                                helperText:
+                                                    'Ingrese el nombre de la materia prima',
+                                                helperStyle: TextStyle(
+                                                  color: Colors.grey[600],
+                                                ),
                                               ),
-                                              keyboardType: const TextInputType.numberWithOptions(
-                                                decimal: true,
+                                              validator: (value) {
+                                                if (value == null ||
+                                                    value.trim().isEmpty) {
+                                                  return 'El nombre es requerido';
+                                                }
+                                                return null;
+                                              },
+                                            ),
+                                            const SizedBox(height: 24),
+
+                                            // Categoría
+                                            DropdownButtonFormField<int>(
+                                              value: _categoriaSeleccionada,
+                                              onTap:
+                                                  () => setState(
+                                                    () =>
+                                                        _categoriaTouched =
+                                                            true,
+                                                  ),
+                                              decoration: InputDecoration(
+                                                labelText: 'Categoría *',
+                                                prefixIcon: AnimatedContainer(
+                                                  duration: const Duration(
+                                                    milliseconds: 200,
+                                                  ),
+                                                  padding: const EdgeInsets.all(
+                                                    12,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color:
+                                                        _categoriaTouched
+                                                            ? const Color(
+                                                              0xFFC2185B,
+                                                            ).withOpacity(0.1)
+                                                            : Colors
+                                                                .transparent,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          8,
+                                                        ),
+                                                  ),
+                                                  child: const Icon(
+                                                    Icons.category_outlined,
+                                                    color: Color(0xFFC2185B),
+                                                  ),
+                                                ),
+                                                border: OutlineInputBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
+                                                  borderSide: BorderSide(
+                                                    color: Colors.grey[300]!,
+                                                  ),
+                                                ),
+                                                helperText:
+                                                    'Seleccione la categoría de la materia prima',
+                                                helperStyle: TextStyle(
+                                                  color: Colors.grey[600],
+                                                ),
+                                                enabledBorder:
+                                                    OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            16,
+                                                          ),
+                                                      borderSide: BorderSide(
+                                                        color:
+                                                            Colors.grey[300]!,
+                                                      ),
+                                                    ),
+                                                focusedBorder:
+                                                    OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            16,
+                                                          ),
+                                                      borderSide:
+                                                          const BorderSide(
+                                                            color: Color(
+                                                              0xFFC2185B,
+                                                            ),
+                                                            width: 2,
+                                                          ),
+                                                    ),
+                                                floatingLabelStyle:
+                                                    const TextStyle(
+                                                      color: Color(0xFFC2185B),
+                                                    ),
                                               ),
+                                              items:
+                                                  _categorias.map((categoria) {
+                                                    return DropdownMenuItem(
+                                                      value: categoria.id,
+                                                      child: Text(
+                                                        categoria.nombre,
+                                                        style: const TextStyle(
+                                                          fontSize: 14,
+                                                        ),
+                                                      ),
+                                                    );
+                                                  }).toList(),
+                                              onChanged: (value) {
+                                                setState(() {
+                                                  _categoriaSeleccionada =
+                                                      value;
+                                                });
+                                              },
+                                              validator: (value) {
+                                                if (value == null) {
+                                                  return 'Seleccione una categoría';
+                                                }
+                                                return null;
+                                              },
+                                            ),
+                                            const SizedBox(height: 24),
+
+                                            // Stock
+                                            TextFormField(
+                                              controller: _stockController,
+                                              onTap:
+                                                  () => setState(
+                                                    () => _stockTouched = true,
+                                                  ),
+                                              decoration: InputDecoration(
+                                                labelText: 'Stock inicial *',
+                                                hintText: 'Ej: 100',
+                                                prefixIcon: AnimatedContainer(
+                                                  duration: const Duration(
+                                                    milliseconds: 200,
+                                                  ),
+                                                  padding: const EdgeInsets.all(
+                                                    12,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color:
+                                                        _stockTouched
+                                                            ? const Color(
+                                                              0xFFC2185B,
+                                                            ).withOpacity(0.1)
+                                                            : Colors
+                                                                .transparent,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          8,
+                                                        ),
+                                                  ),
+                                                  child: const Icon(
+                                                    Icons.inventory_outlined,
+                                                    color: Color(0xFFC2185B),
+                                                  ),
+                                                ),
+                                                border: OutlineInputBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
+                                                  borderSide: BorderSide(
+                                                    color: Colors.grey[300]!,
+                                                  ),
+                                                ),
+                                                helperText:
+                                                    'Ingrese la cantidad inicial en inventario',
+                                                helperStyle: TextStyle(
+                                                  color: Colors.grey[600],
+                                                ),
+                                                enabledBorder:
+                                                    OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            16,
+                                                          ),
+                                                      borderSide: BorderSide(
+                                                        color:
+                                                            Colors.grey[300]!,
+                                                      ),
+                                                    ),
+                                                focusedBorder:
+                                                    OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            16,
+                                                          ),
+                                                      borderSide:
+                                                          const BorderSide(
+                                                            color: Color(
+                                                              0xFFC2185B,
+                                                            ),
+                                                            width: 2,
+                                                          ),
+                                                    ),
+                                                floatingLabelStyle:
+                                                    const TextStyle(
+                                                      color: Color(0xFFC2185B),
+                                                    ),
+                                                suffixText: ' unidades',
+                                                suffixStyle: TextStyle(
+                                                  color: Colors.grey[700],
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                              keyboardType:
+                                                  TextInputType.number,
                                               inputFormatters: [
-                                                FilteringTextInputFormatter.allow(
-                                                  RegExp(r'^\d*\.?\d{0,2}'),
-                                                ),
+                                                FilteringTextInputFormatter
+                                                    .digitsOnly,
                                               ],
                                               validator: (value) {
-                                                if (!_seVende) return null;
-                                                if (value == null || value.isEmpty) {
-                                                  return 'El precio es requerido si la materia prima se vende';
+                                                if (value == null ||
+                                                    value.isEmpty) {
+                                                  return 'El stock es requerido';
                                                 }
-                                                final precio = double.tryParse(value);
-                                                if (precio == null || precio <= 0) {
-                                                  return 'El precio debe ser un número válido mayor a 0';
+                                                if (int.tryParse(value) ==
+                                                        null ||
+                                                    int.parse(value) < 0) {
+                                                  return 'Ingrese un número válido';
                                                 }
                                                 return null;
                                               },
                                             ),
                                           ],
+                                        ),
+                                      ),
+                                    ),
+                          ),
+                          // Buttons
+                          Container(
+                            padding: const EdgeInsets.all(28),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[50],
+                              border: Border(
+                                top: BorderSide(color: Colors.grey[200]!),
+                              ),
+                              borderRadius: const BorderRadius.only(
+                                bottomLeft: Radius.circular(28),
+                                bottomRight: Radius.circular(28),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                // Botón Cancelar con animación hover
+                                MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: TextButton(
+                                    onPressed: _isLoading ? null : _cerrarPanel,
+                                    style: TextButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 24,
+                                        vertical: 16,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.close,
+                                          size: 20,
+                                          color: Colors.grey[700],
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'Cancelar',
+                                          style: TextStyle(
+                                            color: Colors.grey[700],
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+
+                                // Botón Guardar con animación y gradiente
+                                MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(12),
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          const Color(0xFFC2185B),
+                                          const Color(
+                                            0xFFC2185B,
+                                          ).withOpacity(0.8),
                                         ],
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(
+                                            0xFFC2185B,
+                                          ).withOpacity(0.3),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: FilledButton.icon(
+                                      onPressed:
+                                          _isLoading
+                                              ? null
+                                              : _guardarMateriaPrima,
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: Colors.transparent,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 24,
+                                          vertical: 16,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                      ),
+                                      icon:
+                                          _isLoading
+                                              ? const SizedBox(
+                                                width: 20,
+                                                height: 20,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  valueColor:
+                                                      AlwaysStoppedAnimation<
+                                                        Color
+                                                      >(Colors.white),
+                                                ),
+                                              )
+                                              : const Icon(Icons.save_outlined),
+                                      label: Text(
+                                        widget.materiaPrima == null
+                                            ? 'Crear Materia Prima'
+                                            : 'Guardar Cambios',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 14,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
-                  ),
-                  // Footer con botones
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(16),
-                        bottomRight: Radius.circular(16),
+                        ],
                       ),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(
-                          onPressed: _isLoading ? null : _limpiarFormulario,
-                          child: const Text('Limpiar'),
-                        ),
-                        const SizedBox(width: 8),
-                        TextButton(
-                          onPressed: _isLoading ? null : _cerrarPanel,
-                          child: const Text('Cancelar'),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: _isLoading ? null : _guardarMateriaPrima,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFC2185B),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 12,
-                            ),
-                          ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : Text(widget.materiaPrima == null ? 'Agregar' : 'Actualizar'),
-                        ),
-                      ],
-                    ),
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-        );
-      },
+            ],
+          );
+        },
+      ),
     );
   }
 }

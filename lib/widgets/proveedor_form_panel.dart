@@ -2,9 +2,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/proveedor.dart';
-import '../models/categoria_producto.dart';
+import '../models/categoria_proveedor.dart';
 import '../services/proveedor_service.dart';
-import '../services/producto_service.dart';
+import '../services/categoria_proveedor_service.dart';
 
 class ProveedorFormPanel extends StatefulWidget {
   final VoidCallback onClose;
@@ -35,7 +35,7 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
   final _horaAperturaController = TextEditingController(text: '09:00');
   final _horaCierreController = TextEditingController(text: '18:00');
 
-  List<CategoriaProducto> _categorias = [];
+  List<CategoriaProveedor> _categorias = [];
   int? _categoriaSeleccionada;
   bool _isLoading = false;
   bool _isLoadingData = true;
@@ -91,12 +91,13 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
     });
 
     try {
-      final categoriasResult = await ProductoService.obtenerCategorias();
-
-      if (categoriasResult['success']) {
+      final response = await CategoriaProveedorService.obtenerTodas();
+      if (response['success']) {
         setState(() {
-          _categorias = categoriasResult['data'] as List<CategoriaProducto>;
+          _categorias = List<CategoriaProveedor>.from(response['data']);
         });
+      } else {
+        throw Exception(response['message']);
       }
     } catch (e) {
       print('💥 Error en _cargarDatos: $e');
@@ -171,19 +172,34 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
         horaCierre: _horaCierreController.text,
       );
 
+      Map<String, dynamic> result;
+
       if (widget.proveedor != null) {
         // Actualizar proveedor existente
-        await ProveedorService.actualizar(proveedor);
-        widget.onProveedorCreated(true);
+        result = await ProveedorService.actualizar(proveedor);
       } else {
         // Crear nuevo proveedor
-        await ProveedorService.crear(proveedor);
+        result = await ProveedorService.crear(proveedor);
+      }
+
+      if (result['success']) {
+        _mostrarSnackBar(
+          result['message'] ??
+              'Proveedor ${widget.proveedor != null ? 'actualizado' : 'creado'} exitosamente',
+          false,
+        );
         widget.onProveedorCreated(true);
+      } else {
+        _mostrarSnackBar(
+          result['message'] ??
+              'Error al ${widget.proveedor != null ? 'actualizar' : 'crear'} el proveedor',
+          true,
+        );
       }
     } catch (e) {
       print('Error al guardar: $e');
       _mostrarSnackBar(
-        'Error al ${widget.proveedor != null ? 'actualizar' : 'guardar'} el proveedor: ${e.toString()}',
+        'Error inesperado al ${widget.proveedor != null ? 'actualizar' : 'guardar'} el proveedor: ${e.toString()}',
         true,
       );
     } finally {

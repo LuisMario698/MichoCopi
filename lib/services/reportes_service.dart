@@ -570,7 +570,7 @@ class ReportesService {
 
       final ventas = ventasResult['data'] as List<Venta>;
       String csv = 'ID,Fecha,Total,Método de Pago,Cliente,Productos\n';
-      
+
       for (final venta in ventas) {
         csv +=
             '${venta.id ?? ""},${venta.fecha.toIso8601String()},${venta.total},${venta.metodoPago ?? "No especificado"},${venta.cliente ?? ""},${venta.idProductos.join(";")}\n';
@@ -600,7 +600,7 @@ class ReportesService {
 
       final productos = productosResult['data']['productos'] as List<Producto>;
       String csv = 'ID,Nombre,Precio,Stock,Categoría\n';
-      
+
       for (final producto in productos) {
         csv +=
             '${producto.id ?? ""},${producto.nombre},${producto.precio},${producto.stock ?? 0},${producto.idCategoriaProducto}\n';

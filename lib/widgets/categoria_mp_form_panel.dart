@@ -114,6 +114,7 @@ class _CategoriaMpFormPanelState extends State<CategoriaMpFormPanel>
       final categoria = CategoriaMp(
         id: widget.categoria?.id,
         nombre: _nombreController.text.trim(),
+        conCaducidad: true,
       );
 
       if (widget.categoria == null) {

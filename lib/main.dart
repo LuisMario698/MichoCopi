@@ -9,6 +9,7 @@ import 'package:invmicho/screens/reportes_page.dart';
 import 'package:invmicho/screens/ventas_page.dart';
 import 'package:invmicho/screens/inventario_page.dart';
 import 'package:invmicho/services/auth_service.dart';
+import 'package:invmicho/widgets/tipo_cambio_widget.dart';
 import 'package:invmicho/services/supabase_setup.dart';
 import 'package:invmicho/widgets/responsive_layout.dart';
 import 'package:invmicho/widgets/offline_banner.dart';
@@ -76,6 +77,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   String _selectedPage = 'dashboard';
   String _connectionStatus = 'Conectado a Supabase';
+  bool _isLoading = false;
+  bool _isNavigating = false;
 
   @override
   void initState() {
@@ -114,15 +117,37 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _onMenuItemSelected(String page) {
-    if (page == 'logout') {
-      _showLogoutDialog();
-      return;
-    }
+  Future<void> _onMenuItemSelected(String page) async {
+    if (_isNavigating || _isLoading) return; // Prevenir navegación múltiple
 
-    setState(() {
-      _selectedPage = page;
-    });
+    try {
+      setState(() {
+        _isNavigating = true;
+        _isLoading = true;
+      });
+
+      // Simular tiempo de carga mínimo para mejor UX
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      if (!mounted) return;
+
+      setState(() {
+        _selectedPage = page;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al cambiar de página: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isNavigating = false;
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   void _showLogoutDialog() {
@@ -321,8 +346,10 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ],
                       ),
-                    ),
-                  ),
+                    ),                  ),
+                  // Sección de Tipo de Cambio
+                  const SizedBox(height: 16),
+                  const TipoCambioWidget(),
                   // Sección de pruebas de BD
                   const SizedBox(height: 16),
                   Card(
@@ -351,22 +378,72 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Stack(
       children: [
-        OfflineBanner(
-          connectionStatus: _connectionStatus,
-          onRetry: _checkConnection,
+        Column(
+          children: [
+            OfflineBanner(
+              connectionStatus: _connectionStatus,
+              onRetry: _checkConnection,
+            ),
+            Expanded(
+              child: ResponsiveLayout(
+                selectedPage: _selectedPage,
+                onMenuItemSelected: _onMenuItemSelected,
+                child: _getCurrentPage(),
+              ),
+            ),
+          ],
         ),
-        Expanded(
-          child: ResponsiveLayout(
-            selectedPage: _selectedPage,
-            onMenuItemSelected: _onMenuItemSelected,
-            child: _getCurrentPage(),
+        if (_isLoading)
+          WillPopScope(
+            onWillPop: () async => false, // Prevenir navegación hacia atrás
+            child: Stack(
+              children: [
+                ModalBarrier(
+                  color: Colors.black.withOpacity(0.3),
+                  dismissible: false,
+                ),
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC2185B)),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Cargando...',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[800],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
       ],
     );
   }

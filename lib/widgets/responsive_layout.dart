@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'side_menu_widget.dart';
 
 class ResponsiveLayout extends StatefulWidget {
@@ -18,46 +19,57 @@ class ResponsiveLayout extends StatefulWidget {
 }
 
 class _ResponsiveLayoutState extends State<ResponsiveLayout> {
+  bool _isDragging = false;
+
   @override
   Widget build(BuildContext context) {
     final bool isWideScreen = MediaQuery.of(context).size.width > 800;
 
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: !isWideScreen ? _buildAppBar() : null,
-      drawer: !isWideScreen ? _buildDrawer() : null,
-      body: Row(
-        children: [
-          // Menú lateral fijo para pantallas grandes
-          if (isWideScreen)
-            SideMenuWidget(
-              onMenuItemSelected: widget.onMenuItemSelected,
-              selectedPage: widget.selectedPage,
-            ),
+    return WillPopScope(
+      onWillPop: () async => !_isDragging,
+      child: Scaffold(
+        backgroundColor: Colors.grey[50],
+        appBar: !isWideScreen ? _buildAppBar() : null,
+        drawerDragStartBehavior: DragStartBehavior.down,
+        onDrawerChanged: (isOpening) {
+          setState(() {
+            _isDragging = isOpening;
+          });
+        },
+        drawer: !isWideScreen ? _buildDrawer() : null,
+        body: Row(
+          children: [
+            // Menú lateral fijo para pantallas grandes
+            if (isWideScreen)
+              SideMenuWidget(
+                onMenuItemSelected: widget.onMenuItemSelected,
+                selectedPage: widget.selectedPage,
+              ),
 
-          // Contenido principal
-          Expanded(
-            child: Container(
-              margin: EdgeInsets.all(isWideScreen ? 16 : 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(isWideScreen ? 12 : 8),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    spreadRadius: 1,
-                    blurRadius: 5,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(isWideScreen ? 12 : 8),
-                child: widget.child,
+            // Contenido principal
+            Expanded(
+              child: Container(
+                margin: EdgeInsets.all(isWideScreen ? 16 : 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(isWideScreen ? 12 : 8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      spreadRadius: 1,
+                      blurRadius: 5,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(isWideScreen ? 12 : 8),
+                  child: widget.child,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

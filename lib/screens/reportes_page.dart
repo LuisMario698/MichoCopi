@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../services/reportes_service.dart';
+import '../services/producto_service.dart';
 import '../models/producto.dart';
 
 class ReportesPage extends StatefulWidget {
@@ -11,17 +12,24 @@ class ReportesPage extends StatefulWidget {
   State<ReportesPage> createState() => _ReportesPageState();
 }
 
-class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMixin {
+class _ReportesPageState extends State<ReportesPage>
+    with TickerProviderStateMixin {
   late TabController _tabController;
-  DateTime _fechaInicio = DateTime.now().subtract(const Duration(days: 30));
-  DateTime _fechaFin = DateTime.now();
-  bool _cargando = false;
-  
-  // Datos de reportes
+  bool _cargando = false; // Variables para el rango de fechas en ventas
+  DateTime _fechaInicioVentas = DateTime.now().subtract(
+    const Duration(days: 7),
+  );
+  DateTime _fechaFinVentas = DateTime.now();
+  final DateFormat formatoFecha = DateFormat('dd/MM/yyyy'); // Datos de reportes
   Map<String, dynamic>? _resumenVentas;
   List<Map<String, dynamic>>? _productosMasVendidos;
   Map<String, dynamic>? _reporteInventario;
-  Map<String, dynamic>? _resumenFinanciero;
+  List<Map<String, dynamic>>? _categorias;
+  List<dynamic>? _productos;
+
+  // Variables para barras de búsqueda
+  String _busquedaCategorias = '';
+  String _busquedaProductos = '';
 
   @override
   void initState() {
@@ -35,34 +43,65 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
     _tabController.dispose();
     super.dispose();
   }
-
   Future<void> _cargarTodosLosReportes() async {
+    if (!mounted) return;
+    
     setState(() {
       _cargando = true;
     });
 
     try {
+      // Usar los últimos 30 días como período fijo para productos e inventario
+      final fechaFin = DateTime.now();
+      final fechaInicio = fechaFin.subtract(
+        const Duration(days: 30),
+      );// Para ventas, usar el rango de fechas seleccionado
+      final fechaInicioVentas = DateTime(
+        _fechaInicioVentas.year,
+        _fechaInicioVentas.month,
+        _fechaInicioVentas.day,
+      );
+      final fechaFinVentas = DateTime(
+        _fechaFinVentas.year,
+        _fechaFinVentas.month,
+        _fechaFinVentas.day,
+        23,
+        59,
+        59,
+        999,
+      );
       final futures = await Future.wait([
         ReportesService.obtenerResumenVentas(
-          fechaInicio: _fechaInicio,
-          fechaFin: _fechaFin,
+          fechaInicio: fechaInicioVentas,
+          fechaFin: fechaFinVentas,
         ),
         ReportesService.obtenerProductosMasVendidos(
-          fechaInicio: _fechaInicio,
-          fechaFin: _fechaFin,
+          fechaInicio: fechaInicio,
+          fechaFin: fechaFin,
         ),
         ReportesService.obtenerReporteInventario(),
-        ReportesService.obtenerResumenFinanciero(
-          fechaInicio: _fechaInicio,
-          fechaFin: _fechaFin,
-        ),
+        ProductoService.obtenerCategorias(),
+        ProductoService.obtenerProductos(),
       ]);
-
       setState(() {
         if (futures[0]['success']) _resumenVentas = futures[0]['data'];
-        if (futures[1]['success']) _productosMasVendidos = List<Map<String, dynamic>>.from(futures[1]['data']);
+        if (futures[1]['success'])
+          _productosMasVendidos = List<Map<String, dynamic>>.from(
+            futures[1]['data'],
+          );
         if (futures[2]['success']) _reporteInventario = futures[2]['data'];
-        if (futures[3]['success']) _resumenFinanciero = futures[3]['data'];
+        if (futures[3]['success']) {
+          // Convertir la lista de CategoriaProducto a Map<String, dynamic>
+          _categorias =
+              (futures[3]['data'] as List).map((categoria) {
+                return {
+                  'id': categoria.id,
+                  'nombre': categoria.nombre,
+                  'conCaducidad': categoria.conCaducidad,
+                };
+              }).toList();
+        }
+        if (futures[4]['success']) _productos = futures[4]['data'];
       });
     } catch (e) {
       _mostrarError('Error al cargar reportes: $e');
@@ -70,6 +109,100 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
       setState(() {
         _cargando = false;
       });
+    }
+  }
+
+  // Cargar solo los datos de ventas with el rango de fechas seleccionado
+  Future<void> _cargarDatosVentas() async {
+    setState(() {
+      _cargando = true;
+    });
+
+    try {
+      // Usar el rango de fechas seleccionado
+      final fechaInicio = DateTime(
+        _fechaInicioVentas.year,
+        _fechaInicioVentas.month,
+        _fechaInicioVentas.day,
+      );
+      final fechaFin = DateTime(
+        _fechaFinVentas.year,
+        _fechaFinVentas.month,
+        _fechaFinVentas.day,
+        23,
+        59,
+        59,
+        999,
+      );
+
+      final resultado = await ReportesService.obtenerResumenVentas(
+        fechaInicio: fechaInicio,
+        fechaFin: fechaFin,
+      );
+
+      setState(() {
+        if (resultado['success']) _resumenVentas = resultado['data'];
+      });
+    } catch (e) {
+      _mostrarError('Error al cargar datos de ventas: $e');
+    } finally {
+      setState(() {
+        _cargando = false;
+      });
+    }
+  } // Seleccionar rango de fechas para el filtro de ventas
+
+  Future<void> _seleccionarFechaVentas() async {
+    final rango = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      initialDateRange: DateTimeRange(
+        start: _fechaInicioVentas,
+        end: _fechaFinVentas,
+      ),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(
+              context,
+            ).colorScheme.copyWith(primary: const Color(0xFFC2185B)),
+          ),
+          child: Center(
+            child: Container(
+              width: 500,
+              height: 400,
+              /*decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFC2185B).withOpacity(0.2),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),*/
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Dialog(
+                  insetPadding: const EdgeInsets.all(16),
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  child: child!,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (rango != null) {
+      setState(() {
+        _fechaInicioVentas = rango.start;
+        _fechaFinVentas = rango.end;
+      });
+      _cargarDatosVentas();
     }
   }
 
@@ -93,42 +226,6 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
     );
   }
 
-  Future<void> _seleccionarFecha(bool esInicio) async {
-    final fecha = await showDatePicker(
-      context: context,
-      initialDate: esInicio ? _fechaInicio : _fechaFin,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: const Color(0xFFC2185B),
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (fecha != null) {
-      setState(() {
-        if (esInicio) {
-          _fechaInicio = fecha;
-          if (_fechaInicio.isAfter(_fechaFin)) {
-            _fechaFin = _fechaInicio.add(const Duration(days: 1));
-          }
-        } else {
-          _fechaFin = fecha;
-          if (_fechaFin.isBefore(_fechaInicio)) {
-            _fechaInicio = _fechaFin.subtract(const Duration(days: 1));
-          }
-        }
-      });
-      _cargarTodosLosReportes();
-    }
-  }
-
   Future<void> _exportarCSV(String tipoReporte) async {
     setState(() {
       _cargando = true;
@@ -137,30 +234,49 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
     try {
       String csvData = '';
       String nombreArchivo = '';
-
       switch (tipoReporte) {
         case 'ventas':
+          // Usar el rango de fechas seleccionado por el usuario
+          final fechaInicio = DateTime(
+            _fechaInicioVentas.year,
+            _fechaInicioVentas.month,
+            _fechaInicioVentas.day,
+          );
+          final fechaFin = DateTime(
+            _fechaFinVentas.year,
+            _fechaFinVentas.month,
+            _fechaFinVentas.day,
+            23,
+            59,
+            59,
+            999,
+          );
+
           final result = await ReportesService.exportarVentasCSV(
-            fechaInicio: _fechaInicio,
-            fechaFin: _fechaFin,
+            fechaInicio: fechaInicio,
+            fechaFin: fechaFin,
           );
           if (result['success']) {
             csvData = result['data'];
-            nombreArchivo = 'ventas_${DateFormat('yyyy-MM-dd').format(_fechaInicio)}_${DateFormat('yyyy-MM-dd').format(_fechaFin)}.csv';
+            nombreArchivo =
+                'ventas_${DateFormat('yyyy-MM-dd').format(_fechaInicioVentas)}_${DateFormat('yyyy-MM-dd').format(_fechaFinVentas)}.csv';
           }
           break;
         case 'productos':
           final result = await ReportesService.exportarProductosCSV();
           if (result['success']) {
             csvData = result['data'];
-            nombreArchivo = 'productos_${DateFormat('yyyy-MM-dd').format(DateTime.now())}.csv';
+            nombreArchivo =
+                'productos_${DateFormat('yyyy-MM-dd').format(DateTime.now())}.csv';
           }
           break;
       }
 
       if (csvData.isNotEmpty) {
         await Clipboard.setData(ClipboardData(text: csvData));
-        _mostrarExito('Datos CSV copiados al portapapeles. Nombre sugerido: $nombreArchivo');
+        _mostrarExito(
+          'Datos CSV copiados al portapapeles. Nombre sugerido: $nombreArchivo',
+        );
       }
     } catch (e) {
       _mostrarError('Error al exportar: $e');
@@ -173,31 +289,42 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          // Header mejorado
-          _buildHeader(),
-          
-          // Tabs
-          _buildTabBar(),
-          
-          // Contenido de las tabs
-          Expanded(
-            child: _cargando
-                ? _buildLoadingState()
-                : TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildDashboardTab(),
-                      _buildVentasTab(),
-                      _buildInventarioTab(),
-                      _buildFinancieroTab(),
-                    ],
-                  ),
+    return Stack(
+      children: [
+        Scaffold(
+          body: Column(
+            children: [
+              // Header mejorado
+              _buildHeader(),
+
+              // Tabs
+              _buildTabBar(),
+              // Contenido de las tabs
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildVentasTab(),
+                    _buildProductosTab(),
+                    _buildMateriaPrimaTab(),
+                    _buildCortesTab(),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+        if (_cargando)
+          Stack(
+            children: [
+              ModalBarrier(
+                color: Colors.black.withOpacity(0.3),
+                dismissible: false,
+              ),
+              _buildLoadingState(),
+            ],
+          ),
+      ],
     );
   }
 
@@ -239,8 +366,6 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
                     color: Colors.white,
                   ),
                 ),
-                const Spacer(),
-                _buildFechaSelector(),
               ],
             ),
             const SizedBox(height: 8),
@@ -257,65 +382,6 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
     );
   }
 
-  Widget _buildFechaSelector() {
-    final formatoFecha = DateFormat('dd/MM/yyyy');
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.date_range,
-            color: Colors.white,
-            size: 20,
-          ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: () => _seleccionarFecha(true),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                formatoFecha.format(_fechaInicio),
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-              ),
-            ),
-          ),
-          const Text(' - ', style: TextStyle(color: Colors.white)),
-          GestureDetector(
-            onTap: () => _seleccionarFecha(false),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                formatoFecha.format(_fechaFin),
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            onPressed: _cargarTodosLosReportes,
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            tooltip: 'Actualizar reportes',
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildTabBar() {
     return Container(
       color: Colors.white,
@@ -326,22 +392,10 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
         indicatorColor: const Color(0xFFC2185B),
         indicatorWeight: 3,
         tabs: const [
-          Tab(
-            icon: Icon(Icons.dashboard_rounded),
-            text: 'Dashboard',
-          ),
-          Tab(
-            icon: Icon(Icons.shopping_cart_rounded),
-            text: 'Ventas',
-          ),
-          Tab(
-            icon: Icon(Icons.inventory_rounded),
-            text: 'Inventario',
-          ),
-          Tab(
-            icon: Icon(Icons.account_balance_rounded),
-            text: 'Financiero',
-          ),
+          Tab(icon: Icon(Icons.shopping_cart_rounded), text: 'Ventas'),
+          Tab(icon: Icon(Icons.inventory_2_rounded), text: 'Productos'),
+          Tab(icon: Icon(Icons.category_rounded), text: 'Materia Prima'),
+          Tab(icon: Icon(Icons.content_cut_rounded), text: 'Cortes'),
         ],
       ),
     );
@@ -352,39 +406,12 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(
-            color: Color(0xFFC2185B),
-            strokeWidth: 3,
-          ),
+          CircularProgressIndicator(color: Color(0xFFC2185B), strokeWidth: 3),
           SizedBox(height: 16),
           Text(
             'Cargando reportes...',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDashboardTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Resumen general
-          _buildResumenGeneral(),
-          const SizedBox(height: 24),
-          
-          // Métricas principales
-          _buildMetricasPrincipales(),
-          const SizedBox(height: 24),
-          
-          // Productos más vendidos (vista compacta)
-          _buildTopProductosCompacto(),
         ],
       ),
     );
@@ -401,12 +428,52 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
             children: [
               const Text(
                 'Análisis de Ventas',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const Spacer(),
+              // Date picker específico para ventas (un solo día)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFC2185B).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFFC2185B).withOpacity(0.3),
+                  ),
+                ),
+                child: GestureDetector(
+                  onTap: _seleccionarFechaVentas,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.event,
+                        color: Color(0xFFC2185B),
+                        size: 18,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${formatoFecha.format(_fechaInicioVentas)} - ${formatoFecha.format(_fechaFinVentas)}',
+                        style: const TextStyle(
+                          color: Color(0xFFC2185B),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.arrow_drop_down,
+                        color: Color(0xFFC2185B),
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
               ElevatedButton.icon(
                 onPressed: () => _exportarCSV('ventas'),
                 icon: const Icon(Icons.download),
@@ -419,19 +486,19 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
             ],
           ),
           const SizedBox(height: 24),
-          
+
           // Tarjetas de ventas
           if (_resumenVentas != null) ...[
             _buildTarjetasVentas(),
             const SizedBox(height: 24),
-            
+
             // Ventas por día y método de pago
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(child: _buildVentasPorDia()),
+                Expanded(flex: 4, child: _buildVentasPorDia()),
                 const SizedBox(width: 16),
-                Expanded(child: _buildVentasPorMetodoPago()),
+                Expanded(flex: 2, child: _buildVentasPorMetodoPago()),
               ],
             ),
           ] else
@@ -441,7 +508,7 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
     );
   }
 
-  Widget _buildInventarioTab() {
+  Widget _buildProductosTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -450,13 +517,55 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
           Row(
             children: [
               const Text(
-                'Gestión de Inventario',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                'Análisis de Productos',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const Spacer(),
+
+              // Date picker específico para ventas (un solo día)
+              const Spacer(), // Date picker específico para ventas (rango de fechas)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFC2185B).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFFC2185B).withOpacity(0.3),
+                  ),
+                ),
+                child: GestureDetector(
+                  onTap: _seleccionarFechaVentas,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.event,
+                        color: Color(0xFFC2185B),
+                        size: 18,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${formatoFecha.format(_fechaInicioVentas)} - ${formatoFecha.format(_fechaFinVentas)}',
+                        style: const TextStyle(
+                          color: Color(0xFFC2185B),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.arrow_drop_down,
+                        color: Color(0xFFC2185B),
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
               ElevatedButton.icon(
                 onPressed: () => _exportarCSV('productos'),
                 icon: const Icon(Icons.download),
@@ -469,235 +578,132 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
             ],
           ),
           const SizedBox(height: 24),
-          
-          if (_reporteInventario != null) 
-            _buildReporteInventario()
-          else
-            _buildNoDataCard('inventario'),
+          if (_productosMasVendidos != null &&
+              _productosMasVendidos!.isNotEmpty) ...[
+            _buildTopProductosCompacto(),
+            const SizedBox(height: 24),
+            SizedBox(
+              height: 600, // Alto definido para las tablas
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _buildTablaCategorias()),
+                  const SizedBox(width: 16),
+                  Expanded(child: _buildTablaProductos()),
+                ],
+              ),
+            ),
+          ] else
+            _buildNoDataCard('productos'),
         ],
       ),
     );
   }
 
-  Widget _buildFinancieroTab() {
+  Widget _buildMateriaPrimaTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Análisis Financiero',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            children: [
+              const Text(
+                'Inventario de Materia Prima',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
+              // Date picker específico para ventas (rango de fechas)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFC2185B).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFFC2185B).withOpacity(0.3),
+                  ),
+                ),
+                child: GestureDetector(
+                  onTap: _seleccionarFechaVentas,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.event,
+                        color: Color(0xFFC2185B),
+                        size: 18,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${formatoFecha.format(_fechaInicioVentas)} - ${formatoFecha.format(_fechaFinVentas)}',
+                        style: const TextStyle(
+                          color: Color(0xFFC2185B),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.arrow_drop_down,
+                        color: Color(0xFFC2185B),
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              ElevatedButton.icon(
+                onPressed: () => _exportarCSV('materia-prima'),
+                icon: const Icon(Icons.download),
+                label: const Text('Exportar CSV'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFC2185B),
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
-          
-          if (_resumenFinanciero != null) 
-            _buildResumenFinanciero()
-          else
-            _buildNoDataCard('financiero'),
+          if (_reporteInventario != null) ...[
+            _buildReporteInventario(),
+          ] else
+            _buildNoDataCard('materia prima'),
         ],
       ),
     );
   }
 
-  Widget _buildResumenGeneral() {
-    if (_resumenVentas == null) return _buildNoDataCard('resumen general');
-
-    final totalVentas = _resumenVentas!['totalVentas'] ?? 0;
-    final ingresoTotal = _resumenVentas!['ingresoTotal'] ?? 0.0;
-    final promedioVenta = _resumenVentas!['promedioVenta'] ?? 0.0;
-
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              const Color(0xFFC2185B).withOpacity(0.1),
-              Colors.white,
-            ],
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFC2185B),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.trending_up,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                const Text(
-                  'Resumen del Período',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildMetricaItem(
-                    'Ventas Totales',
-                    totalVentas.toString(),
-                    Icons.shopping_cart,
-                    Colors.blue,
-                  ),
-                ),
-                Expanded(
-                  child: _buildMetricaItem(
-                    'Ingresos',
-                    '\$${ingresoTotal.toStringAsFixed(2)}',
-                    Icons.attach_money,
-                    Colors.green,
-                  ),
-                ),
-                Expanded(
-                  child: _buildMetricaItem(
-                    'Promedio/Venta',
-                    '\$${promedioVenta.toStringAsFixed(2)}',
-                    Icons.analytics,
-                    Colors.orange,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMetricaItem(String titulo, String valor, IconData icono, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2)),
-      ),
+  Widget _buildCortesTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icono, color: color, size: 32),
-          const SizedBox(height: 8),
-          Text(
-            valor,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            titulo,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMetricasPrincipales() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildMetricaCard(
-            'Estado del Inventario',
-            _reporteInventario != null 
-                ? '${_reporteInventario!['totalProductos'] ?? 0} productos'
-                : 'N/A',
-            Icons.inventory,
-            Colors.purple,
-            _reporteInventario != null 
-                ? 'Stock bajo: ${_reporteInventario!['stockBajo'] ?? 0}'
-                : '',
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildMetricaCard(
-            'Productos Activos',
-            _productosMasVendidos != null 
-                ? '${_productosMasVendidos!.length} productos'
-                : 'N/A',
-            Icons.trending_up,
-            Colors.teal,
-            'Con ventas en el período',
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMetricaCard(String titulo, String valor, IconData icono, Color color, String subtitulo) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icono, color: color, size: 24),
-                const SizedBox(width: 12),
-                Text(
-                  titulo,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              valor,
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: color,
+          Row(
+            children: [
+              const Text(
+                'Cortes de Inventario',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
-            ),
-            if (subtitulo.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                subtitulo,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
+              const Spacer(),
+              ElevatedButton.icon(
+                onPressed: () => _mostrarDialogoCorte(),
+                icon: const Icon(Icons.content_cut),
+                label: const Text('Nuevo Corte'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFC2185B),
+                  foregroundColor: Colors.white,
                 ),
               ),
             ],
-          ],
-        ),
+          ),
+          const SizedBox(height: 24),
+          _buildNoDataCard('cortes de inventario'),
+        ],
       ),
     );
   }
@@ -721,18 +727,15 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
                 SizedBox(width: 12),
                 Text(
                   'Top Productos',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            ..._productosMasVendidos!.take(5).map((item) {
+            ..._productosMasVendidos!.take(3).map((item) {
               final producto = item['producto'] as Producto;
               final cantidad = item['cantidadVendida'] as int;
-              
+
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Row(
@@ -757,9 +760,7 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
                         children: [
                           Text(
                             producto.nombre,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
                           Text(
                             '$cantidad unidades vendidas',
@@ -772,7 +773,10 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.green.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
@@ -829,7 +833,12 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
     );
   }
 
-  Widget _buildTarjetaEstadistica(String titulo, String valor, IconData icono, Color color) {
+  Widget _buildTarjetaEstadistica(
+    String titulo,
+    String valor,
+    IconData icono,
+    Color color,
+  ) {
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -840,10 +849,7 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              color.withOpacity(0.1),
-              Colors.white,
-            ],
+            colors: [color.withOpacity(0.1), Colors.white],
           ),
         ),
         child: Column(
@@ -888,7 +894,8 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
   }
 
   Widget _buildVentasPorDia() {
-    final ventasPorDia = _resumenVentas!['ventasPorDia'] as Map<String, dynamic>;
+    final ventasPorDia =
+        _resumenVentas!['ventasPorDia'] as Map<String, dynamic>;
 
     return Card(
       elevation: 2,
@@ -898,11 +905,16 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            // Header con título y filtro de fecha
+            Row(
               children: [
-                Icon(Icons.calendar_today, color: Color(0xFFC2185B), size: 20),
-                SizedBox(width: 8),
-                Text(
+                const Icon(
+                  Icons.calendar_today,
+                  color: Color(0xFFC2185B),
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                const Text(
                   'Ventas por Día',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
@@ -910,10 +922,12 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
             ),
             const SizedBox(height: 16),
             ...ventasPorDia.entries.map((entry) {
-              final fecha = DateFormat('dd/MM/yyyy').format(DateTime.parse(entry.key));
+              final fecha = DateFormat(
+                'dd/MM/yyyy',
+              ).format(DateTime.parse(entry.key));
               final cantidad = entry.value['cantidad'];
               final total = entry.value['total'];
-              
+
               return Container(
                 margin: const EdgeInsets.symmetric(vertical: 4),
                 padding: const EdgeInsets.all(12),
@@ -943,7 +957,8 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
   }
 
   Widget _buildVentasPorMetodoPago() {
-    final ventasPorMetodo = _resumenVentas!['ventasPorMetodoPago'] as Map<String, dynamic>;
+    final ventasPorMetodo =
+        _resumenVentas!['ventasPorMetodoPago'] as Map<String, dynamic>;
 
     return Card(
       elevation: 2,
@@ -968,7 +983,7 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
               final metodo = entry.key;
               final cantidad = entry.value['cantidad'];
               final total = entry.value['total'];
-              
+
               IconData icono;
               Color color;
               switch (metodo.toLowerCase()) {
@@ -984,7 +999,7 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
                   icono = Icons.payment;
                   color = Colors.grey;
               }
-              
+
               return Container(
                 margin: const EdgeInsets.symmetric(vertical: 4),
                 padding: const EdgeInsets.all(12),
@@ -1056,11 +1071,13 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
           ],
         ),
         const SizedBox(height: 16),
-        
+
         // Valor total del inventario
         Card(
           elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Row(
@@ -1102,47 +1119,6 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
     );
   }
 
-  Widget _buildResumenFinanciero() {
-    final totalVentas = _resumenFinanciero!['totalVentas'] ?? 0.0;
-    final margenBruto = _resumenFinanciero!['margenBruto'] ?? 0.0;
-    final crecimiento = _resumenFinanciero!['crecimiento'] ?? 0.0;
-
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: _buildTarjetaEstadistica(
-                'Ingresos del Período',
-                '\$${totalVentas.toStringAsFixed(2)}',
-                Icons.trending_up_rounded,
-                Colors.green,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildTarjetaEstadistica(
-                'Margen Bruto',
-                '${margenBruto.toStringAsFixed(1)}%',
-                Icons.percent_rounded,
-                Colors.blue,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildTarjetaEstadistica(
-                'Crecimiento',
-                '${crecimiento > 0 ? '+' : ''}${crecimiento.toStringAsFixed(1)}%',
-                crecimiento >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
-                crecimiento >= 0 ? Colors.green : Colors.red,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
   Widget _buildNoDataCard(String tipo) {
     return Card(
       elevation: 2,
@@ -1153,11 +1129,7 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.analytics_outlined,
-              size: 64,
-              color: Colors.grey[400],
-            ),
+            Icon(Icons.analytics_outlined, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
               'No hay datos de $tipo disponibles',
@@ -1170,11 +1142,382 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
             const SizedBox(height: 8),
             Text(
               'Los datos aparecerán aquí cuando haya información disponible',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[500],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
               textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _mostrarDialogoCorte() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Nuevo Corte de Inventario'),
+            content: const Text(
+              'Funcionalidad de cortes de inventario estará disponible próximamente.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Entendido'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Widget _buildTablaCategorias() {
+    if (_categorias == null || _categorias!.isEmpty) {
+      return _buildNoDataCard('categorías');
+    }
+
+    // Filtrar categorías según el término de búsqueda
+    final categoriasFiltradas =
+        _categorias!.where((categoria) {
+          final nombre = (categoria['nombre'] ?? '').toString().toLowerCase();
+          return nombre.contains(_busquedaCategorias.toLowerCase());
+        }).toList();
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.category, color: Color(0xFFC2185B), size: 24),
+                SizedBox(width: 12),
+                Text(
+                  'Categorías de Productos',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Barra de búsqueda para categorías
+            TextField(
+              decoration: InputDecoration(
+                hintText: 'Buscar categorías...',
+                prefixIcon: const Icon(Icons.search, color: Color(0xFFC2185B)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFC2185B),
+                    width: 2,
+                  ),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _busquedaCategorias = value;
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Contenedor con altura fija y scroll para la tabla
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    // Header de la tabla (fijo)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFC2185B).withOpacity(0.1),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(8),
+                          topRight: Radius.circular(8),
+                        ),
+                      ),
+                      child: const Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Nombre',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFC2185B),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Contenido scrolleable
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: categoriasFiltradas.length,
+                        itemBuilder: (context, index) {
+                          final categoria = categoriasFiltradas[index];
+                          final nombre = categoria['nombre'] ?? 'Sin nombre';
+                          return Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(color: Colors.grey[200]!),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    nombre,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Mostrar contador de resultados
+            if (_busquedaCategorias.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Mostrando ${categoriasFiltradas.length} de ${_categorias!.length} categorías',
+                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTablaProductos() {
+    if (_productos == null || _productos!.isEmpty) {
+      return _buildNoDataCard('productos');
+    }
+
+    // Crear un mapa de categorías para obtener el nombre por ID
+    final Map<int, String> categoriasMap = {};
+    if (_categorias != null) {
+      for (final categoria in _categorias!) {
+        categoriasMap[categoria['id']] = categoria['nombre'] ?? 'Sin categoría';
+      }
+    }
+
+    // Filtrar productos según el término de búsqueda
+    final productosFiltrados =
+        _productos!.where((productoData) {
+          final producto =
+              productoData is Producto
+                  ? productoData
+                  : Producto.fromJson(productoData as Map<String, dynamic>);
+
+          final nombre = producto.nombre.toLowerCase();
+          final categoria =
+              categoriasMap[producto.idCategoriaProducto] ?? 'Sin categoría';
+          final precio = producto.precio.toString();
+
+          final busqueda = _busquedaProductos.toLowerCase();
+          return nombre.contains(busqueda) ||
+              categoria.toLowerCase().contains(busqueda) ||
+              precio.contains(busqueda);
+        }).toList();
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.table_chart, color: Color(0xFFC2185B), size: 20),
+                SizedBox(width: 8),
+                Text(
+                  'Lista de Productos',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Barra de búsqueda para productos
+            TextField(
+              decoration: InputDecoration(
+                hintText: 'Buscar productos por nombre, categoría o precio...',
+                prefixIcon: const Icon(Icons.search, color: Color(0xFFC2185B)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFC2185B),
+                    width: 2,
+                  ),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _busquedaProductos = value;
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Contenedor con altura fija y scroll para la tabla
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    // Header de la tabla (fijo)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFC2185B).withOpacity(0.1),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(8),
+                          topRight: Radius.circular(8),
+                        ),
+                      ),
+                      child: const Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Text(
+                              'Nombre',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFC2185B),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              'Precio',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFC2185B),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              'Categoría',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFC2185B),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Contenido scrolleable
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: productosFiltrados.length,
+                        itemBuilder: (context, index) {
+                          final productoData = productosFiltrados[index];
+                          final producto =
+                              productoData is Producto
+                                  ? productoData
+                                  : Producto.fromJson(
+                                    productoData as Map<String, dynamic>,
+                                  );
+
+                          final nombreCategoria =
+                              categoriasMap[producto.idCategoriaProducto] ??
+                              'Sin categoría';
+
+                          return Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(color: Colors.grey[200]!),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  flex: 3,
+                                  child: Text(
+                                    producto.nombre,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(
+                                    '\$${producto.precio.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      color: Colors.green[700],
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(
+                                    nombreCategoria,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Mostrar contador de resultados
+            const SizedBox(height: 12),
+            Text(
+              _busquedaProductos.isNotEmpty
+                  ? 'Mostrando ${productosFiltrados.length} productos encontrados'
+                  : 'Mostrando ${productosFiltrados.length} de ${_productos!.length} productos',
+              style: TextStyle(color: Colors.grey[600], fontSize: 12),
             ),
           ],
         ),

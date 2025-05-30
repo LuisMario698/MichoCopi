@@ -5,9 +5,9 @@ class Proveedor {
   final int telefono;
   final int idCategoriaP;
   final String? email;
-  final String? horario;          // Campo adicional según esquema DB
-  final String horaApertura;      // Formato "HH:mm"
-  final String horaCierre;        // Formato "HH:mm"
+  final String? horario; // Campo adicional según esquema DB
+  final String horaApertura; // Formato "HH:mm"
+  final String horaCierre; // Formato "HH:mm"
 
   Proveedor({
     this.id,
@@ -150,19 +150,19 @@ class Proveedor {
   // Método para validar todos los campos
   List<String> validar() {
     List<String> errores = [];
-    
+
     String? errorNombre = validarNombre();
     if (errorNombre != null) errores.add(errorNombre);
-    
+
     String? errorDireccion = validarDireccion();
     if (errorDireccion != null) errores.add(errorDireccion);
-    
+
     String? errorTelefono = validarTelefono();
     if (errorTelefono != null) errores.add(errorTelefono);
-    
+
     String? errorCategoria = validarIdCategoriaP();
     if (errorCategoria != null) errores.add(errorCategoria);
-    
+
     return errores;
   }
 
@@ -172,8 +172,9 @@ class Proveedor {
   // Método para verificar si el proveedor está activo según su horario
   bool estaActivo() {
     final ahora = DateTime.now();
-    final horaActual = '${ahora.hour.toString().padLeft(2, '0')}:${ahora.minute.toString().padLeft(2, '0')}';
-    
+    final horaActual =
+        '${ahora.hour.toString().padLeft(2, '0')}:${ahora.minute.toString().padLeft(2, '0')}';
+
     // Convertir strings de hora a minutos para comparación
     final minutosApertura = _convertirHoraAMinutos(horaApertura);
     final minutosCierre = _convertirHoraAMinutos(horaCierre);

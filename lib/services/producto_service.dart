@@ -76,28 +76,48 @@ class ProductoService {
       return {'success': false, 'message': errorMessage, 'error': e.toString()};
     }
   }
-
   // Obtener todos los productos
   static Future<Map<String, dynamic>> obtenerProductos() async {
     try {
+      print('🔍 Iniciando obtenerProductos...');
+      
       final response = await _client
           .from('Productos')
           .select()
-          .order('id', ascending: false);
+          .order('id', ascending: false)
+          .timeout(const Duration(seconds: 10));
 
-      final productos =
-          (response as List).map((item) => Producto.fromJson(item)).toList();
+      print('📦 Respuesta raw de Productos: $response');
+      print('📦 Tipo de respuesta: ${response.runtimeType}');
+      print('📦 Longitud de respuesta: ${(response as List).length}');
+
+      final productos = (response as List)
+          .map((item) {
+            print('🔍 Procesando producto: $item');
+            try {
+              return Producto.fromJson(item);
+            } catch (e) {
+              print('❌ Error procesando producto $item: $e');
+              rethrow;
+            }
+          })
+          .toList();
+
+      print('✅ Productos procesados exitosamente: ${productos.length}');
 
       return {
         'success': true,
         'data': productos,
         'message': 'Productos obtenidos exitosamente',
       };
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ Error completo en obtenerProductos: $e');
+      print('📍 StackTrace: $stackTrace');
+      
       return {
         'success': false,
         'error': e.toString(),
-        'message': 'Error al obtener los productos',
+        'message': 'Error al obtener los productos: ${e.toString()}',
       };
     }
   }
@@ -262,26 +282,44 @@ class ProductoService {
       };
     }
   }
-
   // Obtener todas las categorías
   static Future<Map<String, dynamic>> obtenerCategorias() async {
     try {
+      print('🔍 Iniciando obtenerCategorias...');
+      
       final response = await _client
           .from('Categoria_producto')
           .select()
           .order('nombre', ascending: true)
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 10));
 
-      final categorias =
-          (response as List).map((item) => CategoriaProducto.fromJson(item)).toList();
+      print('📦 Respuesta raw de Supabase: $response');
+      print('📦 Tipo de respuesta: ${response.runtimeType}');
+      print('📦 Longitud de respuesta: ${(response as List).length}');
+
+      final categorias = (response as List)
+          .map((item) {
+            print('🔍 Procesando item: $item');
+            print('🔍 Tipo de item: ${item.runtimeType}');
+            try {
+              return CategoriaProducto.fromJson(item);
+            } catch (e) {
+              print('❌ Error procesando item $item: $e');
+              rethrow;
+            }
+          })
+          .toList();
+
+      print('✅ Categorías procesadas exitosamente: ${categorias.length}');
 
       return {
         'success': true,
         'data': categorias,
         'message': 'Categorías obtenidas exitosamente',
       };
-    } catch (e) {
-      print('⚠️ Error en obtenerCategorias: $e');
+    } catch (e, stackTrace) {
+      print('❌ Error completo en obtenerCategorias: $e');
+      print('📍 StackTrace: $stackTrace');
 
       // Determinar el tipo de error y mostrar mensaje apropiado
       String errorMessage = 'Error de conexión';
@@ -291,6 +329,10 @@ class ProductoService {
             'Sin conexión a la base de datos. Usando datos de prueba.';
       } else if (e.toString().contains('TimeoutException')) {
         errorMessage = 'Tiempo de espera agotado. Usando datos de prueba.';
+      } else if (e.toString().contains('PostgrestException')) {
+        errorMessage = 'Error en la base de datos: ${e.toString()}';
+      } else {
+        errorMessage = 'Error procesando datos: ${e.toString()}';
       }
 
       // Retornar datos de prueba en caso de error de conexión
@@ -309,9 +351,10 @@ class ProductoService {
         'data': categoriasPrueba,
         'message': errorMessage,
         'isOffline': true,
+        'error': e.toString(),
       };
     }
-  } // El método obtenerProveedores se ha movido a ProveedorService
+  }// El método obtenerProveedores se ha movido a ProveedorService
 
   // Buscar productos por nombre
   static Future<Map<String, dynamic>> buscarProductos(String termino) async {
@@ -433,6 +476,44 @@ class ProductoService {
         'error': e.toString(),
         'message': 'Error verificando estructura de la base de datos',
       };
+    }
+  }
+
+  // Obtener materias primas de una receta
+  static Future<List<String>> obtenerMateriasPrimasDeReceta(
+    int? idReceta,
+  ) async {
+    try {
+      if (idReceta == null) {
+        return [];
+      }
+
+      // Obtener la receta
+      final recetaResponse =
+          await _client
+              .from('Receta')
+              .select('ids_Mps')
+              .eq('id', idReceta)
+              .single();
+
+      final List<dynamic> idsMps = recetaResponse['ids_Mps'] ?? [];
+
+      if (idsMps.isEmpty) {
+        return [];
+      }
+
+      // Obtener los nombres de las materias primas
+      final materiasResponse = await _client
+          .from('Materia_prima')
+          .select('nombre')
+          .inFilter('id', idsMps);
+
+      return (materiasResponse as List)
+          .map((mp) => mp['nombre'] as String)
+          .toList();
+    } catch (e) {
+      print('❌ Error obteniendo materias primas de receta: $e');
+      return [];
     }
   }
 }

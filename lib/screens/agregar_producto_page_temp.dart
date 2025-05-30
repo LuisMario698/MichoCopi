@@ -122,153 +122,157 @@ class _AgregarProductoPageState extends State<AgregarProductoPage> {
         backgroundColor: const Color(0xFFC2185B),
         foregroundColor: Colors.white,
       ),
-      body: _isLoadingData
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Campo Nombre
-                            TextFormField(
-                              controller: _nombreController,
-                              decoration: const InputDecoration(
-                                labelText: 'Nombre del producto *',
-                                border: OutlineInputBorder(),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Por favor ingresa el nombre del producto';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 16), // Campo Precio
-                            TextFormField(
-                              controller: _precioController,
-                              decoration: const InputDecoration(
-                                labelText: 'Precio *',
-                                border: OutlineInputBorder(),
-                                prefixText: '\$ ',
-                              ),
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.allow(
-                                  RegExp(r'[0-9.]'),
+      body:
+          _isLoadingData
+              ? const Center(child: CircularProgressIndicator())
+              : Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Campo Nombre
+                              TextFormField(
+                                controller: _nombreController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Nombre del producto *',
+                                  border: OutlineInputBorder(),
                                 ),
-                              ],
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Por favor ingresa el precio';
-                                }
-                                if (double.tryParse(value) == null) {
-                                  return 'Por favor ingresa un precio válido';
-                                }
-                                if (double.parse(value) <= 0) {
-                                  return 'El precio debe ser mayor a 0';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 16),
-
-                            // Dropdown Categoría
-                            DropdownButtonFormField<int>(
-                              value: _categoriaSeleccionada,
-                              decoration: const InputDecoration(
-                                labelText: 'Categoría *',
-                                border: OutlineInputBorder(),
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Por favor ingresa el nombre del producto';
+                                  }
+                                  return null;
+                                },
                               ),
-                              items: _categorias
-                                  .where(
-                                    (categoria) => categoria.id != null,
-                                  )
-                                  .map(
-                                    (categoria) => DropdownMenuItem<int>(
-                                      value: categoria.id!,
-                                      child: Row(
-                                        children: [
-                                          Text(categoria.nombre),
-                                          if (categoria.conCaducidad) ...[
-                                            const SizedBox(width: 8),
-                                            Icon(
-                                              Icons.schedule,
-                                              size: 16,
-                                              color: Colors.orange[700],
+                              const SizedBox(height: 16), // Campo Precio
+                              TextFormField(
+                                controller: _precioController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Precio *',
+                                  border: OutlineInputBorder(),
+                                  prefixText: '\$ ',
+                                ),
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                    RegExp(r'[0-9.]'),
+                                  ),
+                                ],
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Por favor ingresa el precio';
+                                  }
+                                  if (double.tryParse(value) == null) {
+                                    return 'Por favor ingresa un precio válido';
+                                  }
+                                  if (double.parse(value) <= 0) {
+                                    return 'El precio debe ser mayor a 0';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 16),
+
+                              // Dropdown Categoría
+                              DropdownButtonFormField<int>(
+                                value: _categoriaSeleccionada,
+                                decoration: const InputDecoration(
+                                  labelText: 'Categoría *',
+                                  border: OutlineInputBorder(),
+                                ),
+                                items:
+                                    _categorias
+                                        .where(
+                                          (categoria) => categoria.id != null,
+                                        )
+                                        .map(
+                                          (categoria) => DropdownMenuItem<int>(
+                                            value: categoria.id!,
+                                            child: Row(
+                                              children: [
+                                                Text(categoria.nombre),
+                                                if (categoria.conCaducidad) ...[
+                                                  const SizedBox(width: 8),
+                                                  Icon(
+                                                    Icons.schedule,
+                                                    size: 16,
+                                                    color: Colors.orange[700],
+                                                  ),
+                                                ],
+                                              ],
                                             ),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: (value) {
-                                setState(() {
-                                  _categoriaSeleccionada = value;
-                                });
-                              },
-                              validator: (value) {
-                                if (value == null) {
-                                  return 'Por favor selecciona una categoría';
-                                }
-                                return null;
-                              },
+                                          ),
+                                        )
+                                        .toList(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    _categoriaSeleccionada = value;
+                                  });
+                                },
+                                validator: (value) {
+                                  if (value == null) {
+                                    return 'Por favor selecciona una categoría';
+                                  }
+                                  return null;
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // Botones
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed:
+                                    _isLoading
+                                        ? null
+                                        : () => Navigator.pop(context),
+                                child: const Text('Cancelar'),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: _isLoading ? null : _guardarProducto,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFC2185B),
+                                  foregroundColor: Colors.white,
+                                ),
+                                child:
+                                    _isLoading
+                                        ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                  Colors.white,
+                                                ),
+                                          ),
+                                        )
+                                        : const Text('Guardar Producto'),
+                              ),
                             ),
                           ],
                         ),
                       ),
-                    ),
-
-                    // Botones
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: _isLoading
-                                  ? null
-                                  : () => Navigator.pop(context),
-                              child: const Text('Cancelar'),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: _isLoading ? null : _guardarProducto,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFC2185B),
-                                foregroundColor: Colors.white,
-                              ),
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                          Colors.white,
-                                        ),
-                                      ),
-                                    )
-                                  : const Text('Guardar Producto'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
     );
   }
 }

@@ -3,11 +3,7 @@ class CategoriaProveedor {
   final String nombre;
   final String? descripcion;
 
-  CategoriaProveedor({
-    this.id,
-    required this.nombre,
-    this.descripcion,
-  });
+  CategoriaProveedor({this.id, required this.nombre, this.descripcion});
 
   // Constructor para crear desde JSON (para Supabase)
   factory CategoriaProveedor.fromJson(Map<String, dynamic> json) {
@@ -28,11 +24,7 @@ class CategoriaProveedor {
   }
 
   // Método copyWith para crear copias con modificaciones
-  CategoriaProveedor copyWith({
-    int? id,
-    String? nombre,
-    String? descripcion,
-  }) {
+  CategoriaProveedor copyWith({int? id, String? nombre, String? descripcion}) {
     return CategoriaProveedor(
       id: id ?? this.id,
       nombre: nombre ?? this.nombre,
@@ -66,13 +58,13 @@ class CategoriaProveedor {
   // Método para validar todos los campos
   List<String> validar() {
     List<String> errores = [];
-    
+
     String? errorNombre = validarNombre();
     if (errorNombre != null) errores.add(errorNombre);
-    
+
     String? errorDescripcion = validarDescripcion();
     if (errorDescripcion != null) errores.add(errorDescripcion);
-    
+
     return errores;
   }
 

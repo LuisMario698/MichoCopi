@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/proveedor_form_panel.dart';
 import '../models/proveedor.dart';
+import '../models/categoria_proveedor.dart';
 import '../services/proveedor_service.dart';
-import '../services/producto_service.dart';
 import '../services/categoria_proveedor_service.dart';
 
 class ProveedoresPage extends StatefulWidget {
@@ -51,7 +51,7 @@ class _ProveedoresPageState extends State<ProveedoresPage> {
           ),
         );
       }
-      
+
       // Cargar datos de ejemplo en caso de error
       setState(() {
         _proveedores = List.generate(
@@ -190,14 +190,54 @@ class _ProveedoresPageState extends State<ProveedoresPage> {
                       flex: 2,
                       child: ElevatedButton.icon(
                         onPressed: () async {
+                          Navigator.of(context).pop(); // Cerrar diálogo primero
+
+                          // Mostrar indicador de carga
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (BuildContext context) {
+                              return const Center(
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFFC2185B),
+                                ),
+                              );
+                            },
+                          );
+
                           try {
-                            await ProveedorService.eliminar(proveedor.id!);
+                            final result = await ProveedorService.eliminar(
+                              proveedor.id!,
+                            );
+
+                            // Cerrar indicador de carga
                             Navigator.of(context).pop();
-                            _cargarProveedores();
+
+                            if (result['success']) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Proveedor "${proveedor.nombre}" eliminado exitosamente',
+                                  ),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                              _cargarProveedores();
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error: ${result['message']}'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
                           } catch (e) {
+                            // Cerrar indicador de carga
+                            Navigator.of(context).pop();
+
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Error al eliminar el proveedor: $e'),
+                                content: Text('Error inesperado: $e'),
                                 backgroundColor: Colors.red,
                               ),
                             );
@@ -273,309 +313,388 @@ class _ProveedoresPageState extends State<ProveedoresPage> {
 
               // Lista de proveedores
               Expanded(
-                child: _isLoading 
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFFC2185B),
-                      ),
-                    )
-                  : _proveedores.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [                            Icon(
-                              Icons.business,
-                              size: 64,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No hay proveedores registrados',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 18,
+                child:
+                    _isLoading
+                        ? const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFFC2185B),
+                          ),
+                        )
+                        : _proveedores.isEmpty
+                        ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.business,
+                                size: 64,
+                                color: Colors.grey[400],
                               ),
-                            ),
-                            const SizedBox(height: 24),
-                            ElevatedButton.icon(
-                              onPressed: _toggleFormulario,
-                              icon: const Icon(Icons.add),
-                              label: const Text('Registrar proveedor'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFC2185B),
-                                foregroundColor: Colors.white,
+                              const SizedBox(height: 16),
+                              Text(
+                                'No hay proveedores registrados',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 18,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : GridView.builder(
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount:
-                              MediaQuery.of(context).size.width > 1400
-                                  ? 4
-                                  : MediaQuery.of(context).size.width > 1100
-                                  ? 3
-                                  : MediaQuery.of(context).size.width > 800
-                                  ? 2
-                                  : 1,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: MediaQuery.of(context).size.width > 600
-                              ? 1.5
-                              : 1.3,
-                        ),
-                        itemCount: _proveedores.where((p) => 
-                          _searchQuery.isEmpty || 
-                          p.nombre.toLowerCase().contains(_searchQuery.toLowerCase())
-                        ).length,
-                        padding: const EdgeInsets.all(4),
-                        itemBuilder: (context, index) {
-                          final proveedor = _proveedores.where((p) => 
-                            _searchQuery.isEmpty || 
-                            p.nombre.toLowerCase().contains(_searchQuery.toLowerCase())
-                          ).toList()[index];
-                          return Card(
-                            elevation: 2,
-                            margin: const EdgeInsets.all(4),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.start, // Cambiado de spaceBetween a start
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      // Header con avatar y nombre
-                                      Row(
-                                        children: [
-                                          CircleAvatar(
-                                            backgroundColor: const Color(0xFFC2185B),
-                                            child: Text(
-                                              proveedor.nombre.substring(0, 1).toUpperCase(),
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  proveedor.nombre,
-                                                  style: const TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                                FutureBuilder<Map<String, dynamic>>(
-                                                  future: CategoriaProveedorService.obtenerCategoriaPorId(proveedor.idCategoriaP),
-                                                  builder: (context, snapshot) {
-                                                    String nombreCategoria = snapshot.hasData && snapshot.data!['success']
-                                                        ? snapshot.data!['data']['nombre']
-                                                        : 'Categoría ${proveedor.idCategoriaP}';
-                                                    return Text(
-                                                      nombreCategoria,
-                                                      style: TextStyle(
-                                                        color: Colors.grey[600],
-                                                        fontSize: 12,
-                                                      ),
-                                                    );
-                                                  },
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          // Botones de acción (subidos)
-                                          IconButton(
-                                            onPressed: () => _toggleFormulario(proveedor),
-                                            icon: const Icon(Icons.edit),
-                                            tooltip: 'Editar proveedor',
-                                            style: IconButton.styleFrom(
-                                              foregroundColor: const Color(0xFFC2185B),
-                                              backgroundColor: const Color(0xFFC2185B).withOpacity(0.1),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          SizedBox(
-                                            height: 32,
-                                            width: 32,
-                                            child: IconButton(
-                                              onPressed: () => _eliminarProveedor(proveedor),
-                                              icon: const Icon(Icons.delete, size: 18),
-                                              tooltip: 'Eliminar proveedor',
-                                              style: IconButton.styleFrom(
-                                                foregroundColor: Colors.red,
-                                                backgroundColor: Colors.red.withOpacity(0.1),
-                                                padding: EdgeInsets.zero,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 8),
-                                      // Estado Activo/Inactivo (debajo del header)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
+                              const SizedBox(height: 24),
+                              ElevatedButton.icon(
+                                onPressed: _toggleFormulario,
+                                icon: const Icon(Icons.add),
+                                label: const Text('Registrar proveedor'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFC2185B),
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                        : GridView.builder(
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount:
+                                    MediaQuery.of(context).size.width > 1400
+                                        ? 4
+                                        : MediaQuery.of(context).size.width >
+                                            1100
+                                        ? 3
+                                        : MediaQuery.of(context).size.width >
+                                            800
+                                        ? 2
+                                        : 1,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                                childAspectRatio:
+                                    MediaQuery.of(context).size.width > 600
+                                        ? 1.5
+                                        : 1.3,
+                              ),
+                          itemCount:
+                              _proveedores
+                                  .where(
+                                    (p) =>
+                                        _searchQuery.isEmpty ||
+                                        p.nombre.toLowerCase().contains(
+                                          _searchQuery.toLowerCase(),
                                         ),
-                                        decoration: BoxDecoration(
-                                          color: proveedor.estaActivo()
-                                            ? Colors.green[100]
-                                            : Colors.red[100],
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
+                                  )
+                                  .length,
+                          padding: const EdgeInsets.all(4),
+                          itemBuilder: (context, index) {
+                            final proveedor =
+                                _proveedores
+                                    .where(
+                                      (p) =>
+                                          _searchQuery.isEmpty ||
+                                          p.nombre.toLowerCase().contains(
+                                            _searchQuery.toLowerCase(),
+                                          ),
+                                    )
+                                    .toList()[index];
+                            return Card(
+                              elevation: 2,
+                              margin: const EdgeInsets.all(4),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment
+                                          .start, // Cambiado de spaceBetween a start
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        // Header con avatar y nombre
+                                        Row(
                                           children: [
-                                            Icon(
-                                              proveedor.estaActivo()
-                                                ? Icons.check_circle
-                                                : Icons.access_time,
-                                              size: 12,
-                                              color: proveedor.estaActivo()
-                                                ? Colors.green[800]
-                                                : Colors.red[800],
+                                            CircleAvatar(
+                                              backgroundColor: const Color(
+                                                0xFFC2185B,
+                                              ),
+                                              child: Text(
+                                                proveedor.nombre
+                                                    .substring(0, 1)
+                                                    .toUpperCase(),
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
                                             ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              proveedor.estaActivo() ? 'Activo' : 'Inactivo',
-                                              style: TextStyle(
-                                                color: proveedor.estaActivo()
-                                                  ? Colors.green[800]
-                                                  : Colors.red[800],
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w500,
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    proveedor.nombre,
+                                                    style: const TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                  FutureBuilder<
+                                                    Map<String, dynamic>
+                                                  >(
+                                                    future:
+                                                        CategoriaProveedorService.obtenerCategoriaPorId(
+                                                          proveedor
+                                                              .idCategoriaP,
+                                                        ),
+                                                    builder: (
+                                                      context,
+                                                      snapshot,
+                                                    ) {
+                                                      if (snapshot
+                                                              .connectionState ==
+                                                          ConnectionState
+                                                              .waiting) {
+                                                        return Text(
+                                                          'Cargando...',
+                                                          style: TextStyle(
+                                                            color:
+                                                                Colors
+                                                                    .grey[600],
+                                                            fontSize: 12,
+                                                          ),
+                                                        );
+                                                      }
+
+                                                      String nombreCategoria;
+                                                      if (snapshot.hasData &&
+                                                          snapshot
+                                                              .data!['success']) {
+                                                        final categoria =
+                                                            snapshot.data!['data']
+                                                                as CategoriaProveedor;
+                                                        nombreCategoria =
+                                                            categoria.nombre;
+                                                      } else {
+                                                        nombreCategoria =
+                                                            'Categoría ${proveedor.idCategoriaP}';
+                                                      }
+
+                                                      return Text(
+                                                        nombreCategoria,
+                                                        style: TextStyle(
+                                                          color:
+                                                              Colors.grey[600],
+                                                          fontSize: 12,
+                                                        ),
+                                                      );
+                                                    },
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            // Botones de acción (subidos)
+                                            IconButton(
+                                              onPressed:
+                                                  () => _toggleFormulario(
+                                                    proveedor,
+                                                  ),
+                                              icon: const Icon(Icons.edit),
+                                              tooltip: 'Editar proveedor',
+                                              style: IconButton.styleFrom(
+                                                foregroundColor: const Color(
+                                                  0xFFC2185B,
+                                                ),
+                                                backgroundColor: const Color(
+                                                  0xFFC2185B,
+                                                ).withOpacity(0.1),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            SizedBox(
+                                              height: 32,
+                                              width: 32,
+                                              child: IconButton(
+                                                onPressed:
+                                                    () => _eliminarProveedor(
+                                                      proveedor,
+                                                    ),
+                                                icon: const Icon(
+                                                  Icons.delete,
+                                                  size: 18,
+                                                ),
+                                                tooltip: 'Eliminar proveedor',
+                                                style: IconButton.styleFrom(
+                                                  foregroundColor: Colors.red,
+                                                  backgroundColor: Colors.red
+                                                      .withOpacity(0.1),
+                                                  padding: EdgeInsets.zero,
+                                                ),
                                               ),
                                             ),
                                           ],
                                         ),
-                                      ),
-                                      const SizedBox(height: 8),
+                                        const SizedBox(height: 8),
+                                        // Estado Activo/Inactivo (debajo del header)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color:
+                                                proveedor.estaActivo()
+                                                    ? Colors.green[100]
+                                                    : Colors.red[100],
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                proveedor.estaActivo()
+                                                    ? Icons.check_circle
+                                                    : Icons.access_time,
+                                                size: 12,
+                                                color:
+                                                    proveedor.estaActivo()
+                                                        ? Colors.green[800]
+                                                        : Colors.red[800],
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                proveedor.estaActivo()
+                                                    ? 'Activo'
+                                                    : 'Inactivo',
+                                                style: TextStyle(
+                                                  color:
+                                                      proveedor.estaActivo()
+                                                          ? Colors.green[800]
+                                                          : Colors.red[800],
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
 
-                                      // Información de contacto
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.email,
-                                            size: 16,
-                                            color: Colors.grey[600],
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Text(
-                                              proveedor.email ?? 'No disponible',
+                                        // Información de contacto
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.email,
+                                              size: 16,
+                                              color: Colors.grey[600],
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                proveedor.email ??
+                                                    'No disponible',
+                                                style: TextStyle(
+                                                  color: Colors.grey[700],
+                                                  fontSize: 12,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.phone,
+                                              size: 16,
+                                              color: Colors.grey[600],
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              proveedor.telefonoFormateado,
                                               style: TextStyle(
                                                 color: Colors.grey[700],
                                                 fontSize: 12,
                                               ),
-                                              overflow: TextOverflow.ellipsis,
                                             ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.phone,
-                                            size: 16,
-                                            color: Colors.grey[600],
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            proveedor.telefonoFormateado,
-                                            style: TextStyle(
-                                              color: Colors.grey[700],
-                                              fontSize: 12,
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.location_on,
+                                              size: 16,
+                                              color: Colors.grey[600],
                                             ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.location_on,
-                                            size: 16,
-                                            color: Colors.grey[600],
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Text(
-                                              proveedor.direccion,
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                proveedor.direccion,
+                                                style: TextStyle(
+                                                  color: Colors.grey[700],
+                                                  fontSize: 12,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.schedule,
+                                              size: 16,
+                                              color: Colors.grey[600],
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'Horario: ${proveedor.horaApertura} - ${proveedor.horaCierre}',
                                               style: TextStyle(
                                                 color: Colors.grey[700],
                                                 fontSize: 12,
                                               ),
-                                              overflow: TextOverflow.ellipsis,
                                             ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.schedule,
-                                            size: 16,
-                                            color: Colors.grey[600],
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            'Horario: ${proveedor.horaApertura} - ${proveedor.horaCierre}',
-                                            style: TextStyle(
-                                              color: Colors.grey[700],
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          );
-                        },
-                      ),
+                            );
+                          },
+                        ),
               ),
             ],
           ),
         ),
-        
+
         // Overlay para el formulario
         if (_mostrarFormulario)
           Positioned.fill(
             child: Stack(
               children: [
                 Positioned.fill(
-                  child: Container(
-                    color: Colors.black.withOpacity(0.3),
-                  ),
+                  child: Container(color: Colors.black.withOpacity(0.3)),
                 ),
                 Positioned.fill(
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
-                    child: Container(
-                      color: Colors.transparent,
-                    ),
+                    child: Container(color: Colors.transparent),
                   ),
                 ),
                 Positioned.fill(
-                  child: GestureDetector(
-                    onTap: () => _toggleFormulario(),
-                  ),
+                  child: GestureDetector(onTap: () => _toggleFormulario()),
                 ),
               ],
             ),
           ),
-        
+
         // Formulario de proveedor
         if (_mostrarFormulario)
           ProveedorFormPanel(

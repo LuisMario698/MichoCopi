@@ -23,14 +23,59 @@ class Proveedor {
 
   // Constructor para crear desde JSON (para Supabase)
   factory Proveedor.fromJson(Map<String, dynamic> json) {
+    print('🔍 Processing Proveedor JSON: $json');
+
     String procesarHora(dynamic hora) {
-      if (hora == null) return '09:00';
-      if (hora is String) {
-        // Si ya viene en formato HH:mm, lo usamos directamente
-        if (hora.length <= 5) return hora;
-        // Si viene como timestamp, extraemos la hora
-        return hora.split(' ')[1].substring(0, 5);
+      print('⏰ Processing hora: $hora (type: ${hora.runtimeType})');
+
+      if (hora == null) {
+        print('⏰ Hora is null, returning default 09:00');
+        return '09:00';
       }
+
+      if (hora is String) {
+        // Si es cadena vacía, devolver valor por defecto
+        if (hora.trim().isEmpty) {
+          print('⏰ Hora is empty string, returning default 09:00');
+          return '09:00';
+        }
+
+        print('⏰ Hora string: "$hora" (length: ${hora.length})');
+
+        // Si ya viene en formato HH:mm, lo usamos directamente
+        if (hora.length <= 5 && hora.contains(':')) {
+          print('⏰ Hora already in HH:mm format, returning: $hora');
+          return hora;
+        }
+
+        // Si viene como timestamp (YYYY-MM-DD HH:MM:SS o similar)
+        final partes = hora.split(' ');
+        print('⏰ Split parts: $partes');
+
+        if (partes.length >= 2) {
+          final horaStr = partes[1];
+          print('⏰ Extracted time part: "$horaStr"');
+
+          // Tomar solo HH:MM (primeros 5 caracteres si están disponibles)
+          if (horaStr.length >= 5) {
+            final result = horaStr.substring(0, 5);
+            print('⏰ Returning substring: $result');
+            return result;
+          } else if (horaStr.contains(':')) {
+            print('⏰ Returning time part as-is: $horaStr');
+            return horaStr; // Ya está en formato correcto
+          }
+        }
+
+        // Si es solo la hora sin fecha, verificar formato
+        if (hora.contains(':') && hora.length >= 5) {
+          final result = hora.substring(0, 5);
+          print('⏰ Returning time substring: $result');
+          return result;
+        }
+      }
+
+      print('⏰ No valid format found, returning default 09:00');
       return '09:00';
     }
 

@@ -167,15 +167,12 @@ class _NuevaVentaModalState extends State<NuevaVentaModal> {
 
     setState(() {
       _isLoading = true;
-    });
-
-    try {
-      final resultado = await VentaService.procesarVenta(
+    });    try {      final resultado = await VentaService.procesarVenta(
         carrito: _carrito,
-        cliente:
-            _clienteController.text.trim().isEmpty
-                ? null
-                : _clienteController.text.trim(),
+        pago: _pagoAmount,
+        cambio: _pagoAmount - _total,
+        pagoEnDolares: _pagoEnDolares,
+        tipoCambio: _pagoEnDolares ? _tipoCambio : null,
       );
       if (resultado['success']) {
         final total = _total;

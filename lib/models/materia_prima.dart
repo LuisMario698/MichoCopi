@@ -3,70 +3,42 @@ class MateriaPrima {
   final String nombre;
   final int idCategoriaMp;
   final int stock;
-  final DateTime? fechaCreacion;
+  final DateTime fechaCreacion;
   final bool seVende;
   final double? siVendePrecio;
-  final DateTime? caducidad;
 
   MateriaPrima({
     this.id,
     required this.nombre,
     required this.idCategoriaMp,
     required this.stock,
-    this.fechaCreacion,
+    required this.fechaCreacion,
     this.seVende = false,
     this.siVendePrecio,
-    this.caducidad,
   });
-
   factory MateriaPrima.fromJson(Map<String, dynamic> json) {
     return MateriaPrima(
       id: json['id'] != null ? (json['id'] as num).toInt() : null,
       nombre: json['nombre'] as String,
       idCategoriaMp: (json['id_Categoria_mp'] as num).toInt(),
       stock: (json['stock'] as num).toInt(),
-      fechaCreacion:
-          json['fecha_creacion'] != null
-              ? DateTime.parse(json['fecha_creacion'] as String)
-              : null,
+      fechaCreacion: DateTime.parse(json['fecha_creacion'] as String),
       seVende: json['seVende'] as bool? ?? false,
       siVendePrecio:
           json['siVendePrecio'] != null
               ? (json['siVendePrecio'] as num).toDouble()
               : null,
-      caducidad:
-          json['caducidad'] != null
-              ? DateTime.parse(json['caducidad'] as String)
-              : null,
     );
   }
-
   Map<String, dynamic> toJson() {
     return {
       if (id != null) 'id': id,
       'nombre': nombre,
       'id_Categoria_mp': idCategoriaMp,
       'stock': stock,
-      if (fechaCreacion != null)
-        'fecha_creacion': fechaCreacion!.toIso8601String().split('T')[0],
+      'fecha_creacion': fechaCreacion.toIso8601String().split('T')[0],
       'seVende': seVende,
       if (siVendePrecio != null) 'siVendePrecio': siVendePrecio,
-      if (caducidad != null)
-        'caducidad': caducidad!.toIso8601String().split('T')[0],
-    };
-  }
-
-  Map<String, dynamic> toJsonForInsert() {
-    return {
-      'nombre': nombre,
-      'id_Categoria_mp': idCategoriaMp,
-      'stock': stock,
-      if (fechaCreacion != null)
-        'fecha_creacion': fechaCreacion!.toIso8601String().split('T')[0],
-      'seVende': seVende,
-      if (siVendePrecio != null) 'siVendePrecio': siVendePrecio,
-      if (caducidad != null)
-        'caducidad': caducidad!.toIso8601String().split('T')[0],
     };
   }
 
@@ -78,7 +50,6 @@ class MateriaPrima {
     DateTime? fechaCreacion,
     bool? seVende,
     double? siVendePrecio,
-    DateTime? caducidad,
   }) {
     return MateriaPrima(
       id: id ?? this.id,
@@ -88,7 +59,6 @@ class MateriaPrima {
       fechaCreacion: fechaCreacion ?? this.fechaCreacion,
       seVende: seVende ?? this.seVende,
       siVendePrecio: siVendePrecio ?? this.siVendePrecio,
-      caducidad: caducidad ?? this.caducidad,
     );
   }
 
@@ -157,15 +127,12 @@ class MateriaPrima {
   }
 
   String get fechaFormateada {
-    if (fechaCreacion != null) {
-      return '${fechaCreacion!.day.toString().padLeft(2, '0')}/${fechaCreacion!.month.toString().padLeft(2, '0')}/${fechaCreacion!.year}';
-    }
-    return 'Sin fecha';
+    return '${fechaCreacion.day.toString().padLeft(2, '0')}/${fechaCreacion.month.toString().padLeft(2, '0')}/${fechaCreacion.year}';
   }
 
   @override
   String toString() {
-    return 'MateriaPrima(id: $id, nombre: $nombre, idCategoriaMp: $idCategoriaMp, stock: $stock, fechaCreacion: $fechaCreacion, seVende: $seVende, siVendePrecio: $siVendePrecio, caducidad: $caducidad)';
+    return 'MateriaPrima(id: $id, nombre: $nombre, idCategoriaMp: $idCategoriaMp, stock: $stock, fechaCreacion: $fechaCreacion, seVende: $seVende, siVendePrecio: $siVendePrecio)';
   }
 
   @override
@@ -178,8 +145,7 @@ class MateriaPrima {
         other.stock == stock &&
         other.fechaCreacion == fechaCreacion &&
         other.seVende == seVende &&
-        other.siVendePrecio == siVendePrecio &&
-        other.caducidad == caducidad;
+        other.siVendePrecio == siVendePrecio;
   }
 
   @override
@@ -192,7 +158,6 @@ class MateriaPrima {
       fechaCreacion,
       seVende,
       siVendePrecio,
-      caducidad,
     );
   }
 }

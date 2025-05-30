@@ -3,43 +3,51 @@ import '../models/categoria_proveedor.dart';
 
 class CategoriaProveedorService {
   static final SupabaseClient _supabase = Supabase.instance.client;
-  static const String _tableName = 'categoria_proveedor';
+  static const String _tableName = 'Categoria_producto';
 
   // Obtener todas las categorías
-  static Future<List<CategoriaProveedor>> obtenerTodas() async {
+  static Future<Map<String, dynamic>> obtenerTodas() async {
     try {
       final response = await _supabase
           .from(_tableName)
           .select()
           .order('nombre');
 
-      return (response as List)
-          .map((json) => CategoriaProveedor.fromJson(json))
-          .toList();
+      final categorias =
+          (response as List)
+              .map((json) => CategoriaProveedor.fromJson(json))
+              .toList();
+
+      return {
+        'success': true,
+        'data': categorias,
+        'message': 'Categorías obtenidas exitosamente',
+      };
     } catch (e) {
-      throw Exception('Error al obtener categorías de proveedor: $e');
+      return {
+        'success': false,
+        'error': e.toString(),
+        'message': 'Error al obtener categorías de proveedor: $e',
+      };
     }
   }
 
   // Obtener categoría por ID
   static Future<Map<String, dynamic>> obtenerCategoriaPorId(int id) async {
     try {
-      final response = await _supabase
-          .from(_tableName)
-          .select()
-          .eq('id', id)
-          .single();
+      final response =
+          await _supabase.from(_tableName).select().eq('id', id).single();
 
       return {
         'success': true,
         'data': CategoriaProveedor.fromJson(response),
-        'message': 'Categoría encontrada'
+        'message': 'Categoría encontrada',
       };
     } catch (e) {
       return {
         'success': false,
         'message': 'Error al obtener categoría de proveedor',
-        'error': e.toString()
+        'error': e.toString(),
       };
     }
   }
@@ -59,11 +67,12 @@ class CategoriaProveedorService {
         throw Exception('Ya existe una categoría con ese nombre');
       }
 
-      final response = await _supabase
-          .from(_tableName)
-          .insert(categoria.toJson())
-          .select()
-          .single();
+      final response =
+          await _supabase
+              .from(_tableName)
+              .insert(categoria.toJson())
+              .select()
+              .single();
 
       return CategoriaProveedor.fromJson(response);
     } catch (e) {
@@ -85,17 +94,21 @@ class CategoriaProveedorService {
       }
 
       // Verificar si ya existe otra categoría con el mismo nombre
-      final existente = await _verificarNombreExistente(categoria.nombre, categoria.id);
+      final existente = await _verificarNombreExistente(
+        categoria.nombre,
+        categoria.id,
+      );
       if (existente) {
         throw Exception('Ya existe otra categoría con ese nombre');
       }
 
-      final response = await _supabase
-          .from(_tableName)
-          .update(categoria.toJson())
-          .eq('id', categoria.id!)
-          .select()
-          .single();
+      final response =
+          await _supabase
+              .from(_tableName)
+              .update(categoria.toJson())
+              .eq('id', categoria.id!)
+              .select()
+              .single();
 
       return CategoriaProveedor.fromJson(response);
     } catch (e) {
@@ -109,13 +122,12 @@ class CategoriaProveedorService {
       // Verificar si la categoría está siendo utilizada
       final enUso = await _verificarEnUso(id);
       if (enUso) {
-        throw Exception('No se puede eliminar la categoría porque está siendo utilizada por proveedores');
+        throw Exception(
+          'No se puede eliminar la categoría porque está siendo utilizada por proveedores',
+        );
       }
 
-      await _supabase
-          .from(_tableName)
-          .delete()
-          .eq('id', id);
+      await _supabase.from(_tableName).delete().eq('id', id);
     } catch (e) {
       throw Exception('Error al eliminar categoría de proveedor: $e');
     }
@@ -139,7 +151,10 @@ class CategoriaProveedorService {
   }
 
   // Verificar si existe una categoría con el mismo nombre
-  Future<bool> _verificarNombreExistente(String nombre, [int? excluirId]) async {
+  Future<bool> _verificarNombreExistente(
+    String nombre, [
+    int? excluirId,
+  ]) async {
     try {
       var query = _supabase
           .from(_tableName)
@@ -160,11 +175,12 @@ class CategoriaProveedorService {
   // Verificar si la categoría está siendo utilizada
   Future<bool> _verificarEnUso(int id) async {
     try {
-      final response = await _supabase
-          .from('proveedores')
-          .select('id')
-          .eq('id_categoria_p', id)
-          .maybeSingle();
+      final response =
+          await _supabase
+              .from('proveedores')
+              .select('id')
+              .eq('id_categoria_p', id)
+              .maybeSingle();
 
       return response != null;
     } catch (e) {
@@ -174,7 +190,8 @@ class CategoriaProveedorService {
 
   // Obtener estadísticas de la categoría
   Future<Map<String, dynamic>> obtenerEstadisticas(int id) async {
-    try {      final totalProveedores = await _supabase
+    try {
+      final totalProveedores = await _supabase
           .from('proveedores')
           .select('id')
           .eq('id_categoria_p', id);
@@ -183,12 +200,14 @@ class CategoriaProveedorService {
       final compras = await _supabase
           .from('compras')
           .select('id, cantidad, precio')
-          .eq('proveedores.id_categoria_p', id);      double montoCompras = 0;
+          .eq('proveedores.id_categoria_p', id);
+      double montoCompras = 0;
       for (final compra in compras as List) {
         final cantidad = (compra['cantidad'] as num?)?.toDouble() ?? 0;
         final precio = (compra['precio'] as num?)?.toDouble() ?? 0;
         montoCompras += cantidad * precio;
-      }return {
+      }
+      return {
         'totalProveedores': (totalProveedores as List).length,
         'totalCompras': (compras as List).length,
         'montoCompras': montoCompras,
@@ -199,15 +218,24 @@ class CategoriaProveedorService {
   }
 
   // Obtener categorías con mayor actividad
-  Future<List<Map<String, dynamic>>> obtenerCategoriasActivas([int limite = 5]) async {
+  Future<List<Map<String, dynamic>>> obtenerCategoriasActivas([
+    int limite = 5,
+  ]) async {
     try {
-      final response = await _supabase.rpc('obtener_categorias_proveedor_activas', 
-          params: {'limite_param': limite});
+      final response = await _supabase.rpc(
+        'obtener_categorias_proveedor_activas',
+        params: {'limite_param': limite},
+      );
 
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       // Fallback si no existe el stored procedure
-      final categorias = await obtenerTodas();
+      final response = await obtenerTodas();
+      if (!response['success']) {
+        throw Exception(response['message']);
+      }
+
+      final categorias = response['data'] as List<CategoriaProveedor>;
       List<Map<String, dynamic>> categoriasConEstadisticas = [];
 
       for (final categoria in categorias) {
@@ -222,8 +250,11 @@ class CategoriaProveedorService {
       }
 
       // Ordenar por monto de compras
-      categoriasConEstadisticas.sort((a, b) => 
-          (b['montoCompras'] as double).compareTo(a['montoCompras'] as double));
+      categoriasConEstadisticas.sort(
+        (a, b) => (b['montoCompras'] as double).compareTo(
+          a['montoCompras'] as double,
+        ),
+      );
 
       return categoriasConEstadisticas.take(limite).toList();
     }

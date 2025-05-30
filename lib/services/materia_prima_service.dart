@@ -39,7 +39,7 @@ class MateriaPrimaService {
       final response = await _supabase
           .from(_tableName)
           .select()
-          .eq('id_Categoria_mp', idCategoria)
+          .eq('id_categoria_mp', idCategoria)
           .order('nombre');
 
       return (response as List)

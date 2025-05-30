@@ -12,12 +12,13 @@ class ReportesPage extends StatefulWidget {
   State<ReportesPage> createState() => _ReportesPageState();
 }
 
-class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMixin {
+class _ReportesPageState extends State<ReportesPage>
+    with TickerProviderStateMixin {
   late TabController _tabController;
   DateTime _fechaInicio = DateTime.now().subtract(const Duration(days: 30));
   DateTime _fechaFin = DateTime.now();
   bool _cargando = false;
-  
+
   // Datos de reportes
   Map<String, dynamic>? _resumenVentas;
   List<Map<String, dynamic>>? _productosMasVendidos;
@@ -61,7 +62,10 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
 
       setState(() {
         if (futures[0]['success']) _resumenVentas = futures[0]['data'];
-        if (futures[1]['success']) _productosMasVendidos = List<Map<String, dynamic>>.from(futures[1]['data']);
+        if (futures[1]['success'])
+          _productosMasVendidos = List<Map<String, dynamic>>.from(
+            futures[1]['data'],
+          );
         if (futures[2]['success']) _reporteInventario = futures[2]['data'];
         if (futures[3]['success']) _resumenFinanciero = futures[3]['data'];
       });
@@ -103,9 +107,9 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: const Color(0xFFC2185B),
-            ),
+            colorScheme: Theme.of(
+              context,
+            ).colorScheme.copyWith(primary: const Color(0xFFC2185B)),
           ),
           child: child!,
         );
@@ -147,21 +151,25 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
           );
           if (result['success']) {
             csvData = result['data'];
-            nombreArchivo = 'ventas_${DateFormat('yyyy-MM-dd').format(_fechaInicio)}_${DateFormat('yyyy-MM-dd').format(_fechaFin)}.csv';
+            nombreArchivo =
+                'ventas_${DateFormat('yyyy-MM-dd').format(_fechaInicio)}_${DateFormat('yyyy-MM-dd').format(_fechaFin)}.csv';
           }
           break;
         case 'productos':
           final result = await ReportesService.exportarProductosCSV();
           if (result['success']) {
             csvData = result['data'];
-            nombreArchivo = 'productos_${DateFormat('yyyy-MM-dd').format(DateTime.now())}.csv';
+            nombreArchivo =
+                'productos_${DateFormat('yyyy-MM-dd').format(DateTime.now())}.csv';
           }
           break;
       }
 
       if (csvData.isNotEmpty) {
         await Clipboard.setData(ClipboardData(text: csvData));
-        _mostrarExito('Datos CSV copiados al portapapeles. Nombre sugerido: $nombreArchivo');
+        _mostrarExito(
+          'Datos CSV copiados al portapapeles. Nombre sugerido: $nombreArchivo',
+        );
       }
     } catch (e) {
       _mostrarError('Error al exportar: $e');
@@ -174,31 +182,43 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          // Header mejorado
-          _buildHeader(),
-          
-          // Tabs
-          _buildTabBar(),
-          
-          // Contenido de las tabs
-          Expanded(
-            child: _cargando
-                ? _buildLoadingState()
-                : TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildDashboardTab(),
-                      _buildVentasTab(),
-                      _buildInventarioTab(),
-                      _buildFinancieroTab(),
-                    ],
-                  ),
+    return Stack(
+      children: [
+        Scaffold(
+          body: Column(
+            children: [
+              // Header mejorado
+              _buildHeader(),
+
+              // Tabs
+              _buildTabBar(),
+
+              // Contenido de las tabs
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildDashboardTab(),
+                    _buildVentasTab(),
+                    _buildInventarioTab(),
+                    _buildFinancieroTab(),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+        if (_cargando)
+          Stack(
+            children: [
+              ModalBarrier(
+                color: Colors.black.withOpacity(0.3),
+                dismissible: false,
+              ),
+              _buildLoadingState(),
+            ],
+          ),
+      ],
     );
   }
 
@@ -271,11 +291,7 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.date_range,
-            color: Colors.white,
-            size: 20,
-          ),
+          const Icon(Icons.date_range, color: Colors.white, size: 20),
           const SizedBox(width: 8),
           GestureDetector(
             onTap: () => _seleccionarFecha(true),
@@ -327,22 +343,10 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
         indicatorColor: const Color(0xFFC2185B),
         indicatorWeight: 3,
         tabs: const [
-          Tab(
-            icon: Icon(Icons.dashboard_rounded),
-            text: 'Dashboard',
-          ),
-          Tab(
-            icon: Icon(Icons.shopping_cart_rounded),
-            text: 'Ventas',
-          ),
-          Tab(
-            icon: Icon(Icons.inventory_rounded),
-            text: 'Inventario',
-          ),
-          Tab(
-            icon: Icon(Icons.account_balance_rounded),
-            text: 'Financiero',
-          ),
+          Tab(icon: Icon(Icons.dashboard_rounded), text: 'Dashboard'),
+          Tab(icon: Icon(Icons.shopping_cart_rounded), text: 'Ventas'),
+          Tab(icon: Icon(Icons.inventory_rounded), text: 'Inventario'),
+          Tab(icon: Icon(Icons.account_balance_rounded), text: 'Financiero'),
         ],
       ),
     );
@@ -353,17 +357,11 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(
-            color: Color(0xFFC2185B),
-            strokeWidth: 3,
-          ),
+          CircularProgressIndicator(color: Color(0xFFC2185B), strokeWidth: 3),
           SizedBox(height: 16),
           Text(
             'Cargando reportes...',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey),
           ),
         ],
       ),
@@ -379,11 +377,11 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
           // Resumen general
           _buildResumenGeneral(),
           const SizedBox(height: 24),
-          
+
           // Métricas principales
           _buildMetricasPrincipales(),
           const SizedBox(height: 24),
-          
+
           // Productos más vendidos (vista compacta)
           _buildTopProductosCompacto(),
         ],
@@ -402,10 +400,7 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
             children: [
               const Text(
                 'Análisis de Ventas',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const Spacer(),
               ElevatedButton.icon(
@@ -420,12 +415,12 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
             ],
           ),
           const SizedBox(height: 24),
-          
+
           // Tarjetas de ventas
           if (_resumenVentas != null) ...[
             _buildTarjetasVentas(),
             const SizedBox(height: 24),
-            
+
             // Ventas por día y método de pago
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -452,10 +447,7 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
             children: [
               const Text(
                 'Gestión de Inventario',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const Spacer(),
               ElevatedButton.icon(
@@ -470,8 +462,8 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
             ],
           ),
           const SizedBox(height: 24),
-          
-          if (_reporteInventario != null) 
+
+          if (_reporteInventario != null)
             _buildReporteInventario()
           else
             _buildNoDataCard('inventario'),
@@ -488,14 +480,11 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
         children: [
           const Text(
             'Análisis Financiero',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
-          
-          if (_resumenFinanciero != null) 
+
+          if (_resumenFinanciero != null)
             _buildResumenFinanciero()
           else
             _buildNoDataCard('financiero'),
@@ -521,10 +510,7 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              const Color(0xFFC2185B).withOpacity(0.1),
-              Colors.white,
-            ],
+            colors: [const Color(0xFFC2185B).withOpacity(0.1), Colors.white],
           ),
         ),
         child: Column(
@@ -547,10 +533,7 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
                 const SizedBox(width: 16),
                 const Text(
                   'Resumen del Período',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -589,7 +572,12 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
     );
   }
 
-  Widget _buildMetricaItem(String titulo, String valor, IconData icono, Color color) {
+  Widget _buildMetricaItem(
+    String titulo,
+    String valor,
+    IconData icono,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -613,10 +601,7 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
           const SizedBox(height: 4),
           Text(
             titulo,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             textAlign: TextAlign.center,
           ),
         ],
@@ -630,12 +615,12 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
         Expanded(
           child: _buildMetricaCard(
             'Estado del Inventario',
-            _reporteInventario != null 
+            _reporteInventario != null
                 ? '${_reporteInventario!['totalProductos'] ?? 0} productos'
                 : 'N/A',
             Icons.inventory,
             Colors.purple,
-            _reporteInventario != null 
+            _reporteInventario != null
                 ? 'Stock bajo: ${_reporteInventario!['stockBajo'] ?? 0}'
                 : '',
           ),
@@ -644,7 +629,7 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
         Expanded(
           child: _buildMetricaCard(
             'Productos Activos',
-            _productosMasVendidos != null 
+            _productosMasVendidos != null
                 ? '${_productosMasVendidos!.length} productos'
                 : 'N/A',
             Icons.trending_up,
@@ -656,7 +641,13 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
     );
   }
 
-  Widget _buildMetricaCard(String titulo, String valor, IconData icono, Color color, String subtitulo) {
+  Widget _buildMetricaCard(
+    String titulo,
+    String valor,
+    IconData icono,
+    Color color,
+    String subtitulo,
+  ) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -691,10 +682,7 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
               const SizedBox(height: 4),
               Text(
                 subtitulo,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
             ],
           ],
@@ -722,10 +710,7 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
                 SizedBox(width: 12),
                 Text(
                   'Top Productos',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -733,7 +718,7 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
             ..._productosMasVendidos!.take(5).map((item) {
               final producto = item['producto'] as Producto;
               final cantidad = item['cantidadVendida'] as int;
-              
+
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Row(
@@ -758,9 +743,7 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
                         children: [
                           Text(
                             producto.nombre,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
                           Text(
                             '$cantidad unidades vendidas',
@@ -773,7 +756,10 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.green.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
@@ -830,7 +816,12 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
     );
   }
 
-  Widget _buildTarjetaEstadistica(String titulo, String valor, IconData icono, Color color) {
+  Widget _buildTarjetaEstadistica(
+    String titulo,
+    String valor,
+    IconData icono,
+    Color color,
+  ) {
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -841,10 +832,7 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              color.withOpacity(0.1),
-              Colors.white,
-            ],
+            colors: [color.withOpacity(0.1), Colors.white],
           ),
         ),
         child: Column(
@@ -889,7 +877,8 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
   }
 
   Widget _buildVentasPorDia() {
-    final ventasPorDia = _resumenVentas!['ventasPorDia'] as Map<String, dynamic>;
+    final ventasPorDia =
+        _resumenVentas!['ventasPorDia'] as Map<String, dynamic>;
 
     return Card(
       elevation: 2,
@@ -911,10 +900,12 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
             ),
             const SizedBox(height: 16),
             ...ventasPorDia.entries.map((entry) {
-              final fecha = DateFormat('dd/MM/yyyy').format(DateTime.parse(entry.key));
+              final fecha = DateFormat(
+                'dd/MM/yyyy',
+              ).format(DateTime.parse(entry.key));
               final cantidad = entry.value['cantidad'];
               final total = entry.value['total'];
-              
+
               return Container(
                 margin: const EdgeInsets.symmetric(vertical: 4),
                 padding: const EdgeInsets.all(12),
@@ -944,7 +935,8 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
   }
 
   Widget _buildVentasPorMetodoPago() {
-    final ventasPorMetodo = _resumenVentas!['ventasPorMetodoPago'] as Map<String, dynamic>;
+    final ventasPorMetodo =
+        _resumenVentas!['ventasPorMetodoPago'] as Map<String, dynamic>;
 
     return Card(
       elevation: 2,
@@ -969,7 +961,7 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
               final metodo = entry.key;
               final cantidad = entry.value['cantidad'];
               final total = entry.value['total'];
-              
+
               IconData icono;
               Color color;
               switch (metodo.toLowerCase()) {
@@ -985,7 +977,7 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
                   icono = Icons.payment;
                   color = Colors.grey;
               }
-              
+
               return Container(
                 margin: const EdgeInsets.symmetric(vertical: 4),
                 padding: const EdgeInsets.all(12),
@@ -1057,11 +1049,13 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
           ],
         ),
         const SizedBox(height: 16),
-        
+
         // Valor total del inventario
         Card(
           elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Row(
@@ -1154,11 +1148,7 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.analytics_outlined,
-              size: 64,
-              color: Colors.grey[400],
-            ),
+            Icon(Icons.analytics_outlined, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
               'No hay datos de $tipo disponibles',
@@ -1171,10 +1161,7 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
             const SizedBox(height: 8),
             Text(
               'Los datos aparecerán aquí cuando haya información disponible',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[500],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
               textAlign: TextAlign.center,
             ),
           ],

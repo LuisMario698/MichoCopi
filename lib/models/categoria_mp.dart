@@ -3,13 +3,13 @@ class CategoriaMp {
   final String nombre;
   final bool conCaducidad;
 
-  CategoriaMp({this.id, required this.nombre, this.conCaducidad = false});
+  CategoriaMp({this.id, required this.nombre, required this.conCaducidad});
 
   factory CategoriaMp.fromJson(Map<String, dynamic> json) {
     return CategoriaMp(
       id: json['id'] as int?,
       nombre: json['nombre'] as String,
-      conCaducidad: json['conCaducidad'] as bool? ?? false,
+      conCaducidad: json['conCaducidad'] as bool,
     );
   }
 
@@ -19,10 +19,6 @@ class CategoriaMp {
       'nombre': nombre,
       'conCaducidad': conCaducidad,
     };
-  }
-
-  Map<String, dynamic> toJsonForInsert() {
-    return {'nombre': nombre, 'conCaducidad': conCaducidad};
   }
 
   CategoriaMp copyWith({int? id, String? nombre, bool? conCaducidad}) {
@@ -72,5 +68,7 @@ class CategoriaMp {
   }
 
   @override
-  int get hashCode => Object.hash(id, nombre, conCaducidad);
+  int get hashCode {
+    return Object.hash(id, nombre, conCaducidad);
+  }
 }
