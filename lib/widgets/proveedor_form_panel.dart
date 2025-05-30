@@ -602,14 +602,26 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
                                                     return 'Formato inválido. Use HH:mm (24h)';
                                                   }
                                                   return null;
-                                                },
-                                                onTap: () async {
+                                                },                                                onTap: () async {
+                                                  // Verificar el formato antes de parsear
+                                                  TimeOfDay initialTime;
+                                                  try {
+                                                    final parts = _horaAperturaController.text.split(':');
+                                                    if (parts.length == 2) {
+                                                      initialTime = TimeOfDay(
+                                                        hour: int.parse(parts[0]),
+                                                        minute: int.parse(parts[1]),
+                                                      );
+                                                    } else {
+                                                      initialTime = TimeOfDay(hour: 9, minute: 0);
+                                                    }
+                                                  } catch (e) {
+                                                    initialTime = TimeOfDay(hour: 9, minute: 0);
+                                                  }
+                                                  
                                                   final TimeOfDay? picked = await showTimePicker(
                                                     context: context,
-                                                    initialTime: TimeOfDay(
-                                                      hour: int.parse(_horaAperturaController.text.split(':')[0]),
-                                                      minute: int.parse(_horaAperturaController.text.split(':')[1]),
-                                                    ),
+                                                    initialTime: initialTime,
                                                   );
                                                   if (picked != null) {
                                                     setState(() {
@@ -640,14 +652,26 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
                                                     return 'Formato inválido. Use HH:mm (24h)';
                                                   }
                                                   return null;
-                                                },
-                                                onTap: () async {
+                                                },                                                onTap: () async {
+                                                  // Verificar el formato antes de parsear
+                                                  TimeOfDay initialTime;
+                                                  try {
+                                                    final parts = _horaCierreController.text.split(':');
+                                                    if (parts.length == 2) {
+                                                      initialTime = TimeOfDay(
+                                                        hour: int.parse(parts[0]),
+                                                        minute: int.parse(parts[1]),
+                                                      );
+                                                    } else {
+                                                      initialTime = TimeOfDay(hour: 18, minute: 0);
+                                                    }
+                                                  } catch (e) {
+                                                    initialTime = TimeOfDay(hour: 18, minute: 0);
+                                                  }
+                                                  
                                                   final TimeOfDay? picked = await showTimePicker(
                                                     context: context,
-                                                    initialTime: TimeOfDay(
-                                                      hour: int.parse(_horaCierreController.text.split(':')[0]),
-                                                      minute: int.parse(_horaCierreController.text.split(':')[1]),
-                                                    ),
+                                                    initialTime: initialTime,
                                                   );
                                                   if (picked != null) {
                                                     setState(() {

@@ -129,9 +129,8 @@ class MateriaPrimaService {
       throw Exception('Error al eliminar materia prima: $e');
     }
   }
-
   // Actualizar stock
-  Future<MateriaPrima> actualizarStock(int id, double nuevoStock) async {
+  Future<MateriaPrima> actualizarStock(int id, int nuevoStock) async {
     try {
       if (nuevoStock < 0) {
         throw Exception('El stock no puede ser negativo');
@@ -149,9 +148,8 @@ class MateriaPrimaService {
       throw Exception('Error al actualizar stock: $e');
     }
   }
-
   // Agregar stock (compra)
-  Future<MateriaPrima> agregarStock(int id, double cantidad) async {
+  Future<MateriaPrima> agregarStock(int id, int cantidad) async {
     try {
       if (cantidad <= 0) {
         throw Exception('La cantidad debe ser mayor a 0');
@@ -168,9 +166,8 @@ class MateriaPrimaService {
       throw Exception('Error al agregar stock: $e');
     }
   }
-
   // Reducir stock (uso en producción)
-  Future<MateriaPrima> reducirStock(int id, double cantidad) async {
+  Future<MateriaPrima> reducirStock(int id, int cantidad) async {
     try {
       if (cantidad <= 0) {
         throw Exception('La cantidad debe ser mayor a 0');
@@ -270,8 +267,7 @@ class MateriaPrimaService {
     } catch (e) {
       return false;
     }
-  }
-  // Obtener estadísticas
+  }  // Obtener estadísticas
   Future<Map<String, dynamic>> obtenerEstadisticas() async {
     try {
       final total = await _supabase
@@ -285,13 +281,13 @@ class MateriaPrimaService {
 
       final valorTotal = await _supabase
           .from(_tableName)
-          .select('stock, precio')
-          .not('precio', 'is', null);
+          .select('stock, siVendePrecio')
+          .not('siVendePrecio', 'is', null);
 
       double valorInventario = 0;
       for (final item in valorTotal) {
-        final stock = (item['stock'] as num?)?.toDouble() ?? 0;
-        final precio = (item['precio'] as num?)?.toDouble() ?? 0;
+        final stock = (item['stock'] as num).toInt();
+        final precio = (item['siVendePrecio'] as num).toDouble();
         valorInventario += stock * precio;
       }
 

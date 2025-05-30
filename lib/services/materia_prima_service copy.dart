@@ -131,9 +131,8 @@ class MateriaPrimaService {
     } catch (e) {
       throw Exception('Error al eliminar materia prima: $e');
     }
-  }
+  } // Actualizar stock
 
-  // Actualizar stock
   Future<MateriaPrima> actualizarStock(int id, int nuevoStock) async {
     try {
       if (nuevoStock < 0) {
@@ -171,9 +170,8 @@ class MateriaPrimaService {
     } catch (e) {
       throw Exception('Error al agregar stock: $e');
     }
-  }
+  } // Reducir stock (uso en producción)
 
-  // Reducir stock (uso en producción)
   Future<MateriaPrima> reducirStock(int id, int cantidad) async {
     try {
       if (cantidad <= 0) {
@@ -281,6 +279,7 @@ class MateriaPrimaService {
       return false;
     }
   }
+
   // Obtener estadísticas
   Future<Map<String, dynamic>> obtenerEstadisticas() async {
     try {
@@ -295,11 +294,10 @@ class MateriaPrimaService {
           .from(_tableName)
           .select('stock, siVendePrecio')
           .not('siVendePrecio', 'is', null);
-
       double valorInventario = 0;
       for (final item in valorTotal) {
-        final stock = (item['stock'] as num?)?.toInt() ?? 0;
-        final precio = (item['siVendePrecio'] as num?)?.toDouble() ?? 0;
+        final stock = (item['stock'] as num).toInt();
+        final precio = (item['siVendePrecio'] as num).toDouble();
         valorInventario += stock * precio;
       }
 

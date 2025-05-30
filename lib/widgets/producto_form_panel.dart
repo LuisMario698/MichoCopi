@@ -52,10 +52,14 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
   int? _proveedorSeleccionado;
   DateTime? _fechaCaducidad;
 
-  List<MateriaPrima> get _filteredMateriasPrimas => _materiasPrimas
-      .where((material) =>
-          material.nombre.toLowerCase().contains(_searchQuery.toLowerCase()))
-      .toList();
+  List<MateriaPrima> get _filteredMateriasPrimas =>
+      _materiasPrimas
+          .where(
+            (material) => material.nombre.toLowerCase().contains(
+              _searchQuery.toLowerCase(),
+            ),
+          )
+          .toList();
 
   // Función para verificar si la categoría seleccionada permite caducidad
   bool get _categoriaPermiteCaducidad {
@@ -115,13 +119,13 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
         setState(() {
           _categorias = List<Categoria>.from(categoriasResult['data']);
         });
-      }      // Obtener proveedores
+      } // Obtener proveedores
       final proveedoresResult = await ProveedorService.obtenerTodos();
       if (proveedoresResult['success'] == true) {
         setState(() {
           _proveedores = List<Proveedor>.from(proveedoresResult['data']);
         });
-      }      // Obtener materias primas
+      } // Obtener materias primas
       try {
         final materiaPrimaService = MateriaPrimaService();
         final materiasPrimas = await materiaPrimaService.obtenerTodas();
@@ -172,7 +176,6 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
           ];
         });
       }
-
     } catch (e) {
       print('💥 Error en _cargarDatos: $e');
       _mostrarSnackBar('Error al cargar los datos', true);
@@ -202,6 +205,7 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
       });
     }
   }
+
   Future<void> _guardarProducto() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -223,18 +227,22 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
     try {
       // Create recipe first if necessary
       int? idReceta;
-      
+
       if (_isRecipe && _selectedMateriasPrimas.isNotEmpty) {
         final recetaService = RecetaService();
-        final List<int> cantidades = List<int>.filled(_selectedMateriasPrimas.length, 1);
-        final List<int> materiaPrimaIds = _selectedMateriasPrimas.map((m) => m.id!).toList();
-        
+        final List<int> cantidades = List<int>.filled(
+          _selectedMateriasPrimas.length,
+          1,
+        );
+        final List<int> materiaPrimaIds =
+            _selectedMateriasPrimas.map((m) => m.id!).toList();
+
         try {
           final receta = Receta(
             idsMps: materiaPrimaIds,
             cantidades: cantidades,
           );
-          
+
           final recetaCreada = await recetaService.crear(receta);
           idReceta = recetaCreada.id;
           print('✅ Receta creada exitosamente con ID: ${recetaCreada.id}');
@@ -260,7 +268,9 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
       final result = await ProductoService.crearProducto(producto);
 
       if (result['success']) {
-        print('✅ Producto creado exitosamente con receta: ${result['data'].id}');
+        print(
+          '✅ Producto creado exitosamente con receta: ${result['data'].id}',
+        );
         _mostrarSnackBar('Producto agregado exitosamente', false);
         widget.onProductoCreated(true);
       } else {
@@ -901,7 +911,8 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
                                   child: Padding(
                                     padding: const EdgeInsets.all(16),
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         // Encabezado de Receta
                                         Row(
@@ -922,12 +933,14 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
                                           ],
                                         ),
                                         SizedBox(height: 16),
-                                        
+
                                         // Switch para activar modo receta
                                         SwitchListTile(
                                           title: Text(
                                             'Este producto requiere una receta',
-                                            style: TextStyle(fontWeight: FontWeight.w500),
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w500,
+                                            ),
                                           ),
                                           subtitle: Text(
                                             'Activa esta opción si el producto se elabora usando materias primas',
@@ -955,16 +968,19 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
                                           TextField(
                                             decoration: InputDecoration(
                                               labelText: 'Buscar materia prima',
-                                              hintText: 'Escribe para buscar...',
+                                              hintText:
+                                                  'Escribe para buscar...',
                                               prefixIcon: Icon(
                                                 Icons.search,
                                                 color: Color(0xFFC2185B),
                                               ),
                                               border: OutlineInputBorder(
-                                                borderRadius: BorderRadius.circular(8),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
                                               ),
                                               focusedBorder: OutlineInputBorder(
-                                                borderRadius: BorderRadius.circular(8),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
                                                 borderSide: BorderSide(
                                                   color: Color(0xFFC2185B),
                                                   width: 2,
@@ -983,60 +999,100 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
                                           Container(
                                             height: 200,
                                             decoration: BoxDecoration(
-                                              border: Border.all(color: Colors.grey[300]!),
-                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(
+                                                color: Colors.grey[300]!,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
                                             ),
                                             child: ListView.builder(
-                                              itemCount: _filteredMateriasPrimas.length,
+                                              itemCount:
+                                                  _filteredMateriasPrimas
+                                                      .length,
                                               itemBuilder: (context, index) {
-                                                final material = _filteredMateriasPrimas[index];
-                                                final yaSeleccionado = _selectedMateriasPrimas.contains(material);
+                                                final material =
+                                                    _filteredMateriasPrimas[index];
+                                                final yaSeleccionado =
+                                                    _selectedMateriasPrimas
+                                                        .contains(material);
                                                 return ListTile(
                                                   title: Text(
                                                     material.nombre,
-                                                    style: TextStyle(fontWeight: FontWeight.w500),
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
                                                   ),
                                                   subtitle: Row(
                                                     children: [
                                                       Icon(
-                                                        Icons.inventory_2_outlined,
+                                                        Icons
+                                                            .inventory_2_outlined,
                                                         size: 14,
-                                                        color: material.stock > 10 ? Colors.green : Colors.orange,
+                                                        color:
+                                                            material.stock > 10
+                                                                ? Colors.green
+                                                                : Colors.orange,
                                                       ),
                                                       SizedBox(width: 4),
                                                       Text(
                                                         'Stock: ${material.stock}',
-                                                        style: TextStyle(fontSize: 12),
+                                                        style: TextStyle(
+                                                          fontSize: 12,
+                                                        ),
                                                       ),
                                                     ],
                                                   ),
-                                                  trailing: yaSeleccionado
-                                                    ? IconButton(
-                                                        icon: Icon(Icons.check_circle, color: Color(0xFFC2185B)),
-                                                        onPressed: () {
-                                                          setState(() {
-                                                            _selectedMateriasPrimas.remove(material);
-                                                          });
-                                                        },
-                                                      )
-                                                    : OutlinedButton(
-                                                        onPressed: () {
-                                                          setState(() {
-                                                            _selectedMateriasPrimas.add(material);
-                                                          });
-                                                        },
-                                                        style: OutlinedButton.styleFrom(
-                                                          foregroundColor: Color(0xFFC2185B),
-                                                          side: BorderSide(color: Color(0xFFC2185B)),
-                                                        ),
-                                                        child: Text('Agregar'),
-                                                      ),
+                                                  trailing:
+                                                      yaSeleccionado
+                                                          ? IconButton(
+                                                            icon: Icon(
+                                                              Icons
+                                                                  .check_circle,
+                                                              color: Color(
+                                                                0xFFC2185B,
+                                                              ),
+                                                            ),
+                                                            onPressed: () {
+                                                              setState(() {
+                                                                _selectedMateriasPrimas
+                                                                    .remove(
+                                                                      material,
+                                                                    );
+                                                              });
+                                                            },
+                                                          )
+                                                          : OutlinedButton(
+                                                            onPressed: () {
+                                                              setState(() {
+                                                                _selectedMateriasPrimas
+                                                                    .add(
+                                                                      material,
+                                                                    );
+                                                              });
+                                                            },
+                                                            style: OutlinedButton.styleFrom(
+                                                              foregroundColor:
+                                                                  Color(
+                                                                    0xFFC2185B,
+                                                                  ),
+                                                              side: BorderSide(
+                                                                color: Color(
+                                                                  0xFFC2185B,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            child: Text(
+                                                              'Agregar',
+                                                            ),
+                                                          ),
                                                 );
                                               },
                                             ),
                                           ),
 
-                                          if (_selectedMateriasPrimas.isNotEmpty) ...[
+                                          if (_selectedMateriasPrimas
+                                              .isNotEmpty) ...[
                                             SizedBox(height: 24),
                                             Text(
                                               'Materias Primas de la Receta',
@@ -1050,25 +1106,47 @@ class _ProductoFormPanelState extends State<ProductoFormPanel>
                                             Container(
                                               decoration: BoxDecoration(
                                                 color: Colors.white,
-                                                borderRadius: BorderRadius.circular(8),
-                                                border: Border.all(color: Colors.grey[300]!),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                border: Border.all(
+                                                  color: Colors.grey[300]!,
+                                                ),
                                               ),
                                               child: Column(
-                                                children: _selectedMateriasPrimas.map((material) {
-                                                  return ListTile(
-                                                    leading: Icon(Icons.check, color: Color(0xFFC2185B)),
-                                                    title: Text(material.nombre),
-                                                    trailing: IconButton(
-                                                      icon: Icon(Icons.remove_circle_outline, color: Colors.red[300]),
-                                                      onPressed: () {
-                                                        setState(() {
-                                                          _selectedMateriasPrimas.remove(material);
-                                                        });
-                                                      },
-                                                      tooltip: 'Remover de la receta',
-                                                    ),
-                                                  );
-                                                }).toList(),
+                                                children:
+                                                    _selectedMateriasPrimas.map((
+                                                      material,
+                                                    ) {
+                                                      return ListTile(
+                                                        leading: Icon(
+                                                          Icons.check,
+                                                          color: Color(
+                                                            0xFFC2185B,
+                                                          ),
+                                                        ),
+                                                        title: Text(
+                                                          material.nombre,
+                                                        ),
+                                                        trailing: IconButton(
+                                                          icon: Icon(
+                                                            Icons
+                                                                .remove_circle_outline,
+                                                            color:
+                                                                Colors.red[300],
+                                                          ),
+                                                          onPressed: () {
+                                                            setState(() {
+                                                              _selectedMateriasPrimas
+                                                                  .remove(
+                                                                    material,
+                                                                  );
+                                                            });
+                                                          },
+                                                          tooltip:
+                                                              'Remover de la receta',
+                                                        ),
+                                                      );
+                                                    }).toList(),
                                               ),
                                             ),
                                           ],

@@ -3,17 +3,14 @@ class Receta {
   final List<int> idsMps;
   final List<int> cantidades;
 
-  Receta({
-    this.id,
-    required this.idsMps,
-    required this.cantidades,
-  });
+  Receta({this.id, required this.idsMps, required this.cantidades});
 
   factory Receta.fromJson(Map<String, dynamic> json) {
     return Receta(
       id: json['id'] != null ? (json['id'] as num).toInt() : null,
       idsMps: (json['ids_Mps'] as List).map((e) => (e as num).toInt()).toList(),
-      cantidades: (json['cantidades'] as List).map((e) => (e as num).toInt()).toList(),
+      cantidades:
+          (json['cantidades'] as List).map((e) => (e as num).toInt()).toList(),
     );
   }
 
@@ -26,11 +23,7 @@ class Receta {
   }
 
   // Método copyWith para crear copias con modificaciones
-  Receta copyWith({
-    int? id,
-    List<int>? idsMps,
-    List<int>? cantidades,
-  }) {
+  Receta copyWith({int? id, List<int>? idsMps, List<int>? cantidades}) {
     return Receta(
       id: id ?? this.id,
       idsMps: idsMps ?? List.from(this.idsMps),
@@ -82,13 +75,13 @@ class Receta {
   // Método para validar todos los campos
   List<String> validar() {
     List<String> errores = [];
-    
+
     String? errorIdsMps = validarIdsMps();
     if (errorIdsMps != null) errores.add(errorIdsMps);
-    
+
     String? errorCantidades = validarCantidades();
     if (errorCantidades != null) errores.add(errorCantidades);
-    
+
     return errores;
   }
 
@@ -100,14 +93,11 @@ class Receta {
     if (idsMps.contains(idMateriaPrima)) {
       throw ArgumentError('La materia prima ya existe en la receta');
     }
-    
+
     List<int> nuevosIds = List.from(idsMps)..add(idMateriaPrima);
     List<int> nuevasCantidades = List.from(cantidades)..add(cantidad);
-    
-    return copyWith(
-      idsMps: nuevosIds,
-      cantidades: nuevasCantidades,
-    );
+
+    return copyWith(idsMps: nuevosIds, cantidades: nuevasCantidades);
   }
 
   // Remover materia prima de la receta
@@ -116,14 +106,11 @@ class Receta {
     if (index == -1) {
       throw ArgumentError('La materia prima no existe en la receta');
     }
-    
+
     List<int> nuevosIds = List.from(idsMps)..removeAt(index);
     List<int> nuevasCantidades = List.from(cantidades)..removeAt(index);
-    
-    return copyWith(
-      idsMps: nuevosIds,
-      cantidades: nuevasCantidades,
-    );
+
+    return copyWith(idsMps: nuevosIds, cantidades: nuevasCantidades);
   }
 
   // Actualizar cantidad de materia prima
@@ -132,10 +119,10 @@ class Receta {
     if (index == -1) {
       throw ArgumentError('La materia prima no existe en la receta');
     }
-    
+
     List<int> nuevasCantidades = List.from(cantidades);
     nuevasCantidades[index] = nuevaCantidad;
-    
+
     return copyWith(cantidades: nuevasCantidades);
   }
 
@@ -168,11 +155,7 @@ class Receta {
 
   @override
   int get hashCode {
-    return Object.hash(
-      id,
-      Object.hashAll(idsMps),
-      Object.hashAll(cantidades),
-    );
+    return Object.hash(id, Object.hashAll(idsMps), Object.hashAll(cantidades));
   }
 
   @override

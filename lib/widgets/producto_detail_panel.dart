@@ -33,7 +33,9 @@ class _ProductoDetailPanelState extends State<ProductoDetailPanel> {
   void initState() {
     super.initState();
     _nombreController = TextEditingController(text: widget.producto.nombre);
-    _precioController = TextEditingController(text: widget.producto.precio.toString());
+    _precioController = TextEditingController(
+      text: widget.producto.precio.toString(),
+    );
   }
 
   @override
@@ -68,13 +70,14 @@ class _ProductoDetailPanelState extends State<ProductoDetailPanel> {
         widget.producto.id!,
         productoActualizado,
       );
-      
+
       if (result['success']) {
         widget.onProductoUpdated(true);
         widget.onClose();
       } else {
         setState(() {
-          _errorMessage = result['message'] ?? 'Error al actualizar el producto';
+          _errorMessage =
+              result['message'] ?? 'Error al actualizar el producto';
         });
       }
     } catch (e) {
@@ -230,9 +233,13 @@ class _ProductoDetailPanelState extends State<ProductoDetailPanel> {
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
                           inputFormatters: [
-                            FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d*\.?\d{0,2}'),
+                            ),
                           ],
                           validator: (value) {
                             if (value?.isEmpty ?? true) {
@@ -272,22 +279,26 @@ class _ProductoDetailPanelState extends State<ProductoDetailPanel> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            child: _isLoading
-                                ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            child:
+                                _isLoading
+                                    ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
+                                      ),
+                                    )
+                                    : const Text(
+                                      'Guardar cambios',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
-                                  )
-                                : const Text(
-                                    'Guardar cambios',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
                           ),
                         ),
                       ],

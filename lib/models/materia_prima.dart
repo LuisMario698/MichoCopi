@@ -15,8 +15,7 @@ class MateriaPrima {
     required this.fechaCreacion,
     this.seVende = false,
     this.siVendePrecio,
-  });
-  factory MateriaPrima.fromJson(Map<String, dynamic> json) {
+  });  factory MateriaPrima.fromJson(Map<String, dynamic> json) {
     return MateriaPrima(
       id: json['id'] != null ? (json['id'] as num).toInt() : null,
       nombre: json['nombre'] as String,
@@ -40,7 +39,6 @@ class MateriaPrima {
       if (siVendePrecio != null) 'siVendePrecio': siVendePrecio,
     };
   }
-
   MateriaPrima copyWith({
     int? id,
     String? nombre,

@@ -118,7 +118,7 @@ class _MateriaPrimaFormPanelState extends State<MateriaPrimaFormPanel>
       // Aquí puedes implementar la validación de nombre si el servicio lo permite
       // Por ahora solo simularemos la validación
       await Future.delayed(const Duration(milliseconds: 500));
-      
+
       if (mounted) {
         setState(() {
           _nombreExiste = false; // Cambiar según la lógica de validación real
@@ -256,270 +256,318 @@ class _MateriaPrimaFormPanelState extends State<MateriaPrimaFormPanel>
                         ),
                         IconButton(
                           onPressed: _cerrarPanel,
-                          icon: const Icon(
-                            Icons.close,
-                            color: Colors.white,
-                          ),
+                          icon: const Icon(Icons.close, color: Colors.white),
                         ),
                       ],
                     ),
                   ),
                   // Content
                   Expanded(
-                    child: _isLoadingData
-                        ? const Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                CircularProgressIndicator(
-                                  color: Color(0xFFC2185B),
-                                ),
-                                SizedBox(height: 16),
-                                Text('Cargando datos...'),
-                              ],
-                            ),
-                          )
-                        : SingleChildScrollView(
-                            padding: const EdgeInsets.all(16),
-                            child: Form(
-                              key: _formKey,
+                    child:
+                        _isLoadingData
+                            ? const Center(
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  // Información básica
-                                  Card(
-                                    elevation: 0,
-                                    color: Colors.grey[50],
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(16),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          const Row(
-                                            children: [
-                                              Icon(
-                                                Icons.info_outline,
-                                                color: Color(0xFFC2185B),
-                                                size: 20,
-                                              ),
-                                              SizedBox(width: 8),
-                                              Text(
-                                                'Información Básica',
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 16),
-                                          TextFormField(
-                                            controller: _nombreController,
-                                            decoration: InputDecoration(
-                                              labelText: 'Nombre de la materia prima *',
-                                              prefixIcon: const Icon(
-                                                Icons.inventory_2,
-                                                color: Color(0xFFC2185B),
-                                              ),
-                                              border: OutlineInputBorder(
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
-                                              helperText: 'El nombre debe ser único',
-                                              suffixIcon: _validandoNombre
-                                                  ? const SizedBox(
-                                                      width: 20,
-                                                      height: 20,
-                                                      child: Padding(
-                                                        padding: EdgeInsets.all(8.0),
-                                                        child: CircularProgressIndicator(
-                                                          strokeWidth: 2,
-                                                        ),
-                                                      ),
-                                                    )
-                                                  : _nombreExiste
-                                                      ? const Icon(
-                                                          Icons.error,
-                                                          color: Colors.red,
-                                                        )
-                                                      : _nombreController.text.isNotEmpty
-                                                          ? const Icon(
-                                                              Icons.check_circle,
-                                                              color: Colors.green,
-                                                            )
-                                                          : null,
-                                            ),
-                                            validator: (value) {
-                                              if (value == null || value.trim().isEmpty) {
-                                                return 'El nombre es obligatorio';
-                                              }
-                                              if (value.trim().length < 2) {
-                                                return 'El nombre debe tener al menos 2 caracteres';
-                                              }
-                                              if (_nombreExiste) {
-                                                return 'Ya existe una materia prima con este nombre';
-                                              }
-                                              return null;
-                                            },
-                                            onChanged: (value) {
-                                              if (value.trim().length >= 2) {
-                                                _validarNombreMateria(value.trim());
-                                              }
-                                            },
-                                          ),
-                                          const SizedBox(height: 16),
-                                          DropdownButtonFormField<int>(
-                                            value: _categoriaSeleccionada,
-                                            decoration: InputDecoration(
-                                              labelText: 'Categoría *',
-                                              prefixIcon: const Icon(
-                                                Icons.category,
-                                                color: Color(0xFFC2185B),
-                                              ),
-                                              border: OutlineInputBorder(
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
-                                            ),
-                                            items: _categorias
-                                                .where((categoria) => categoria.id != null)
-                                                .map((categoria) {
-                                              return DropdownMenuItem<int>(
-                                                value: categoria.id!,
-                                                child: Text(categoria.nombre),
-                                              );
-                                            }).toList(),
-                                            onChanged: (value) {
-                                              setState(() {
-                                                _categoriaSeleccionada = value;
-                                              });
-                                            },
-                                            validator: (value) {
-                                              if (value == null) {
-                                                return 'Selecciona una categoría';
-                                              }
-                                              return null;
-                                            },
-                                          ),
-                                          const SizedBox(height: 16),
-                                          TextFormField(
-                                            controller: _stockController,
-                                            decoration: InputDecoration(
-                                              labelText: 'Stock inicial *',
-                                              prefixIcon: const Icon(
-                                                Icons.inventory,
-                                                color: Color(0xFFC2185B),
-                                              ),
-                                              border: OutlineInputBorder(
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
-                                              helperText: 'Cantidad disponible en inventario',
-                                            ),
-                                            keyboardType: TextInputType.number,
-                                            inputFormatters: [
-                                              FilteringTextInputFormatter.digitsOnly
-                                            ],
-                                            validator: (value) {
-                                              if (value == null || value.isEmpty) {
-                                                return 'El stock es requerido';
-                                              }
-                                              final stock = int.tryParse(value);
-                                              if (stock == null || stock < 0) {
-                                                return 'El stock debe ser un número válido mayor o igual a 0';
-                                              }
-                                              return null;
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    ),
+                                  CircularProgressIndicator(
+                                    color: Color(0xFFC2185B),
                                   ),
-                                  const SizedBox(height: 16),
-                                  // Información de venta
-                                  Card(
-                                    elevation: 0,
-                                    color: Colors.grey[50],
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(16),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          const Row(
-                                            children: [
-                                              Icon(
-                                                Icons.sell,
-                                                color: Color(0xFFC2185B),
-                                                size: 20,
-                                              ),
-                                              SizedBox(width: 8),
-                                              Text(
-                                                'Información de Venta',
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
+                                  SizedBox(height: 16),
+                                  Text('Cargando datos...'),
+                                ],
+                              ),
+                            )
+                            : SingleChildScrollView(
+                              padding: const EdgeInsets.all(16),
+                              child: Form(
+                                key: _formKey,
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    // Información básica
+                                    Card(
+                                      elevation: 0,
+                                      color: Colors.grey[50],
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(16),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.info_outline,
+                                                  color: Color(0xFFC2185B),
+                                                  size: 20,
                                                 ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 16),
-                                          SwitchListTile(
-                                            title: const Text('¿Se vende al público?'),
-                                            subtitle: const Text(
-                                              'Indica si esta materia prima también se vende como producto',
+                                                SizedBox(width: 8),
+                                                Text(
+                                                  'Información Básica',
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
-                                            value: _seVende,
-                                            activeColor: const Color(0xFFC2185B),
-                                            onChanged: (value) {
-                                              setState(() {
-                                                _seVende = value;
-                                                if (!value) {
-                                                  _precioController.clear();
-                                                }
-                                              });
-                                            },
-                                          ),
-                                          if (_seVende) ...[
                                             const SizedBox(height: 16),
                                             TextFormField(
-                                              controller: _precioController,
+                                              controller: _nombreController,
                                               decoration: InputDecoration(
-                                                labelText: 'Precio de venta *',
+                                                labelText:
+                                                    'Nombre de la materia prima *',
                                                 prefixIcon: const Icon(
-                                                  Icons.attach_money,
+                                                  Icons.inventory_2,
                                                   color: Color(0xFFC2185B),
                                                 ),
                                                 border: OutlineInputBorder(
-                                                  borderRadius: BorderRadius.circular(8),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
                                                 ),
-                                                helperText: 'Precio por unidad de venta',
+                                                helperText:
+                                                    'El nombre debe ser único',
+                                                suffixIcon:
+                                                    _validandoNombre
+                                                        ? const SizedBox(
+                                                          width: 20,
+                                                          height: 20,
+                                                          child: Padding(
+                                                            padding:
+                                                                EdgeInsets.all(
+                                                                  8.0,
+                                                                ),
+                                                            child:
+                                                                CircularProgressIndicator(
+                                                                  strokeWidth:
+                                                                      2,
+                                                                ),
+                                                          ),
+                                                        )
+                                                        : _nombreExiste
+                                                        ? const Icon(
+                                                          Icons.error,
+                                                          color: Colors.red,
+                                                        )
+                                                        : _nombreController
+                                                            .text
+                                                            .isNotEmpty
+                                                        ? const Icon(
+                                                          Icons.check_circle,
+                                                          color: Colors.green,
+                                                        )
+                                                        : null,
                                               ),
-                                              keyboardType: const TextInputType.numberWithOptions(
-                                                decimal: true,
+                                              validator: (value) {
+                                                if (value == null ||
+                                                    value.trim().isEmpty) {
+                                                  return 'El nombre es obligatorio';
+                                                }
+                                                if (value.trim().length < 2) {
+                                                  return 'El nombre debe tener al menos 2 caracteres';
+                                                }
+                                                if (_nombreExiste) {
+                                                  return 'Ya existe una materia prima con este nombre';
+                                                }
+                                                return null;
+                                              },
+                                              onChanged: (value) {
+                                                if (value.trim().length >= 2) {
+                                                  _validarNombreMateria(
+                                                    value.trim(),
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                            const SizedBox(height: 16),
+                                            DropdownButtonFormField<int>(
+                                              value: _categoriaSeleccionada,
+                                              decoration: InputDecoration(
+                                                labelText: 'Categoría *',
+                                                prefixIcon: const Icon(
+                                                  Icons.category,
+                                                  color: Color(0xFFC2185B),
+                                                ),
+                                                border: OutlineInputBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
                                               ),
+                                              items:
+                                                  _categorias
+                                                      .where(
+                                                        (categoria) =>
+                                                            categoria.id !=
+                                                            null,
+                                                      )
+                                                      .map((categoria) {
+                                                        return DropdownMenuItem<
+                                                          int
+                                                        >(
+                                                          value: categoria.id!,
+                                                          child: Text(
+                                                            categoria.nombre,
+                                                          ),
+                                                        );
+                                                      })
+                                                      .toList(),
+                                              onChanged: (value) {
+                                                setState(() {
+                                                  _categoriaSeleccionada =
+                                                      value;
+                                                });
+                                              },
+                                              validator: (value) {
+                                                if (value == null) {
+                                                  return 'Selecciona una categoría';
+                                                }
+                                                return null;
+                                              },
+                                            ),
+                                            const SizedBox(height: 16),
+                                            TextFormField(
+                                              controller: _stockController,
+                                              decoration: InputDecoration(
+                                                labelText: 'Stock inicial *',
+                                                prefixIcon: const Icon(
+                                                  Icons.inventory,
+                                                  color: Color(0xFFC2185B),
+                                                ),
+                                                border: OutlineInputBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                helperText:
+                                                    'Cantidad disponible en inventario',
+                                              ),
+                                              keyboardType:
+                                                  TextInputType.number,
                                               inputFormatters: [
-                                                FilteringTextInputFormatter.allow(
-                                                  RegExp(r'^\d*\.?\d{0,2}'),
-                                                ),
+                                                FilteringTextInputFormatter
+                                                    .digitsOnly,
                                               ],
                                               validator: (value) {
-                                                if (!_seVende) return null;
-                                                if (value == null || value.isEmpty) {
-                                                  return 'El precio es requerido si la materia prima se vende';
+                                                if (value == null ||
+                                                    value.isEmpty) {
+                                                  return 'El stock es requerido';
                                                 }
-                                                final precio = double.tryParse(value);
-                                                if (precio == null || precio <= 0) {
-                                                  return 'El precio debe ser un número válido mayor a 0';
+                                                final stock = int.tryParse(
+                                                  value,
+                                                );
+                                                if (stock == null ||
+                                                    stock < 0) {
+                                                  return 'El stock debe ser un número válido mayor o igual a 0';
                                                 }
                                                 return null;
                                               },
                                             ),
                                           ],
-                                        ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(height: 16),
+                                    // Información de venta
+                                    Card(
+                                      elevation: 0,
+                                      color: Colors.grey[50],
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(16),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.sell,
+                                                  color: Color(0xFFC2185B),
+                                                  size: 20,
+                                                ),
+                                                SizedBox(width: 8),
+                                                Text(
+                                                  'Información de Venta',
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 16),
+                                            SwitchListTile(
+                                              title: const Text(
+                                                '¿Se vende al público?',
+                                              ),
+                                              subtitle: const Text(
+                                                'Indica si esta materia prima también se vende como producto',
+                                              ),
+                                              value: _seVende,
+                                              activeColor: const Color(
+                                                0xFFC2185B,
+                                              ),
+                                              onChanged: (value) {
+                                                setState(() {
+                                                  _seVende = value;
+                                                  if (!value) {
+                                                    _precioController.clear();
+                                                  }
+                                                });
+                                              },
+                                            ),
+                                            if (_seVende) ...[
+                                              const SizedBox(height: 16),
+                                              TextFormField(
+                                                controller: _precioController,
+                                                decoration: InputDecoration(
+                                                  labelText:
+                                                      'Precio de venta *',
+                                                  prefixIcon: const Icon(
+                                                    Icons.attach_money,
+                                                    color: Color(0xFFC2185B),
+                                                  ),
+                                                  border: OutlineInputBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          8,
+                                                        ),
+                                                  ),
+                                                  helperText:
+                                                      'Precio por unidad de venta',
+                                                ),
+                                                keyboardType:
+                                                    const TextInputType.numberWithOptions(
+                                                      decimal: true,
+                                                    ),
+                                                inputFormatters: [
+                                                  FilteringTextInputFormatter.allow(
+                                                    RegExp(r'^\d*\.?\d{0,2}'),
+                                                  ),
+                                                ],
+                                                validator: (value) {
+                                                  if (!_seVende) return null;
+                                                  if (value == null ||
+                                                      value.isEmpty) {
+                                                    return 'El precio es requerido si la materia prima se vende';
+                                                  }
+                                                  final precio =
+                                                      double.tryParse(value);
+                                                  if (precio == null ||
+                                                      precio <= 0) {
+                                                    return 'El precio debe ser un número válido mayor a 0';
+                                                  }
+                                                  return null;
+                                                },
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
                   ),
                   // Footer con botones
                   Container(
@@ -554,16 +602,21 @@ class _MateriaPrimaFormPanelState extends State<MateriaPrimaFormPanel>
                               vertical: 12,
                             ),
                           ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
+                          child:
+                              _isLoading
+                                  ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                  : Text(
+                                    widget.materiaPrima == null
+                                        ? 'Agregar'
+                                        : 'Actualizar',
                                   ),
-                                )
-                              : Text(widget.materiaPrima == null ? 'Agregar' : 'Actualizar'),
                         ),
                       ],
                     ),

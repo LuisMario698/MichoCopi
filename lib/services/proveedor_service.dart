@@ -104,11 +104,10 @@ class ProveedorService {
 
   // Obtener proveedores por categoría
   static Future<List<Proveedor>> obtenerPorCategoria(int idCategoria) async {
-    try {
-      final response = await _client
+    try {      final response = await _client
           .from(_tableName)
           .select()
-          .eq('id_categoria_p', idCategoria)
+          .eq('id_Categoria_p', idCategoria)
           .order('nombre');
 
       return (response as List)

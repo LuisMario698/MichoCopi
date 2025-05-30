@@ -17,16 +17,24 @@ class Proveedor {
     this.email,
     required this.horaApertura,
     required this.horaCierre,
-  });
-  // Constructor para crear desde JSON (para Supabase)
+  });  // Constructor para crear desde JSON (para Supabase)
   factory Proveedor.fromJson(Map<String, dynamic> json) {
     String procesarHora(dynamic hora) {
       if (hora == null) return '09:00';
       if (hora is String) {
         // Si ya viene en formato HH:mm, lo usamos directamente
         if (hora.length <= 5) return hora;
-        // Si viene como timestamp, extraemos la hora
-        return hora.split(' ')[1].substring(0, 5);
+        // Si viene como timestamp, intentamos extraer la hora
+        try {
+          final partes = hora.split(' ');
+          if (partes.length > 1) {
+            return partes[1].substring(0, 5);
+          }
+          return hora;
+        } catch (e) {
+          // Si hay cualquier error, devolvemos la hora por defecto
+          return '09:00';
+        }
       }
       return '09:00';
     }
@@ -41,15 +49,14 @@ class Proveedor {
       horaApertura: procesarHora(json['hora_apertura']),
       horaCierre: procesarHora(json['hora_cierre']),
     );
-  }
-  // Convertir a JSON (para Supabase)
+  }  // Convertir a JSON (para Supabase)
   Map<String, dynamic> toJson() {
     return {
       if (id != null) 'id': id,
       'nombre': nombre,
       'direccion': direccion,
       'telefono': telefono,
-      'id_categoria_p': idCategoriaP,
+      'id_Categoria_p': idCategoriaP,
       if (email != null) 'email': email,
       'hora_apertura': '2000-01-01 ${horaApertura}:00',
       'hora_cierre': '2000-01-01 ${horaCierre}:00',
@@ -158,11 +165,18 @@ class Proveedor {
 
     return minutosActual >= minutosApertura && minutosActual <= minutosCierre;
   }
-
   // Método helper para convertir hora en formato "HH:mm" a minutos
   int _convertirHoraAMinutos(String hora) {
-    final partes = hora.split(':');
-    return int.parse(partes[0]) * 60 + int.parse(partes[1]);
+    try {
+      final partes = hora.split(':');
+      if (partes.length >= 2) {
+        return int.parse(partes[0]) * 60 + int.parse(partes[1]);
+      }
+      return 0; // Valor predeterminado si el formato es incorrecto
+    } catch (e) {
+      // Si hay error de parseo, devolvemos un valor predeterminado
+      return 0;
+    }
   }
 
   // Getters útiles
