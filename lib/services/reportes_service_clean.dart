@@ -1,8 +1,12 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/venta.dart';
 import '../models/producto.dart';
+import '../models/usuario.dart';
 import '../models/compras.dart';
 import '../models/proveedor.dart';
+import '../models/materia_prima.dart';
+import '../models/categoria_producto.dart';
+import '../models/categoria_proveedor.dart';
 
 class ReportesService {
   static final _supabase = Supabase.instance.client;
@@ -197,7 +201,7 @@ class ReportesService {
       // Agrupar por categoría
       final porCategoria = <String, Map<String, dynamic>>{};
       for (final producto in productos) {
-        final categoria = 'Categoría ${producto.idCategoriaProducto}'; // Usar la propiedad correcta
+        final categoria = 'Categoría ${producto.idCategoriaProducto}';
         if (!porCategoria.containsKey(categoria)) {
           porCategoria[categoria] = {'cantidad': 0, 'valor': 0.0, 'productos': <Producto>[]};
         }
@@ -268,260 +272,6 @@ class ReportesService {
         'success': false,
         'data': null,
         'message': 'Error al obtener movimientos de inventario: $e',
-      };
-    }
-  }  // ========== REPORTES DE CORTES DE INVENTARIO ==========
-
-  // Obtener reporte de cortes de inventario
-  static Future<Map<String, dynamic>> obtenerReporteCortes({
-    DateTime? fechaInicio,
-    DateTime? fechaFin,
-  }) async {
-    try {
-      var query = _supabase
-          .from('Corte_inventario')
-          .select('*');
-
-      if (fechaInicio != null) {
-        query = query.gte('fecha_corte', fechaInicio.toIso8601String().split('T')[0]);
-      }
-      if (fechaFin != null) {
-        query = query.lte('fecha_corte', fechaFin.toIso8601String().split('T')[0]);
-      }
-
-      final response = await query.order('fecha_corte', ascending: false);
-      final cortes = response as List;
-
-      // Calcular estadísticas generales
-      final totalCortes = cortes.length;
-      final cortesCompletados = cortes.where((c) => c['estado'] == 'completado').length;
-      final cortesEnProceso = cortes.where((c) => c['estado'] == 'iniciado').length;
-
-      return {
-        'success': true,
-        'data': {
-          'totalCortes': totalCortes,
-          'cortesCompletados': cortesCompletados,
-          'cortesEnProceso': cortesEnProceso,
-          'cortes': cortes,
-        },
-        'message': 'Reporte de cortes de inventario generado exitosamente',
-      };
-    } catch (e) {
-      return {
-        'success': false,
-        'data': null,
-        'message': 'Error al generar reporte de cortes: $e',
-      };
-    }
-  }
-
-  // Obtener detalles de un corte específico
-  static Future<Map<String, dynamic>> obtenerDetalleCorte(int idCorte) async {
-    try {
-      // Obtener información del corte
-      final corteResponse = await _supabase
-          .from('Corte_inventario')
-          .select('*')
-          .eq('id', idCorte)
-          .single();
-
-      // Obtener reportes detallados del corte (si existen)
-      final reportesResponse = await _supabase
-          .from('Reportes_cortes')
-          .select('*, Materia_prima!inner(*)')
-          .eq('id_corte', idCorte);
-
-      final reportes = reportesResponse as List;
-
-      // Si no hay reportes detallados, generar desde los arrays del corte
-      List<Map<String, dynamic>> diferenciasCalculadas = [];
-      
-      if (reportes.isEmpty && corteResponse['ids_mps'] != null) {
-        final idsMps = List<int>.from(corteResponse['ids_mps']);
-        final stockInicial = corteResponse['stock_inicial'] != null 
-            ? List<int>.from(corteResponse['stock_inicial']) 
-            : <int>[];
-        final stockFinal = corteResponse['stock_final'] != null 
-            ? List<int>.from(corteResponse['stock_final']) 
-            : <int>[];
-
-        for (int i = 0; i < idsMps.length; i++) {
-          final inicial = i < stockInicial.length ? stockInicial[i] : 0;
-          final final_ = i < stockFinal.length ? stockFinal[i] : 0;
-          final diferencia = final_ - inicial;
-          final porcentaje = inicial > 0 ? (diferencia / inicial * 100) : 0.0;
-
-          // Obtener info de la materia prima
-          try {
-            final mpResponse = await _supabase
-                .from('Materia_prima')
-                .select('*')
-                .eq('id', idsMps[i])
-                .single();
-
-            diferenciasCalculadas.add({
-              'id_materia_prima': idsMps[i],
-              'nombre_mp': mpResponse['nombre'],
-              'stock_inicial': inicial,
-              'stock_final': final_,
-              'diferencia': diferencia,
-              'porcentaje_diferencia': porcentaje,
-            });
-          } catch (e) {
-            print('Error al obtener MP ${idsMps[i]}: $e');
-          }
-        }
-      }
-
-      // Calcular estadísticas del corte
-      final materiasAfectadas = reportes.isNotEmpty ? reportes.length : diferenciasCalculadas.length;
-      final diferenciasPositivas = reportes.isNotEmpty 
-          ? reportes.where((r) => r['diferencia'] > 0).length
-          : diferenciasCalculadas.where((d) => d['diferencia'] > 0).length;
-      final diferenciasNegativas = reportes.isNotEmpty 
-          ? reportes.where((r) => r['diferencia'] < 0).length
-          : diferenciasCalculadas.where((d) => d['diferencia'] < 0).length;
-
-      return {
-        'success': true,
-        'data': {
-          'corte': corteResponse,
-          'reportes': reportes.isNotEmpty ? reportes : diferenciasCalculadas,
-          'estadisticas': {
-            'materiasAfectadas': materiasAfectadas,
-            'diferenciasPositivas': diferenciasPositivas,
-            'diferenciasNegativas': diferenciasNegativas,
-            'exactas': materiasAfectadas - diferenciasPositivas - diferenciasNegativas,
-          }
-        },
-        'message': 'Detalle del corte obtenido exitosamente',
-      };
-    } catch (e) {
-      return {
-        'success': false,
-        'data': null,
-        'message': 'Error al obtener detalle del corte: $e',
-      };
-    }
-  }
-
-  // Guardar reporte detallado de corte
-  static Future<Map<String, dynamic>> guardarReporteCorte({
-    required int idCorte,
-    required List<Map<String, dynamic>> diferencias,
-    String? observaciones,
-  }) async {
-    try {
-      // Limpiar reportes existentes del corte
-      await _supabase
-          .from('Reportes_cortes')
-          .delete()
-          .eq('id_corte', idCorte);
-
-      // Insertar nuevos reportes
-      final reportesParaInsertar = diferencias.map((dif) => {
-        'id_corte': idCorte,
-        'id_materia_prima': dif['id_materia_prima'],
-        'stock_inicial': dif['stock_inicial'],
-        'stock_final': dif['stock_final'],
-        'diferencia': dif['diferencia'],
-        'porcentaje_diferencia': dif['porcentaje_diferencia'],
-        'fecha_corte': dif['fecha_corte'] ?? DateTime.now().toIso8601String().split('T')[0],
-        'observaciones': observaciones,
-      }).toList();
-
-      await _supabase
-          .from('Reportes_cortes')
-          .insert(reportesParaInsertar);
-
-      return {
-        'success': true,
-        'data': null,
-        'message': 'Reporte de corte guardado exitosamente',
-      };
-    } catch (e) {
-      return {
-        'success': false,
-        'data': null,
-        'message': 'Error al guardar reporte de corte: $e',
-      };
-    }
-  }
-
-  // ========== REPORTES DE COMPRAS (DESACTIVADO TEMPORALMENTE) ==========
-  
-  /*
-  // Obtener reporte de compras por período
-  static Future<Map<String, dynamic>> obtenerReporteCompras({
-    required DateTime fechaInicio,
-    required DateTime fechaFin,
-  }) async {
-    // TEMPORALMENTE DESACTIVADO
-    return {
-      'success': false,
-      'data': null,
-      'message': 'Reportes de compras temporalmente desactivados',
-    };
-  }
-  */
-
-  // ========== REPORTES DE PROVEEDORES ==========
-
-  // Obtener reporte de proveedores
-  static Future<Map<String, dynamic>> obtenerReporteProveedores() async {
-    try {
-      final response = await _supabase
-          .from('Proveedores')
-          .select('*, Categoria_Proveedores!inner(*)')
-          .order('nombre', ascending: true);
-
-      final proveedores = (response as List).map((json) => Proveedor.fromJson(json)).toList();
-
-      // Obtener compras por proveedor (últimos 30 días)
-      final fechaLimite = DateTime.now().subtract(const Duration(days: 30));
-      final comprasResponse = await _supabase
-          .from('Compras')
-          .select('*')
-          .gte('fecha', fechaLimite.toIso8601String());
-
-      final compras = (comprasResponse as List).map((json) => Compras.fromJson(json)).toList();
-
-      // Asociar compras con proveedores
-      final estadisticasProveedores = <Map<String, dynamic>>[];
-      for (final proveedor in proveedores) {
-        final comprasProveedor = compras.where((c) => c.idProveedor == proveedor.id).toList();
-        final totalCompras = comprasProveedor.length;
-        final montoTotal = comprasProveedor.fold<double>(0, (sum, c) => sum + c.total);
-
-        estadisticasProveedores.add({
-          'proveedor': proveedor,
-          'totalCompras': totalCompras,
-          'montoTotal': montoTotal,
-          'ultimaCompra': comprasProveedor.isNotEmpty 
-              ? comprasProveedor.map((c) => c.fecha).reduce((a, b) => a.isAfter(b) ? a : b)
-              : null,
-        });
-      }
-
-      // Ordenar por monto total descendente
-      estadisticasProveedores.sort((a, b) => 
-          (b['montoTotal'] as double).compareTo(a['montoTotal'] as double));
-
-      return {
-        'success': true,
-        'data': {
-          'totalProveedores': proveedores.length,
-          'estadisticas': estadisticasProveedores,
-          'proveedores': proveedores,
-        },
-        'message': 'Reporte de proveedores generado exitosamente',
-      };
-    } catch (e) {
-      return {
-        'success': false,
-        'data': null,
-        'message': 'Error al generar reporte de proveedores: $e',
       };
     }
   }
@@ -596,7 +346,7 @@ class ReportesService {
       // Productos con mayor valor en inventario
       final mayorValorInventario = [...productos]
         ..sort((a, b) => (b.precio * (b.stock ?? 0)).compareTo(a.precio * (a.stock ?? 0)));
-      
+
       // Agrupar por categoría
       final porCategoria = <int, Map<String, dynamic>>{};
       for (final producto in productos) {

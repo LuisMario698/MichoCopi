@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../services/reportes_service.dart';
-import '../models/venta.dart';
 import '../models/producto.dart';
 
 class ReportesPage extends StatefulWidget {
@@ -21,8 +19,6 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
   // Datos de reportes
   Map<String, dynamic>? _resumenVentas;
   List<Map<String, dynamic>>? _productosMasVendidos;
-  Map<String, dynamic>? _reporteInventario;
-  Map<String, dynamic>? _resumenFinanciero;
 
   @override
   void initState() {
@@ -37,13 +33,76 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
     super.dispose();
   }
 
+  Future<void> _cargarTodosLosReportes() async {
+    if (_cargando) return;
+
+    setState(() {
+      _cargando = true;
+    });
+
+    try {
+      // Cargar todos los reportes necesarios
+      final futures = await Future.wait([
+        ReportesService.obtenerResumenVentas(
+          fechaInicio: _fechaInicio,
+          fechaFin: _fechaFin,
+        ),
+        ReportesService.obtenerProductosMasVendidos(
+          fechaInicio: _fechaInicio,
+          fechaFin: _fechaFin,
+        ),
+        // Aquí puedes añadir más reportes si es necesario
+      ]);
+
+      if (!mounted) return;
+
+      setState(() {
+        // Procesar resultados
+        final resumenResult = futures[0];
+        final productosResult = futures[1];
+
+        if (resumenResult['success']) {
+          _resumenVentas = resumenResult['data'];
+        }
+        if (productosResult['success']) {
+          _productosMasVendidos = List<Map<String, dynamic>>.from(
+            productosResult['data'],
+          );
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al cargar los reportes: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: 'Reintentar',
+            textColor: Colors.white,
+            onPressed: _cargarTodosLosReportes,
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _cargando = false;
+        });
+      }
+    }
+  }
+
   Future<void> _cargarReporte() async {
     setState(() {
       _cargando = true;
     });
 
     try {
-      final futures = await Future.wait([
+      if (!mounted) return;
+
+      final resultados = await Future.wait([
         ReportesService.obtenerResumenVentas(
           fechaInicio: _fechaInicio,
           fechaFin: _fechaFin,
@@ -54,8 +113,10 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
         ),
       ]);
 
-      final resumenResult = futures[0];
-      final productosResult = futures[1];
+      if (!mounted) return;
+
+      final resumenResult = resultados[0];
+      final productosResult = resultados[1];
 
       setState(() {
         if (resumenResult['success']) {
@@ -68,9 +129,20 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
         }
       });
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error al cargar reporte: $e')));
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al cargar reporte: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: 'Reintentar',
+            textColor: Colors.white,
+            onPressed: _cargarReporte,
+          ),
+        ),
+      );
     } finally {
       setState(() {
         _cargando = false;
@@ -133,10 +205,9 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
 
           // Contenido
           Expanded(
-            child:
-                _cargando
-                    ? const Center(child: CircularProgressIndicator())
-                    : _buildContenidoReporte(),
+            child: _cargando
+                ? const Center(child: CircularProgressIndicator())
+                : _buildContenidoReporte(),
           ),
         ],
       ),
@@ -279,8 +350,7 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
   }
 
   Widget _buildVentasPorDia() {
-    final ventasPorDia =
-        _resumenVentas!['ventasPorDia'] as Map<String, dynamic>;
+    final ventasPorDia = _resumenVentas!['ventasPorDia'] as Map<String, dynamic>;
 
     return Card(
       child: Padding(
@@ -301,9 +371,9 @@ class _ReportesPageState extends State<ReportesPage> with TickerProviderStateMix
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          DateFormat(
-                            'dd/MM/yyyy',
-                          ).format(DateTime.parse(entry.key)),
+                          DateFormat('dd/MM/yyyy').format(
+                            DateTime.parse(entry.key),
+                          ),
                         ),
                         Text(
                           '${entry.value['cantidad']} ventas - \$${entry.value['total'].toStringAsFixed(2)}',

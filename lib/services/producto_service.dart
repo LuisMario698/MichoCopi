@@ -435,4 +435,40 @@ class ProductoService {
       };
     }
   }
+
+  // Obtener materias primas de una receta
+  static Future<List<String>> obtenerMateriasPrimasDeReceta(int? idReceta) async {
+    try {
+      if (idReceta == null) {
+        return [];
+      }
+
+      // Obtener la receta
+      final recetaResponse = await _client
+          .from('Receta')
+          .select('ids_Mps')
+          .eq('id', idReceta)
+          .single();
+
+      final List<dynamic> idsMps = recetaResponse['ids_Mps'] ?? [];
+      
+      if (idsMps.isEmpty) {
+        return [];
+      }
+
+      // Obtener los nombres de las materias primas
+      final materiasResponse = await _client
+          .from('Materia_prima')
+          .select('nombre')
+          .inFilter('id', idsMps);
+
+      return (materiasResponse as List)
+          .map((mp) => mp['nombre'] as String)
+          .toList();
+
+    } catch (e) {
+      print('❌ Error obteniendo materias primas de receta: $e');
+      return [];
+    }
+  }
 }

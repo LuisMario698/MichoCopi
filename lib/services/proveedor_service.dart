@@ -13,8 +13,21 @@ class ProveedorService {
           .select()
           .order('nombre');
 
-      final proveedores =
-          (response as List).map((item) => Proveedor.fromJson(item)).toList();
+      print('📋 Response from Supabase: $response');
+
+      final proveedores = <Proveedor>[];
+      for (int i = 0; i < (response as List).length; i++) {
+        try {
+          final item = response[i];
+          print('🔍 Processing item $i: $item');
+          final proveedor = Proveedor.fromJson(item);
+          proveedores.add(proveedor);
+        } catch (e) {
+          print('❌ Error processing item $i: $e');
+          print('📄 Item data: ${response[i]}');
+          // Continuar con el siguiente item en lugar de fallar todo
+        }
+      }
 
       return {
         'success': true,
@@ -117,51 +130,76 @@ class ProveedorService {
   }
 
   // Crear nuevo proveedor
-  static Future<Proveedor> crear(Proveedor proveedor) async {
+  static Future<Map<String, dynamic>> crear(Proveedor proveedor) async {
     try {
       // Validar antes de crear
       final errores = proveedor.validar();
       if (errores.isNotEmpty) {
-        throw Exception('Datos inválidos: ${errores.join(', ')}');
+        return {
+          'success': false,
+          'message': 'Datos inválidos: ${errores.join(', ')}',
+        };
       }
+      
       // Verificar si ya existe un proveedor con el mismo nombre
       final existente = await _verificarProveedorExistente(proveedor.nombre);
       if (existente) {
-        throw Exception('Ya existe un proveedor con ese nombre');
+        return {
+          'success': false,
+          'message': 'Ya existe un proveedor con ese nombre',
+        };
       }
 
       final response =
           await _client
               .from(_tableName)
-              .insert(proveedor.toJson())
+              .insert(proveedor.toJsonForInsert())
               .select()
               .single();
 
-      return Proveedor.fromJson(response);
+      return {
+        'success': true,
+        'data': Proveedor.fromJson(response),
+        'message': 'Proveedor creado exitosamente',
+      };
     } catch (e) {
-      throw Exception('Error al crear proveedor: $e');
+      return {
+        'success': false,
+        'error': e.toString(),
+        'message': 'Error al crear proveedor: $e',
+      };
     }
   }
 
   // Actualizar proveedor
-  static Future<Proveedor> actualizar(Proveedor proveedor) async {
+  static Future<Map<String, dynamic>> actualizar(Proveedor proveedor) async {
     try {
       if (proveedor.id == null) {
-        throw Exception('El ID del proveedor es requerido para actualizar');
+        return {
+          'success': false,
+          'message': 'El ID del proveedor es requerido para actualizar',
+        };
       }
 
       // Validar antes de actualizar
       final errores = proveedor.validar();
       if (errores.isNotEmpty) {
-        throw Exception('Datos inválidos: ${errores.join(', ')}');
+        return {
+          'success': false,
+          'message': 'Datos inválidos: ${errores.join(', ')}',
+        };
       }
+      
       // Verificar si ya existe otro proveedor con el mismo nombre
       final existente = await _verificarProveedorExistente(
         proveedor.nombre,
         proveedor.id,
       );
       if (existente) {
-        throw Exception('Ya existe otro proveedor con ese nombre');
+        return {
+          'success': false,
+          'message': 'Ya existe otro proveedor con ese nombre',
+        };
       }
 
       final response =
@@ -172,26 +210,44 @@ class ProveedorService {
               .select()
               .single();
 
-      return Proveedor.fromJson(response);
+      return {
+        'success': true,
+        'data': Proveedor.fromJson(response),
+        'message': 'Proveedor actualizado exitosamente',
+      };
     } catch (e) {
-      throw Exception('Error al actualizar proveedor: $e');
+      return {
+        'success': false,
+        'error': e.toString(),
+        'message': 'Error al actualizar proveedor: $e',
+      };
     }
   }
 
   // Eliminar proveedor
-  static Future<void> eliminar(int id) async {
+  static Future<Map<String, dynamic>> eliminar(int id) async {
     try {
       // Verificar si el proveedor está siendo utilizado
       final enUso = await _verificarEnUso(id);
       if (enUso) {
-        throw Exception(
-          'No se puede eliminar el proveedor porque tiene compras registradas',
-        );
+        return {
+          'success': false,
+          'message': 'No se puede eliminar el proveedor porque tiene compras registradas',
+        };
       }
 
       await _client.from(_tableName).delete().eq('id', id);
+      
+      return {
+        'success': true,
+        'message': 'Proveedor eliminado exitosamente',
+      };
     } catch (e) {
-      throw Exception('Error al eliminar proveedor: $e');
+      return {
+        'success': false,
+        'error': e.toString(),
+        'message': 'Error al eliminar proveedor: $e',
+      };
     }
   }
 

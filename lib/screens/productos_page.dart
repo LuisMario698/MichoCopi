@@ -20,6 +20,7 @@ class _ProductosPageState extends State<ProductosPage> {
   bool _isLoading = true;
   List<dynamic> _productos = [];
   List<CategoriaProducto> _categorias = [];
+  Map<int, List<String>> _materiasPrimasPorProducto = {};
   String _categoriaSeleccionada = 'Todas las categorías';
   String _searchQuery = '';
 
@@ -44,8 +45,22 @@ class _ProductosPageState extends State<ProductosPage> {
       final categoriasResult = futures[1];
 
       if (productosResult['success']) {
+        final productos = productosResult['data'] as List<dynamic>;
         setState(() {
-          _productos = productosResult['data'];
+          _productos = productos;
+        });
+
+        // Cargar materias primas para cada producto
+        final Map<int, List<String>> materiasPrimas = {};
+        for (final producto in productos) {
+          if (producto.id != null) {
+            final materias = await ProductoService.obtenerMateriasPrimasDeReceta(producto.idReceta);
+            materiasPrimas[producto.id!] = materias;
+          }
+        }
+        
+        setState(() {
+          _materiasPrimasPorProducto = materiasPrimas;
         });
       }
 
@@ -136,6 +151,365 @@ class _ProductosPageState extends State<ProductosPage> {
           producto.nombre.toLowerCase().contains(_searchQuery.toLowerCase());
       return matchesCategoria && matchesSearch;
     }).toList();
+  }
+
+  void _mostrarMenuProducto(BuildContext context, Producto producto) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Indicador visual superior
+              Container(
+                width: 50,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Título con gradiente
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  producto.nombre,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFC2185B),
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              
+              Text(
+                'Selecciona una opción',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              
+              // Botón Modificar con diseño elegante
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _toggleDetalles(producto);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFC2185B),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.edit_outlined, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Modificar producto',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              
+              // Botón Eliminar con diseño elegante
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _confirmarEliminarProducto(producto);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.delete_outline, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Eliminar producto',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              
+              // Botón Cancelar
+              Container(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'Cancelar',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+              
+              // Espacio adicional para el área segura
+              SizedBox(height: MediaQuery.of(context).padding.bottom),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _confirmarEliminarProducto(Producto producto) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.warning_amber_rounded,
+                  color: Colors.red,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Confirmar eliminación',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              RichText(
+                text: TextSpan(
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[800],
+                    height: 1.5,
+                  ),
+                  children: [
+                    const TextSpan(text: '¿Estás seguro de que deseas eliminar el producto '),
+                    TextSpan(
+                      text: '"${producto.nombre}"',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFC2185B),
+                      ),
+                    ),
+                    const TextSpan(text: '?'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.orange.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.info_outline,
+                      color: Colors.orange,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Esta acción no se puede deshacer',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.orange[800],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                'Cancelar',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _eliminarProducto(producto);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                elevation: 2,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.delete_outline, size: 18),
+                  SizedBox(width: 6),
+                  Text(
+                    'Eliminar',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _eliminarProducto(Producto producto) async {
+    try {
+      // Verificar que el producto tiene un ID válido
+      if (producto.id == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error: Producto sin ID válido'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Mostrar indicador de carga
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const Center(
+            child: CircularProgressIndicator(
+              color: Color(0xFFC2185B),
+            ),
+          );
+        },
+      );
+
+      final result = await ProductoService.eliminarProducto(producto.id!);
+
+      // Cerrar indicador de carga
+      Navigator.pop(context);
+
+      if (result['success']) {
+        // Mostrar mensaje de éxito
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Producto "${producto.nombre}" eliminado exitosamente'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        // Recargar la lista de productos
+        await _cargarDatos();
+      } else {
+        // Mostrar mensaje de error
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al eliminar el producto: ${result['message']}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      // Cerrar indicador de carga si está abierto
+      Navigator.pop(context);
+      
+      // Mostrar mensaje de error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error inesperado: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }  // La función _calcularEstadoCaducidad ha sido eliminada
 
   @override
@@ -365,7 +739,7 @@ class _ProductosPageState extends State<ProductosPage> {
                                         : 1,
                                 crossAxisSpacing: 16,
                                 mainAxisSpacing: 16,
-                                childAspectRatio: 0.85,
+                                childAspectRatio: 0.75, // Reducido de 0.85 para dar más espacio vertical
                               ),
                           itemCount: _productosFiltrados.length,
                           itemBuilder: (context, index) {
@@ -380,7 +754,8 @@ class _ProductosPageState extends State<ProductosPage> {
                                   ),
                             );
                             return InkWell(
-                              onTap: () => _toggleDetalles(producto),
+                              onTap: () => _mostrarMenuProducto(context, producto),
+                              onLongPress: () => _mostrarMenuProducto(context, producto),
                               child: Card(
                                 elevation: 3,
                                 shadowColor: Colors.black26,
@@ -437,7 +812,7 @@ class _ProductosPageState extends State<ProductosPage> {
                                               producto.nombre,
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.bold,
-                                                fontSize: 30,
+                                                fontSize: 24, // Reducido de 30 a 24
                                                 height: 1.2,
                                                 color: Color(0xFF1E1E1E),
                                               ),
@@ -483,6 +858,64 @@ class _ProductosPageState extends State<ProductosPage> {
                                                   ),
                                                 ],                                              ),
                                             ),                                            const SizedBox(height: 8),
+                                            // Materias primas de la receta
+                                            if (_materiasPrimasPorProducto[producto.id] != null && 
+                                                _materiasPrimasPorProducto[producto.id]!.isNotEmpty)
+                                              Flexible(
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 4,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.green.withOpacity(0.1),
+                                                    borderRadius: BorderRadius.circular(6),
+                                                    border: Border.all(
+                                                      color: Colors.green.withOpacity(0.3),
+                                                      width: 1,
+                                                    ),
+                                                  ),
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Row(
+                                                        children: [
+                                                          Icon(
+                                                            Icons.science_outlined,
+                                                            size: 14,
+                                                            color: Colors.green.withOpacity(0.8),
+                                                          ),
+                                                          const SizedBox(width: 4),
+                                                          Text(
+                                                            'Ingredientes:',
+                                                            style: TextStyle(
+                                                              fontSize: 11,
+                                                              color: Colors.green.withOpacity(0.8),
+                                                              fontWeight: FontWeight.w600,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      const SizedBox(height: 2),
+                                                      Flexible(
+                                                        child: Text(
+                                                          _materiasPrimasPorProducto[producto.id]!
+                                                              .take(3)
+                                                              .join(', '),
+                                                          style: TextStyle(
+                                                            fontSize: 9,
+                                                            color: Colors.green.shade700,
+                                                            fontWeight: FontWeight.w500,
+                                                          ),
+                                                          maxLines: 2,
+                                                          overflow: TextOverflow.ellipsis,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
                                             // La información de caducidad ha sido eliminada
                                             const Spacer(),
                                             // Precio abajo a la derecha

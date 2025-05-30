@@ -171,19 +171,32 @@ class _ProveedorFormPanelState extends State<ProveedorFormPanel>
         horaCierre: _horaCierreController.text,
       );
 
+      Map<String, dynamic> result;
+      
       if (widget.proveedor != null) {
         // Actualizar proveedor existente
-        await ProveedorService.actualizar(proveedor);
-        widget.onProveedorCreated(true);
+        result = await ProveedorService.actualizar(proveedor);
       } else {
         // Crear nuevo proveedor
-        await ProveedorService.crear(proveedor);
+        result = await ProveedorService.crear(proveedor);
+      }
+
+      if (result['success']) {
+        _mostrarSnackBar(
+          result['message'] ?? 'Proveedor ${widget.proveedor != null ? 'actualizado' : 'creado'} exitosamente',
+          false,
+        );
         widget.onProveedorCreated(true);
+      } else {
+        _mostrarSnackBar(
+          result['message'] ?? 'Error al ${widget.proveedor != null ? 'actualizar' : 'crear'} el proveedor',
+          true,
+        );
       }
     } catch (e) {
       print('Error al guardar: $e');
       _mostrarSnackBar(
-        'Error al ${widget.proveedor != null ? 'actualizar' : 'guardar'} el proveedor: ${e.toString()}',
+        'Error inesperado al ${widget.proveedor != null ? 'actualizar' : 'guardar'} el proveedor: ${e.toString()}',
         true,
       );
     } finally {

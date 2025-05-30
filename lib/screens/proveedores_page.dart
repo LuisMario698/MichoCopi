@@ -4,7 +4,6 @@ import '../widgets/responsive_layout.dart';
 import '../widgets/proveedor_form_panel.dart';
 import '../models/proveedor.dart';
 import '../services/proveedor_service.dart';
-import '../services/producto_service.dart';
 import '../services/categoria_proveedor_service.dart';
 
 class ProveedoresPage extends StatefulWidget {
@@ -190,14 +189,50 @@ class _ProveedoresPageState extends State<ProveedoresPage> {
                       flex: 2,
                       child: ElevatedButton.icon(
                         onPressed: () async {
+                          Navigator.of(context).pop(); // Cerrar diálogo primero
+                          
+                          // Mostrar indicador de carga
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (BuildContext context) {
+                              return const Center(
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFFC2185B),
+                                ),
+                              );
+                            },
+                          );
+
                           try {
-                            await ProveedorService.eliminar(proveedor.id!);
+                            final result = await ProveedorService.eliminar(proveedor.id!);
+                            
+                            // Cerrar indicador de carga
                             Navigator.of(context).pop();
-                            _cargarProveedores();
+                            
+                            if (result['success']) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Proveedor "${proveedor.nombre}" eliminado exitosamente'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                              _cargarProveedores();
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error: ${result['message']}'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
                           } catch (e) {
+                            // Cerrar indicador de carga
+                            Navigator.of(context).pop();
+                            
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Error al eliminar el proveedor: $e'),
+                                content: Text('Error inesperado: $e'),
                                 backgroundColor: Colors.red,
                               ),
                             );
